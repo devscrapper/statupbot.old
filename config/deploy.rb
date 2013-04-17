@@ -13,7 +13,7 @@ set :user, "eric"
 set :password, "Brembo01"
 default_run_options[:pty] = true
 set :use_sudo, false
-set :server_list, ["input_flows"]
+set :server_list, ["input_flows_statupbot"]
 role :app, server_name
 
 require "rvm/capistrano"
