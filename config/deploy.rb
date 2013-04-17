@@ -62,13 +62,13 @@ end
 namespace :customize do
   task :setup do
     run "mkdir -p #{File.join(deploy_to, "shared", "data")}"
-    run "mkdir -p #{File.join(deploy_to, "shared", "output")}"
+    run "mkdir -p #{File.join(deploy_to, "shared", "input")}"
     end
   task :update do
     server_list.each{|server|  run "#{sudo} rm --interactive=never -f /etc/init/#{server}.conf && #{sudo} cp #{File.join(current_path, "control", "#{server}.conf")} /etc/init"}
     run "echo 'staging: test' >  #{File.join(current_path, 'parameter', 'environment.yml')}"
     run "ln -s #{File.join(deploy_to, "shared", "data")} #{File.join(current_path, "data")}"
-    run "ln -s #{File.join(deploy_to, "shared", "output")} #{File.join(current_path, "output")}"
+    run "ln -s #{File.join(deploy_to, "shared", "input")} #{File.join(current_path, "input")}"
   end
   task :bundle do
 
