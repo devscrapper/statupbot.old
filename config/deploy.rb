@@ -12,7 +12,7 @@ set :rvm_type, :user
 set :rvm_ruby_string, :release_path
 set :user, "eric"
 set :password, "Brembo01"
-set :copy_compression, :zip
+#set :copy_compression, :zip
 default_run_options[:pty] = true
 set :use_sudo, false
 set :server_list, ["input_flows_statupbot"]
