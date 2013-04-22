@@ -13,11 +13,12 @@ module Flowing
   class Inputs
 
     def initialize()
-
+      @logger = Logging::Log.new(self, :staging => $staging, :debugging => $debugging)
     end
 
     def toto(inputflow)
-      p inputflow
+      @logger.an_event.info "#{inputflow.basename } received at #{Time.now}"
+      @logger.an_event.debug inputflow
     end
   end
 
