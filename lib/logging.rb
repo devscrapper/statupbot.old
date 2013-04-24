@@ -50,12 +50,12 @@ module Logging
     def initialize(obj, opts = {})
       if Logging::initialized?
         @logger = Logging::Logger[obj]
+        #Logging::show_configuration
       else
         @staging = opts.getopt(:staging, STAGING_PROD)
         @debugging = opts.getopt(:debugging, false)
         @class_name = obj.class.name.gsub("::", "_")
         @main = @class_name == Object.name
-
         param_1(opts) if @debugging and [STAGING_TEST, STAGING_PROD].include?(@staging) and @main
         param_4(opts) if !@debugging and [STAGING_TEST, STAGING_PROD].include?(@staging) and @main
 
@@ -64,9 +64,11 @@ module Logging
 
         param_3(opts) if @debugging and [STAGING_DEV].include?(@staging) and @main
         param_6(opts) if !@debugging and [STAGING_DEV].include?(@staging) and @main
+        Logging::show_configuration
       end
       @logger.debug "logging is available"
     end
+
 
     def ndc(args)
       args.each { |arg| Logging.ndc.push arg }
@@ -74,17 +76,24 @@ module Logging
 
 
     def email()
-      #TODO definir le parametrage de l'appender mail
+      #TODO valider le parametrage de l'appender mail
+
+#      port 25 : sans authentificationnote 2, connexion non sécurisée
+#      port 465 : authentification permettant l'envoi d'e-mails depuis n'importe quel point d'accès, connexion sécurisée
+#      port 587 : authentification permettant l'envoi d'e-mails depuis n'importe quel point d'accès, connexion non sécurisée
+#      Si une méthode de sécurité vous est proposée, choisissez SSL / TLS port 465 (ou MD5 port 587).
+#      L'authentification SMTP est strictement inutile si la connexion utilisée lors de l'envoi d'eMails appartient au réseau Free.
+#      Cette option est clairement destinée à l'envoi d'eMails depuis une connexion appartenant à un opérateur différent.
       Logging::appenders.email('email',
-                               :from => "server@example.com",
-                               :to => "developers@example.com",
+                               :from => "error@log.com",
+                               :to => "devscrapper@yahoo.fr",
                                :subject => "Application Error []",
-                               :address => "smtp.google.com",
-                               :port => 443,
+                               :address => "smtp.free.fr",
+                               :port => 587,
                                :domain => "google.com",
-                               :user_name => "example",
-                               :password => "12345",
-                               :authentication => :plain,
+                               :user_name => "ericgelin",
+                               :password => "brembo",
+                               :authentication => :cram_md5,
                                :enable_starttls_auto => true,
                                :auto_flushing => 200, # send an email after 200 messages have been buffered
                                :flush_period => 60, # send an email after one minute
@@ -93,13 +102,14 @@ module Logging
     end
 
     def syslog()
-      #TODO terminer l'appender syslog
+      #TODO mettre en oeuvre sur le serveur de test logAnalyzer
       Logging::Appenders.syslog(@class_name)
     end
 
     def rollfile()
-      return Logging::Appenders.rolling_file(File.join(DIR_LOG, "#{@id_file}.log"), {:age => :daily, :keep => 7, :roll_by => :date}) unless  @debugging
-      Logging::Appenders.rolling_file(File.join(DIR_LOG, "#{@id_file}.log"), {:truncate => true, :size => 5000000, :keep => 10, :roll_by => :number})   if @debugging
+      opt = {:truncate => true, :size => 5000000, :keep => 10, :roll_by => :number} if @debugging
+      opt = {:age => :daily, :keep => 7, :roll_by => :date} unless  @debugging
+      Logging::Appenders.rolling_file(File.join(DIR_LOG, "#{@id_file}.log"), opt)
     end
 
 
