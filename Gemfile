@@ -11,12 +11,14 @@ gem "bundler"
 gem 'certified'
 gem "em-http-request"
 gem 'json'
-gem 'em-ftpd'
-gem 'ruby-progressbar'
 gem 'rufus-scheduler'
-gem 'ice_cube'
 gem 'logging'
 gem 'rest-client'
+gem 'em-proxy'
+gem 'uuid'
+gem 'selenium-webdriver'
+gem 'em-http-server'
+
 # fin new gem
 
 #group :development

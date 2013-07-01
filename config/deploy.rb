@@ -15,7 +15,7 @@ set :password, "Brembo01"
 #set :copy_compression, :zip
 default_run_options[:pty] = true
 set :use_sudo, false
-set :server_list, ["input_flows_statupbot"]
+set :server_list, ["input_flows_statupbot", "customize_queries_statupbot", "scheduler_statupbot", "visitor_factory_statupbot", "webdriver_factory_statupbot"]
 role :app, server_name
 
 require "rvm/capistrano"
@@ -32,7 +32,9 @@ depend :remote, :gem, "rufus-scheduler", ">=2.0.17"
 depend :remote, :gem, "ice_cube", ">=0.9.3"
 depend :remote, :gem, "logging", ">=1.8.1"
 depend :remote, :gem, "rest-client", ">=1.6.7"
-
+depend :remote, :gem, "em-proxy" , ">=0.1.8"
+depend :remote, :gem, "uuid"     , ">=2.3.7"
+depend :remote, :gem, "selenium-webdriver" , ">=2.32.1"
 
 after "deploy:update", "customize:update"
 after "deploy:bundle", "customize:bundle"

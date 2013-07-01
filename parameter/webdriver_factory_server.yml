@@ -1,0 +1,19 @@
+development:
+  start_phantomjs_port: 8001
+  proxy_listening_port: 9250
+  assign_browser_listening_port: 9230
+  unassign_browser_listening_port: 9231
+  free_browsers_listening_port: 9232
+  busy_browsers_listening_port: 9233
+  debugging:  true
+
+test:
+  start_phantomjs_port: 8001
+  proxy_listening_port: 9250
+  assign_browser_listening_port: 9230
+  unassign_browser_listening_port: 9231
+  free_browsers_listening_port: 9232
+  busy_browsers_listening_port: 9233
+  debugging:  false
+
+production:

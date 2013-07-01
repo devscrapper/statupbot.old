@@ -19,7 +19,7 @@ module Flowing
     end
 
     def published_visits()
-      execute { Inputs.new.toto(@input_flow) } if @last_volume
+      execute { Inputs.new.scheduling_visits(@input_flow) } if @last_volume
     end
 
 

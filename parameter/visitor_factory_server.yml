@@ -1,0 +1,15 @@
+
+development:
+  assign_new_visitor_listening_port: 9220
+  assign_return_visitor_listening_port: 9221
+  unassign_visitor_listening_port: 9222
+  return_visitors_listening_port: 9223
+  debugging:  true
+test:
+  assign_new_visitor_listening_port: 9220
+  assign_return_visitor_listening_port: 9221
+  unassign_visitor_listening_port: 9222
+  return_visitors_listening_port: 9223
+  debugging:  false
+
+production:
