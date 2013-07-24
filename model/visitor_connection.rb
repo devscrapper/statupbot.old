@@ -34,9 +34,9 @@ module Visitors
       @logger.an_event.debug url
       begin
         visitor.browser.go url
-        @logger.an_event.info "visitor #{visitor.id} browse #{url} with browser #{visitor.browser.id} and webdriver #{visitor.browser.webdriver.port} with access #{visitor.geolocation.class}"
+        @logger.an_event.info "visitor #{visitor.id} browse #{url} with browser #{visitor.browser.id} and webdriver #{visitor.browser.webdriver} with access #{visitor.geolocation.class}"
       rescue Exception => e
-        @logger.an_event.error "visitor #{visitor.id} cannot browse url #{url} with browser #{visitor.browser.id} and webdriver #{visitor.browser.webdriver.port} with access #{visitor.geolocation.class}"
+        @logger.an_event.error "visitor #{visitor.id} cannot browse url #{url} with browser #{visitor.browser.id} and webdriver #{visitor.browser.webdriver} with access #{visitor.geolocation.class}"
         @logger.an_event.debug e
       end
     end

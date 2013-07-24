@@ -4,12 +4,14 @@ development:
   assign_return_visitor_listening_port: 9221
   unassign_visitor_listening_port: 9222
   return_visitors_listening_port: 9223
+  browse_url_listening_port: 9224
   debugging:  true
 test:
   assign_new_visitor_listening_port: 9220
   assign_return_visitor_listening_port: 9221
   unassign_visitor_listening_port: 9222
   return_visitors_listening_port: 9223
+  browse_url_listening_port: 9224
   debugging:  false
 
 production:

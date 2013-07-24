@@ -1,6 +1,6 @@
 require_relative 'communication'
 require_relative '../lib/logging'
-require_relative 'visitor_connection'
+require_relative 'visitor_factory_connection'
 require_relative 'scheduler_connection'
 
   class Page
@@ -124,7 +124,7 @@ require_relative 'scheduler_connection'
         @visit =visit
       end
       begin
-        Visitors.browse_url(@visit.visitor, @url)
+        VisitorFactory.browse_url(@visit.visitor.id, @url)
       rescue Exception => e
         raise PageException, e.message
       end
