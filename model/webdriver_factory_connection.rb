@@ -18,6 +18,7 @@ module WebdriverFactory
   ENVIRONMENT= File.dirname(__FILE__) + "/../parameter/environment.yml"
   DIR_LOG = File.dirname(__FILE__) + "/../log"
   DIR_COOKIES = File.dirname(__FILE__) + "/../cookies"
+  DIR_LOCAL_STORAGE = File.dirname(__FILE__) + "/../tmp"
   @@proxy_listening_port = 9230
   @@free_webdrivers = []
   @@busy_webdrivers = {}
@@ -171,10 +172,18 @@ module WebdriverFactory
         @logger.an_event.debug "d:\\phantomjs\\phantomjs                                                     \
                                   --cookies-file=#{DIR_COOKIES}/cookies_#{port}.txt                         \
                                   --debug=#{$debugging}                                                     \
+                                  --load-images=false                                                        \
+                                  --disk-cache=true                                                           \
+                                  --local-storage-path=#{DIR_LOCAL_STORAGE}/phantomjs_#{port}.txt                      \
+                                  --local-to-remote-url-access=true                                         \
                                   --webdriver=127.0.0.1:#{port}                                             \
                                   --webdriver-logfile=#{DIR_LOG}/phantomjs_#{port}.txt                      \
                                   --webdriver-loglevel=DEBUG --proxy=127.0.0.1:#{@@proxy_listening_port} \
                                   --proxy-type=http"
+        #--load-images=false                                                        \
+        #--disk-cache=true                                                           \
+        #--local-storage-path=#{DIR_LOCAL_STORAGE}/phantomjs_#{port}.txt                      \
+        #--local-to-remote-url-access=true                                         \
         pid = Process.spawn("d:\\phantomjs\\phantomjs                                               \
                           --cookies-file=#{DIR_COOKIES}/cookies_#{port}.txt                         \
                           --debug=#{$debugging}                                                     \

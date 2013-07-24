@@ -29,14 +29,14 @@ module Visitors
     def receive_object(visitor_url)
       close_connection
       visitor = visitor_url["visitor"]
-      @logger.an_event.debug visitor
+      @logger.an_event.debug visitor.to_s
       url = "http://#{visitor_url["url"]}"
       @logger.an_event.debug url
       begin
         visitor.browser.go url
-        @logger.an_event.info "visitor #{visitor.id} browse #{url} with browser #{visitor.browser.id} and webdriver #{visitor.browser.webdriver.port}"
+        @logger.an_event.info "visitor #{visitor.id} browse #{url} with browser #{visitor.browser.id} and webdriver #{visitor.browser.webdriver.port} with access #{visitor.geolocation.class}"
       rescue Exception => e
-        @logger.an_event.error "visitor #{visitor.id} cannot browse url #{url}"
+        @logger.an_event.error "visitor #{visitor.id} cannot browse url #{url} with browser #{visitor.browser.id} and webdriver #{visitor.browser.webdriver.port} with access #{visitor.geolocation.class}"
         @logger.an_event.debug e
       end
     end

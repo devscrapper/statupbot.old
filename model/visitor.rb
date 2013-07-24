@@ -12,13 +12,15 @@ require_relative 'browser/internet_explorer'
 require_relative 'browser/chrome'
 require_relative 'customize_queries_connection'
 require_relative 'custom_gif_request/custom_gif_request'
+require_relative 'nationality/nationality'
 class Visitor
   class VisitorException < StandardError;
   end
 
-  attr :id,
-       :logger
-  attr_accessor :browser,
+
+  attr_accessor :id,
+                :browser,
+                :nationality,
                 :geolocation
 
   include CustomGifRequest
@@ -57,8 +59,15 @@ class Visitor
   #----------------------------------------------------------------------------------------------------------------
   def initialize(visit)
     @id = UUID.generate
+    @nationality = Nationalities::French.new() # par defaut
     @browser = Browsers::Browser.build(visit, @id)
     @geolocation = Geolocations::Geolocation.build(visit)
+  end
+
+  def to_s
+    "id : #{@id}\n" + \
+    @browser.to_s + "\n" + \
+    @geolocation.to_s
   end
 
   #----------------------------------------------------------------------------------------------------------------
@@ -87,16 +96,16 @@ class Visitor
   #----------------------------------------------------------------------------------------------------------------
   # input :
   #----------------------------------------------------------------------------------------------------------------
-  def assign_visitor(visitor)
+  def assign_visitor(visitor, referer)
+    @id = visitor.id if visitor.is_a?(ReturnVisitor)
     @browser = visitor.browser
-    visitor.display
     begin
-      c = CustomGifRequest.new(self)
+      c = CustomGifRequest.new(self, referer)
     rescue Exception => e
       raise VisitorException, "CustomGifRequest is not created for visitor #{@id} : #{e.message}"
     end
     begin
-      CustomizeQueries.send_visitor_properties(c)
+      CustomizeQueries.add_custom_gif(c)
     rescue Exception => e
       raise VisitorException, "CustomGifRequest for visitor #{@id} did not send to customize queries server: #{e.message}"
     end
@@ -118,6 +127,18 @@ class Visitor
     end
   end
 
+  def accept_language()
+    @nationality.accept_language
+  end
+
+  def utmcs()
+    @nationality.utmcs
+  end
+
+  def utmul()
+    @nationality.utmul_for_browser(@browser)
+  end
+
   #---------------------------------------------------------------------------------------------
   # private
   #---------------------------------------------------------------------------------------------
@@ -129,9 +150,9 @@ class NewVisitor < Visitor
   class NewVisitorException < StandardError;
   end
 
-  def assign_visitor
+  def assign_visitor(referer)
     begin
-      VisitorFactory.assign_new_visitor(self).pop { |visitor| super(visitor) }
+      VisitorFactory.assign_new_visitor(self).pop { |visitor| super(visitor, referer) }
     rescue Exception => e
       raise NewVisitorException, "assign of visitor #{@id} failed : #{e.message}"
     end
@@ -142,9 +163,9 @@ class ReturnVisitor < Visitor
   class ReturnVisitorException < StandardError;
   end
 
-  def assign_visitor
+  def assign_visitor(referer)
     begin
-      VisitorFactory.assign_return_visitor(self).pop { |visitor| super(visitor) }
+      VisitorFactory.assign_return_visitor(self).pop { |visitor| super(visitor, referer) }
     rescue Exception => e
       raise ReturnVisitorException, "assign of visitor #{@id} failed : #{e.message}"
     end

@@ -15,6 +15,7 @@ module Flowing
       @logger.an_event.debug inputflow
       begin
         Visit.build(inputflow).each { |visit|
+
           begin
             Scheduler.plan(visit)
             @logger.an_event.info "visit #{visit.id} ask planning at #{visit.start_date_time}"

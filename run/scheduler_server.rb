@@ -4,6 +4,7 @@
 require 'yaml'
 require_relative '../lib/logging'
 require_relative '../model/scheduler_connection'
+require_relative '../model/referer/referer'
 
 include Scheduler
 #--------------------------------------------------------------------------------------------------------------------

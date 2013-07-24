@@ -1,4 +1,4 @@
-require_relative '../browser/browser'
+require_relative 'browser'
 require_relative '../webdriver'
 module Browsers
   class InternetExplorer < Browser
@@ -12,8 +12,16 @@ module Browsers
     # instance methods
     #----------------------------------------------------------------------------------------------------------------
 
-    def user_agent()
+    def accept()
+      "image/png, image/svg+xml, image/*;q=0.8, */*;q=0.5"
+    end
 
+    def user_agent()
+     super
+    end
+
+    def accept_encoding()
+      "gzip, deflate"
     end
 
 

@@ -1,3 +1,5 @@
+require_relative '../user_agent'
+
 module Browsers
   class Browser
     class BrowserException < StandardError
@@ -6,12 +8,17 @@ module Browsers
          :operating_system,
          :operating_system_version,
          :flash_version,
-         :java_enabled,
-         :screens_colors,
-         :screen_resolution,
          :logger
 
-    attr_accessor :id, :webdriver, :visitor_id
+    attr_accessor :id,
+                  :webdriver,
+                  :visitor_id,
+                  :screens_colors,
+                  :screen_resolution,
+                  :java_enabled
+
+
+
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
@@ -138,8 +145,41 @@ module Browsers
       end
     end
 
+    def accept()
+      "image/png, image/svg+xml, image/*;q=0.8, */*;q=0.5"
+    end
+    def user_agent()
+      UserAgent::build(self)
+    end
 
+    def accept_encoding()
+      "gzip, deflate"
+    end
+
+    def viewport_resolution()
+      #TODO corriger afin de de na pas coller cette valeur au screen resolsution
+      @screen_resolution
+    end
+
+    def to_s
+      "browser type : #{self.class}\n" + \
+      "id browser : #{@id}\n" + \
+      "visitor id : #{@visitor_id}\n" + \
+      "browser version : #{@browser_version}\n" + \
+      "operating system : #{@operating_system}\n" + \
+      "operating system version : #{@operating_system_version}\n" + \
+      "flash version : #{@flash_version}\n" + \
+      @webdriver.to_s + "\n" + \
+      "screen colors : #{@screens_colors}\n" + \
+      "screen resolution : #{@screen_resolution}\n" + \
+      "java enabled : #{@java_enabled}"
+    end
   end
 
 
 end
+
+require_relative "firefox"
+require_relative "internet_explorer"
+require_relative 'chrome'
+require_relative 'safari'

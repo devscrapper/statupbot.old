@@ -3,8 +3,14 @@ module Geolocations
     class GeolocationException < StandardError
 
     end
+    DIR_INTERNET = File.dirname(__FILE__) + "/../../internet"
+    SUCCESS = "success"
+    FAIL = "fail"
+    @@sem = Mutex.new
     attr :country,
-         :language
+         :language  # n'est pas utilisé pour calculer le accept_language et utmul car ces valeurs doivent être initialisée avec le langage du visitor.
+    #en effet, un visitor peut être francais et se connecté à l'etranger, natrellement ou au travers d'un proxy, de la même manière avce un mobile
+    #on ne maitrise plus la loclisation d'un visitor
 
     #----------------------------------------------------------------------------------------------------------------
     # class methods
@@ -37,8 +43,8 @@ module Geolocations
     #----------------------------------------------------------------------------------------------------------------
     def self.build(visit)
       # return by default : direct
-      return Direct.new() if visit["return_visitor"] == "true" #pour tester
-      return Proxy.new()  if visit["return_visitor"] == "false" #pour tester
+      return Direct.new() #if visit["return_visitor"] == "true" #pour tester
+      #   return Proxy.new()  if visit["return_visitor"] == "false" #pour tester
     end
 
     #----------------------------------------------------------------------------------------------------------------
@@ -67,9 +73,72 @@ module Geolocations
       p "+---------------------------------------------+"
     end
 
-    def to_s()
-      "country : #{@country}, language : #{language}"
+
+    def go_to(uri, query, header, http_handler, connection_opts={}, visitor_id, logger)
+      http = EM::HttpRequest.new(uri, connection_opts).get :redirects => 5, :head => header , :query => query
+      http.callback {
+        logger.an_event.info "visitor #{header["User-Agent"]} browse #{uri}"
+        success_to_file(uri, query, header, visitor_id)
+        response = EM::DelegatedHttpResponse.new(http_handler)
+        response.headers=http.response_header
+        response.content = http.response
+        response.send_response
+      }
+      http.errback {
+        logger.an_event.error "visitor #{header["User-Agent"]} cannot browse #{uri}"
+        fail_to_file(uri, query, header, visitor_id)
+        response = EM::DelegatedHttpResponse.new(http_handler)
+        response.headers=http.response_header
+        response.content = http.response
+        response.send_response
+      }
     end
 
+
+    private
+    def data_to_file(uri, query, header)
+      headers = ""
+      header.each_pair{|k,v| headers += "#{k} : #{v}\n"}
+      "B---------------------------\n" + \
+       "country : #{@country}\nlanguage : #{@language}\n" + \
+      "B-HEADER--------------------\n" + \
+      headers  + \
+      "E-HEADER--------------------\n" + \
+      "B-URI-----------------------\n" + \
+      "#{uri}\n"  + \
+      "E-URI-----------------------\n" + \
+      "B-QUERY---------------------\n" + \
+      "#{query.gsub!(/&/, "\n")}\n" + \
+      "E-QUERY---------------------\n" + \
+      "E---------------------------\n"
+    end
+
+    def success_to_file(uri,query, header, visitor_id)
+      p SUCCESS
+      begin
+        data = data_to_file(uri,query, header)
+        @@sem.synchronize {
+          flow = Flow.new(DIR_INTERNET, SUCCESS, visitor_id, Date.today, Time.now.hour)
+          flow.append(data)
+          flow.close
+        }
+      rescue Exception => e
+        p e.message
+      end
+    end
+
+    def fail_to_file(uri, query, header, visitor_id)
+      p FAIL
+      begin
+        data = data_to_file(uri,query, header)
+        @@sem.synchronize {
+          flow = Flow.new(DIR_INTERNET, FAIL, visitor_id, Date.today, Time.now.hour)
+          flow.append(data)
+          flow.close
+        }
+      rescue Exception => e
+        p e.message
+      end
+    end
   end
 end

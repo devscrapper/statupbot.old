@@ -3,6 +3,7 @@ module Geolocations
     class ProxyException < StandardError
 
     end
+    #TODO meo une factory de proxy qui delivre des ip/port à la demande lors de l'affecation d'un proxy à une geolocation : la factory s'appuie sur un fichier CSV dans un premier temps qui contient port/ip/anonimity degrees/country ; on expose une fonction qui retourne un couple port/ip  avec le plus haut degree d'anonitmity.
     attr :ip, :port
 
     def initialize
@@ -24,7 +25,7 @@ module Geolocations
       p "port : #{@port}"
     end
 
-    def go_to(query, header)
+    def go_to(uri, query, header, http_handler,visitor_id,logger)
       connection_opts = {
           :proxy => {
               :host => @ip,
@@ -32,16 +33,7 @@ module Geolocations
               # :authorization => ['username', 'password']
           }
       }
-      http = EM::HttpRequest.new(@query, connection_opts).get :redirects => 5, :head => @header
-      http.callback {
-        response = EM::DelegatedHttpResponse.new(self)
-        response.headers=http.response_header
-        response.content = http.response
-        response.send_response
-      }
-      http.errback {
-        raise  DirectException, "#{http.error}/#{http.response}"
-      }
+      super(uri, query, header,http_handler, connection_opts, visitor_id, logger)
     end
 
     def to_s()

@@ -1,14 +1,14 @@
 
 development:
   proxy_listening_port: 9250
-  visitor_listening_port: 9251
-  page_listening_port: 9252
+  add_customgif_listening_port: 9251
+  delete_customgif_listening_port: 9252
 
   debugging:  true
 test:
   proxy_listening_port: 9250
-  visitor_listening_port: 9251
-  page_listening_port: 9252
+  add_customgif_listening_port: 9251
+  delete_customgif_listening_port: 9252
 
   debugging:  false
 

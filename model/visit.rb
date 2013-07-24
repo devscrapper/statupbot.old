@@ -1,9 +1,9 @@
 require_relative 'communication'
 require_relative '../lib/logging'
-require_relative 'referer'
 require_relative 'visitor'
 require_relative 'page'
-require_relative '../model/visitor_factory_connection'
+require_relative 'visitor_factory_connection'
+require_relative 'referer/referer'
 
 class Visit
   class VisitException < StandardError;
@@ -11,12 +11,12 @@ class Visit
   EOFLINE = "\n"
   @@sem_visits_list = Mutex.new
   @@visits_list = {}
-  attr        :start_date_time,
-       :pages,
-       :referer
+  attr :start_date_time,
+       :pages
   attr_accessor :id,
                 :visitor,
-                :logger
+                :logger,
+                :referer
   attr_reader :started # assure que la visit est démarré, cad que lon a un visitor et un browser avec un webdriver operationnel pour eviter de browser des referer ou page sans visit.
 
 
@@ -37,13 +37,19 @@ class Visit
     begin
       visits_input_flow.foreach(EOFLINE) { |visit| visits << Visit.new(JSON.parse(visit)) }
     rescue Exception => e
-      raise VisitException, "cannot build visits"
+      raise VisitException, "cannot build visits : #{e.message}"
     end
     visits
   end
+
   def self.get_visit(id)
-    @@sem_visits_list.synchronize{@@visits_list[id]}
+    @@sem_visits_list.synchronize { @@visits_list[id] }
   end
+
+  def self.visits()
+    @@visits_list
+  end
+
   #----------------------------------------------------------------------------------------------------------------
   # instance methods
   #----------------------------------------------------------------------------------------------------------------
@@ -78,30 +84,37 @@ class Visit
 #    @logger = Logging::Log.new(self, :staging => $staging, :debugging => $debug)
     begin
       @id = visit["id_visit"]
-      @start_date_time = Time.parse(visit["start_date_time"]) - 5 * 60
+
+      #TODO a supprimer DEBUT
+      #@start_date_time = Time.parse(visit["start_date_time"]) - 5 * 60
+      @start_date_time = Time.now + 5
+      #TODO a supprimer FIN
       @visitor = ReturnVisitor.new(visit) if visit["return_visitor"] == "true"
       @visitor = NewVisitor.new(visit) unless visit["return_visitor"] == "true"
-      @referer = Referer.new(visit, Time.parse(visit["start_date_time"]),  @id)
-      @pages = Page.build(visit, Time.parse(visit["start_date_time"]),  @id)
+      @pages = Page.build(visit, @start_date_time, @id)
+      landing_page = Page.landing_page(@pages)
+      @referer = Referers::Referer.build(visit, @start_date_time, @id, landing_page)
+        #@referer = Referer.new(visit, @start_date_time, @id, landing_page)
     rescue Exception => e
       raise VisitException, "new visit #{visit["id_visit"]} failed, #{e.message}"
     end
   end
 
   def add_visit()
-    @@sem_visits_list.synchronize{@@visits_list[@id] = self}
+    @@sem_visits_list.synchronize { @@visits_list[@id] = self }
   end
 
   def del_visit()
-    @@sem_visits_list.synchronize{@@visits_list[@id] = nil}
+    @@sem_visits_list.synchronize { @@visits_list[@id] = nil }
   end
-#----------------------------------------------------------------------------------------------------------------
-# display
-#----------------------------------------------------------------------------------------------------------------
-# affiche le contenu d'une visite
-#----------------------------------------------------------------------------------------------------------------
-# input :
-#----------------------------------------------------------------------------------------------------------------
+
+  #----------------------------------------------------------------------------------------------------------------
+  # display
+  #----------------------------------------------------------------------------------------------------------------
+  # affiche le contenu d'une visite
+  #----------------------------------------------------------------------------------------------------------------
+  # input :
+  #----------------------------------------------------------------------------------------------------------------
 
   def display()
     p "id visit : #{@id}"
@@ -151,7 +164,7 @@ class Visit
   def start()
     begin
       add_visit()
-      @visitor.assign_visitor
+      @visitor.assign_visitor(@referer)
     rescue Exception => e
       raise VisitException, "visit #{@id} is not started, #{e.message}"
     end

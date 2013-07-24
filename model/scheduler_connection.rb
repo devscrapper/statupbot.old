@@ -3,6 +3,8 @@ require 'socket'
 require 'eventmachine'
 require 'rufus-scheduler'
 require_relative 'visit'
+require_relative 'page'
+require_relative 'referer/referer'
 
 module Scheduler
   #--------------------------------------------------------------------------------------------------------------------
@@ -28,15 +30,26 @@ module Scheduler
       close_connection
       @logger.an_event.debug obj
       begin
-        if obj.start_date_time > Time.now
-          obj.plan(@@scheduler)
-          @logger.an_event.info "#{obj.class} #{obj.id} is planed at #{obj.start_date_time}"
+        if obj.is_a?(Referers::NoReferer)
+          @logger.an_event.info "None Referer is plan"
         else
-          @logger.an_event.warn "#{obj.class} #{obj.id} is not planed, because too old"
+          if obj.start_date_time > Time.now
+            obj.plan(@@scheduler)
+            @logger.an_event.info "#{obj.class} #{obj.url} is planed at #{obj.start_date_time}" if obj.is_a?(Page) or \
+                                                                                                   obj.is_a?(Referers::Search) or \
+                                                                                                    obj.is_a?(Referers::Referral)
+            @logger.an_event.info "#{obj.class} #{obj.id} is planed at #{obj.start_date_time}"  if obj.is_a?(Visit)
+          else
+            @logger.an_event.warn "#{obj.class} #{obj.url} is not planed, because too old" if obj.is_a?(Page) or \
+                                                                                                   obj.is_a?(Referers::Search) or \
+                                                                                                    obj.is_a?(Referers::Referral)
+            @logger.an_event.warn "#{obj.class} #{obj.id} is not planed, because too old" if obj.is_a?(Visit)
+
+          end
         end
       rescue Exception => e
         @logger.an_event.debug e
-        @logger.an_event.error "#{obj.class} #{obj.id} is not planed"
+        @logger.an_event.error "#{obj.class} is not planed"
       end
 
     end
@@ -61,7 +74,7 @@ module Scheduler
     # LOAD PARAMETER
     #--------------------------------------------------------------------------------------------------------------------
     load_parameter()
-     EM.connect "localhost", @listening_port, Client, obj
+    EM.connect "localhost", @listening_port, Client, obj
   end
 
   def load_parameter()

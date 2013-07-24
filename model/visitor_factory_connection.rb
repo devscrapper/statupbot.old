@@ -3,7 +3,7 @@ require 'socket'
 require 'eventmachine'
 require_relative 'visitor'
 require_relative 'webdriver_factory_connection'
-
+require_relative 'customize_queries_connection'
 module VisitorFactory
   #--------------------------------------------------------------------------------------------------------------------
   # INIT
@@ -258,6 +258,7 @@ module VisitorFactory
       @logger.an_event.info "unassign browser #{x[1].browser.id} of visitor #{x[1].id}"
       WebdriverFactory.unassign_browser(x[1].browser)
       #TODO supprimer le customgif du visitor chez customize_queries_server
+      CustomizeQueries.delete_custom_gif(x[1].id)
     }
     @logger.an_event.debug "after cleaning, count return visitor : #{@@return_visitors.size}"
   end
