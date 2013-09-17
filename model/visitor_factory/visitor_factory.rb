@@ -23,7 +23,7 @@ module VisitorFactory
     end
 
     def receive_object(visitor_details)
-      #TODO penser à supprimer les visitor trop vieux #kill_old_return_visitors()
+
       @@logger.an_event.debug "receive visitor details #{visitor_details}"
       visitor = Visitor.new(visitor_details)
       @@logger.an_event.info "create a visitor with id #{visitor_details[:id]}"
@@ -76,7 +76,7 @@ module VisitorFactory
   end
   class ReturnVisitorsConnection < EventMachine::Connection
     include EM::Protocols::ObjectProtocol
-
+    #TODO meo les return visitor
 
     def initialize(logger)
       @@logger = logger
@@ -88,6 +88,7 @@ module VisitorFactory
     end
   end
   class UnAssignVisitorConnection < EventMachine::Connection
+    #TODO meo la liberation des visitors
     include EM::Protocols::ObjectProtocol
 
     def initialize(logger)
@@ -165,7 +166,7 @@ module VisitorFactory
 
     def receive_object(visitor_url)
       close_connection
-      @@logger.an_event.debug  visitor_url
+      @@logger.an_event.debug visitor_url
       visitor_id = visitor_url["visitor_id"]
       search_engine = visitor_url["search_engine"]
       landing_page_url = visitor_url["landing_page_url"]
@@ -182,7 +183,7 @@ module VisitorFactory
       begin
         visitor = @@busy_visitors[visitor_id]
         @@logger.an_event.info "visitor #{visitor.id} search #{keywords} on search engine #{search_engine} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
-        landing_page_found = visitor.browser.search( search_engine, landing_page_url, keywords, sleeping_time, count_max_page)
+        landing_page_found = visitor.browser.search(search_engine, landing_page_url, keywords, sleeping_time, count_max_page)
         @@logger.an_event.warn "landing page url #{landing_page_url} is not found in results search" unless landing_page_found
         @@logger.an_event.info "landing page url #{landing_page_url} is found in results search" if landing_page_found
       rescue Exception => e
@@ -193,6 +194,7 @@ module VisitorFactory
   end
 
   def kill_old_return_visitors()
+    #TODO meo la mort des visitors
     @@logger.an_event.debug "before cleaning, count return visitor : #{@@return_visitors.size}"
     old_return_visitors = @@return_visitors.select { |x| x[0] < Time.now - (5 + 5 + 5) * 60 }
     @@logger.an_event.debug "old return visitors(#{old_return_visitors.size}) : #{old_return_visitors}"
@@ -204,7 +206,6 @@ module VisitorFactory
       x[1].browser.close
       @@logger.an_event.info "unassign browser #{x[1].browser.id} of visitor #{x[1].id}"
       WebdriverFactory.unassign_browser(x[1].browser)
-      #TODO supprimer le customgif du visitor chez customize_queries_server
       CustomizeQueries.delete_custom_gif(x[1].id)
     }
     @@logger.an_event.debug "after cleaning, count return visitor : #{@@return_visitors.size}"

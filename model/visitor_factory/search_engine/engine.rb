@@ -10,10 +10,9 @@ module VisitorFactory
           when :google
             return Google.new(driver, sleeping_time)
           when :bing
-            return  #TODO developper engine Bing
+            return Bing.new(driver, sleeping_time)
           when :ask
-            return  #TODO developper engine ask
-
+            return Ask.new(driver, sleeping_time)
           else
             raise SearchEngineException, "search engine <#{engine}> unknown"
         end

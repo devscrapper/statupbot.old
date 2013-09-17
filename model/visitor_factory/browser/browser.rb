@@ -105,6 +105,7 @@ module VisitorFactory
       end
     end
 
+    #TODO s'assurer que les var http du header envoyé par ga.js ver sgoogle sont le reflet du fake navigateuyr
     #----------------------------------------------------------------------------------------------------------------
     # instance methods
     #----------------------------------------------------------------------------------------------------------------
@@ -172,6 +173,7 @@ module VisitorFactory
     #----------------------------------------------------------------------------------------------------------------
     def close
       begin
+        #TODO controler le comportement des cookies avec webdriver reflete celui attendu pour GA
         @driver.manage.delete_all_cookies()
         @driver.close
         @@logger.an_event.info "browser #{@id} is closed"
@@ -210,6 +212,7 @@ module VisitorFactory
     #----------------------------------------------------------------------------------------------------------------
     def open
       begin
+        #TODO controler que les cookies GA n'existe pas.?
         firefox_binary_path = VisitorFactory.firefox_path || Selenium::WebDriver::Firefox::Binary.path
         raise BrowserException, "firefox binary path not exist :#{firefox_binary_path}" unless File.exists?(firefox_binary_path)
 
