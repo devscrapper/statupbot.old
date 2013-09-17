@@ -1,17 +1,27 @@
 
 development:
+  firefox_path: 'D:/FirefoxPortable/App/Firefox/Firefox.exe'
+  home: false
+  debug_outbound_queries: false
   assign_new_visitor_listening_port: 9220
   assign_return_visitor_listening_port: 9221
   unassign_visitor_listening_port: 9222
   return_visitors_listening_port: 9223
   browse_url_listening_port: 9224
+  click_url_listening_port: 9225
+  search_url_listening_port: 9226
   debugging:  true
 test:
+  firefox_path:
+  home: false
+  debug_outbound_queries: false
   assign_new_visitor_listening_port: 9220
   assign_return_visitor_listening_port: 9221
   unassign_visitor_listening_port: 9222
   return_visitors_listening_port: 9223
   browse_url_listening_port: 9224
+  click_url_listening_port: 9225
+  search_url_listening_port: 9226
   debugging:  false
 
 production:

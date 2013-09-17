@@ -15,24 +15,17 @@ set :password, "Brembo01"
 #set :copy_compression, :zip
 default_run_options[:pty] = true
 set :use_sudo, false
-set :server_list, ["input_flows_statupbot", "customize_queries_statupbot", "scheduler_statupbot", "visitor_factory_statupbot", "webdriver_factory_statupbot"]
+set :server_list, ["input_flows_statupbot", "visit_factory_statupbot", "visitor_factory_statupbot"]
 role :app, server_name
 
 require "rvm/capistrano"
 
 depend :remote, :gem, "eventmachine", ">=1.0.0"
 depend :remote, :gem, "certified", ">=0.1.1"
-depend :remote, :gem, "em-http-request", ">=1.0.3"
-depend :remote, :gem, "domainatrix", ">=0.0.10"
-depend :remote, :gem, "nokogiri", ">=1.5.5"
 depend :remote, :gem, "json", ">=1.7.5"
 depend :remote, :gem, "em-ftpd", ">=0.0.1"
-depend :remote, :gem, "google-api-client", ">=0.4.6"
 depend :remote, :gem, "rufus-scheduler", ">=2.0.17"
-depend :remote, :gem, "ice_cube", ">=0.9.3"
 depend :remote, :gem, "logging", ">=1.8.1"
-depend :remote, :gem, "rest-client", ">=1.6.7"
-depend :remote, :gem, "em-proxy" , ">=0.1.8"
 depend :remote, :gem, "uuid"     , ">=2.3.7"
 depend :remote, :gem, "selenium-webdriver" , ">=2.32.1"
 
@@ -65,13 +58,13 @@ end
 
 namespace :customize do
   task :setup do
-    run "mkdir -p #{File.join(deploy_to, "shared", "data")}"
+    run "mkdir -p #{File.join(deploy_to, "shared", "visitors")}"
     run "mkdir -p #{File.join(deploy_to, "shared", "input")}"
     end
   task :update do
     server_list.each{|server|  run "#{sudo} rm --interactive=never -f /etc/init/#{server}.conf && #{sudo} cp #{File.join(current_path, "control", "#{server}.conf")} /etc/init"}
     run "echo 'staging: test' >  #{File.join(current_path, 'parameter', 'environment.yml')}"
-    run "ln -s #{File.join(deploy_to, "shared", "data")} #{File.join(current_path, "data")}"
+    run "ln -s #{File.join(deploy_to, "shared", "visitors")} #{File.join(current_path, "visitors")}"
     run "ln -s #{File.join(deploy_to, "shared", "input")} #{File.join(current_path, "input")}"
   end
   task :bundle do
