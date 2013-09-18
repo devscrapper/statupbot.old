@@ -175,8 +175,7 @@ module VisitorFactory
     @@logger.an_event.debug @@free_visitors
     size = @@free_visitors.size
     @@free_visitors.delete_if { |visitor|
-      #if visitor[0] < Time.now - (5 + 5 + 5) * 60
-      if visitor[0] < Time.now - 5 * 60
+      if visitor[0] < Time.now - (5 + 5 + 5) * 60
         @@logger.an_event.info "visitor #{visitor[1].id} is killed"
         @@logger.an_event.debug "remove visitor #{visitor[1].id}"
         visitor[1].close_browser
