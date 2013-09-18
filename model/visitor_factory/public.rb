@@ -36,7 +36,6 @@ module VisitorFactory
 
     def post_init
       send_object @visitor_details
-      close_connection_after_writing
       @logger.an_event.info "assignement of visitor #{@visitor_details[:id]} is asked to VisitorFactory"
     end
 
@@ -54,7 +53,6 @@ module VisitorFactory
 
     def receive_object(visitor_id)
       @q.push visitor_id
-      close_connection
     end
 
     def post_init
@@ -76,7 +74,6 @@ module VisitorFactory
 
     def post_init
       send_object @visitor_id
-      close_connection_after_writing
       @logger.an_event.info "unassignement of visitor #{@visitor_id} is asked to VisitorFactory"
     end
   end
@@ -94,7 +91,6 @@ module VisitorFactory
 
     def post_init
       send_object({"visitor_id" => @visitor_id, "url" => @url})
-      close_connection_after_writing
       @logger.an_event.info "browse of #{@url} by visitor #{@visitor_id} is asked to VisitorFactory"
     end
   end
@@ -113,7 +109,6 @@ module VisitorFactory
 
     def post_init
       send_object({"visitor_id" => @visitor_id, "url" => @url})
-      close_connection_after_writing
       @logger.an_event.info "click on #{@url} by visitor #{@visitor_id} is asked to VisitorFactory"
     end
   end

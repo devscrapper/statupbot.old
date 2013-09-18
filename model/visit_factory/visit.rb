@@ -2,8 +2,8 @@ require 'uuid'
 require_relative '../../lib/logging'
 require_relative 'referer/referer'
 require_relative 'ressource/ressource'
-
 require_relative '../visitor_factory/public'
+
 module VisitFactory
   class Visit
     class VisitException < StandardError;
@@ -121,7 +121,7 @@ module VisitFactory
     #----------------------------------------------------------------------------------------------------------------
     def plan(scheduler)
       begin
-        scheduler.at @start_date_time  do
+        scheduler.at @start_date_time do
           assign_visitor
         end
         @@logger.an_event.info "assign visitor to #{@id} is planed at #{@start_date_time}"
@@ -130,7 +130,7 @@ module VisitFactory
 
         stop_date_time = Page.plan(@pages, scheduler, @visitor_id)
 
-        scheduler.at stop_date_time  do
+        scheduler.at stop_date_time do
           free_visitor
         end
         @@logger.an_event.info "free visitor of visit #{@id} is planed at #{stop_date_time}"
@@ -155,6 +155,7 @@ module VisitFactory
     def assign_visitor
       begin
         VisitorFactory.assign_new_visitor(@visitor_details, @@logger) if @visitor_details[:return_visitor] == "false"
+        #TODO valider return visitor
         @visitor_id = VisitorFactory.assign_return_visitor(@visitor_details, @@logger).pop if @visitor_details[:return_visitor] == "true"
         @@logger.an_event.info "visitor #{@visitor_id} is assign to visit #{@id}"
       rescue Exception => e
@@ -176,7 +177,7 @@ module VisitFactory
 #----------------------------------------------------------------------------------------------------------------
     def free_visitor
       begin
-        VisitorFactory.unassign_visitor(@visitor_id,@@logger)
+        VisitorFactory.unassign_visitor(@visitor_id, @@logger)
         @@logger.an_event.info "visitor #{@visitor_id} is free"
       rescue Exception => e
         @@logger.an_event.debug e

@@ -1,6 +1,6 @@
 require 'yaml'
 require 'socket'
-require 'rest-client'
+#require 'rest-client'
 
 class Communication
 

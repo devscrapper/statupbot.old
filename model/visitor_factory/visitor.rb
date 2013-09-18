@@ -50,40 +50,19 @@ module VisitorFactory
       @browser = Browser.build(visitor_details, self)
     end
 
-    def send_customisation_to_mitm
-      File.open("#{DIR_VISITORS}/#{@id}.json", 'w') do |io| io.write @browser.custom_queries.to_json end
+    def close_browser
+      @browser.close
+      #supprimer file contenant la customisation
+      File.delete("#{DIR_VISITORS}/#{@id}.json")
     end
 
-    def del_customisation
-      File.delete("#{@id}.json")
+    def open_browser
+      @browser.open
+      # send customize queries to mitm
+      File.open("#{DIR_VISITORS}/#{@id}.json", 'w') do |io|
+        io.write @browser.custom_queries.to_json
+      end
     end
-    def to_s
-      "id : #{@id}\n" + \
-    @browser.to_s + "\n" + \
-    @geolocation.to_s
-    end
-
-    #----------------------------------------------------------------------------------------------------------------
-    # display
-    #----------------------------------------------------------------------------------------------------------------
-    # affiche le contenu d'un visitor
-    #----------------------------------------------------------------------------------------------------------------
-    # input :
-    #----------------------------------------------------------------------------------------------------------------
-    def display()
-      p "+----------------------------------------------"
-      p "| VISITOR                                     |"
-      p "+---------------------------------------------+"
-      p "| id visitor : #{@id}"
-      @browser.display
-      @geolocation.display
-      p "+----------------------------------------------"
-      p "| VISITOR                                     |"
-      p "+---------------------------------------------+"
-    end
-
-
-
 
   end
 
