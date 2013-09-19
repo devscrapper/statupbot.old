@@ -3,8 +3,8 @@ module VisitorFactory
     class Bing < SearchEngine
       class BingException < StandardError
       end
-      #TODO meo search engine bing
-      URL = "http://www.google.fr"
+
+      URL = "http://www.bing.com/?cc=fr"
       attr :driver,
            :sleeping_time # permet d'attendre qu'une page est affichée
 
@@ -24,7 +24,7 @@ module VisitorFactory
         element.submit
         sleep(@sleeping_time)
         begin
-          @driver.find_element(:class, "cur").text.to_i
+          @driver.find_element(:class, "sb_pagS").text.to_i
         rescue Exception => e
           0
         end
@@ -34,9 +34,10 @@ module VisitorFactory
       # Si il ny a pas de fleche suivante alors retourne 0
       def next
         begin
-          @driver.find_element(:id => "pnnext").click
+
+          @driver.find_element(:class => "sb_pagN").click
           sleep(sleeping_time)
-          @driver.find_element(:class, "cur").text.to_i
+          @driver.find_element(:class, "sb_pagS").text.to_i
         rescue Exception => e
           # pnnext n'est pas trouvé dans la page
           0

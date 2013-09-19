@@ -11,8 +11,6 @@ module VisitorFactory
             return Google.new(driver, sleeping_time)
           when :bing
             return Bing.new(driver, sleeping_time)
-          when :ask
-            return Ask.new(driver, sleeping_time)
           else
             raise SearchEngineException, "search engine <#{engine}> unknown"
         end
@@ -23,3 +21,4 @@ module VisitorFactory
 end
 
 require_relative 'google'
+require_relative 'bing'

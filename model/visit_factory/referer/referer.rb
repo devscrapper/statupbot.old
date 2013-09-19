@@ -3,6 +3,8 @@ module VisitFactory
     class Referer
       class RefererException < StandardError;
       end
+
+
       #----------------------------------------------------------------------------------------------------------
       # Source : chaque site référent a une origine ou source. Les sources possibles sont les suivantes :
       #    "Google" (nom d'un moteur de recherche),

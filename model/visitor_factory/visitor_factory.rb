@@ -188,7 +188,11 @@ module VisitorFactory
   end
 
 
+  def logger(logger)
+    @@logger = logger
+  end
   module_function :garbage_free_visitors
+  module_function :logger
 
 
 end

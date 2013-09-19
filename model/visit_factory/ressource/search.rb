@@ -18,8 +18,6 @@ module VisitFactory
             @search_engine = :google
           when "bing"
             @search_engine = :bing
-          when "ask"
-            @search_engine = :ask
           else
             raise SearchException, "organic source #{source} unknown"
         end

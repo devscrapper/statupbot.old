@@ -106,6 +106,8 @@ module VisitorFactory
     end
 
     #TODO s'assurer que les var http du header envoyé par ga.js ver sgoogle sont le reflet du fake navigateuyr
+    #TODO essayer de remplacer le mitm proxy par de l'injection de code javascript pour faker les function javascript du DOM utiliser par le script ga.js   ; (WebDriver::Element, ...) execute_script(script, *args) (also: #script)
+    #TODO valider le ssl  : firefox accepte les certificats ; assume_untrusted_certificate_issuer?
     #----------------------------------------------------------------------------------------------------------------
     # instance methods
     #----------------------------------------------------------------------------------------------------------------
@@ -148,15 +150,19 @@ module VisitorFactory
         @driver.find_elements(:tag_name, "a").each { |a|
           @@logger.an_event.debug "href : #{a[:href]}"
           if a[:href] == url
-            @@logger.an_event.info "browser #{@id} found #{url} on page #{@driver.current_url}"
+            @@logger.an_event.info "browser #{@id} click on url #{url} on page #{@driver.current_url}"
             a.click
             url_found = true
-            @@logger.an_event.info "browser #{@id} click on url #{url} on page #{@driver.current_url}"
             break
           end
         }
-        @@logger.an_event.warn "browser #{@id} not found url #{url} on page #{@driver.current_url}" unless url_found
-        browse(url) unless url_found
+        if url_found
+          sleep(5)
+          @@logger.an_event.debug "cookies GA : #{cookies_ga}"
+        else
+          @@logger.an_event.warn "browser #{@id} not found url #{url} on page #{@driver.current_url}"
+          browse(url)
+        end
       rescue Exception => e
         @@logger.an_event.debug e
         @@logger.an_event.error "browser #{@id} cannot click on url #{url} on page #{@driver.current_url}"
@@ -173,7 +179,6 @@ module VisitorFactory
     #----------------------------------------------------------------------------------------------------------------
     def close
       begin
-        #TODO controler le comportement des cookies avec webdriver reflete celui attendu pour GA
         @driver.manage.delete_all_cookies()
         @driver.close
         @@logger.an_event.info "browser #{@id} is closed"
@@ -192,10 +197,14 @@ module VisitorFactory
     #----------------------------------------------------------------------------------------------------------------
     # input :
     #----------------------------------------------------------------------------------------------------------------
+
+
     def browse(url)
       begin
-        @driver.navigate.to url
+        @driver.get url
         @@logger.an_event.info "browser #{@id} browse url #{url}"
+        sleep(5)
+        @@logger.an_event.debug "cookies GA : #{cookies_ga}"
       rescue Exception => e
         @@logger.an_event.debug e
         @@logger.an_event.error "browser #{@id} cannot browse url #{url}"
@@ -212,7 +221,6 @@ module VisitorFactory
     #----------------------------------------------------------------------------------------------------------------
     def open
       begin
-        #TODO controler que les cookies GA n'existe pas.?
         firefox_binary_path = VisitorFactory.firefox_path || Selenium::WebDriver::Firefox::Binary.path
         raise BrowserException, "firefox binary path not exist :#{firefox_binary_path}" unless File.exists?(firefox_binary_path)
 
@@ -221,6 +229,7 @@ module VisitorFactory
         @@logger.an_event.info "browser #{@id} is opend"
         width, height = @screen_resolution.split(/x/)
         @driver.manage.window.resize_to(width.to_i, height.to_i)
+        @@logger.an_event.debug "cookies GA : #{cookies_ga}"
       rescue Exception => e
         @@logger.an_event.debug e
         @@logger.an_event.error "browser #{@id} is not opend"
@@ -237,6 +246,7 @@ module VisitorFactory
       begin
         search_engine = SearchEngine.build(search_engine, @driver, sleeping_time)
         count_page = search_engine.search(keywords)
+        @@logger.an_event.debug "cookies GA : #{cookies_ga}"
         landing_page_found = false
         # on boucle tanque la landing page n'a pas été trouvé ou bien que le nombre de page de resultat n'est pas atteint ou bien qu'il eixte une page suivante
         # count_page == 0 est synonyme de page non trouve ou affichée
@@ -246,6 +256,7 @@ module VisitorFactory
           @@logger.an_event.info "browser #{@id} display result page #{count_page} of #{search_engine.class} search with #{keywords}"
           landing_page_found = search_engine.exist?(landing_page_url)
           count_page = search_engine.next if !landing_page_found
+          @@logger.an_event.debug "cookies GA : #{cookies_ga}"
         end
       rescue Exception => e
         @@logger.an_event.debug e
@@ -253,6 +264,14 @@ module VisitorFactory
       ensure
         return landing_page_found
       end
+    end
+
+    def cookies_ga
+      cookies = []
+      driver.manage.all_cookies.each { |cookie|
+        cookies << cookie if  ["__utma", "__utmb", "__utmc", "__utmz"].include?(cookie[:name])
+      }
+      cookies
     end
   end
 

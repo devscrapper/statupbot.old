@@ -12,7 +12,7 @@ include VisitorFactory
 VisitorFactory.load_parameter
 
 logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
-
+VisitorFactory.logger(logger)
 
 logger.a_log.info "parameters of visitor factory server :"
 logger.a_log.info "assign new visitor listening port : #{VisitorFactory.assign_new_visitor_listening_port}"
@@ -36,7 +36,6 @@ EventMachine.run {
   timer = EventMachine::PeriodicTimer.new(60) do
     VisitorFactory.garbage_free_visitors
   end
-
 
   Signal.trap("INT") { EventMachine.stop ; timer.cancel }
   Signal.trap("TERM") { EventMachine.stop ; timer.cancel }
