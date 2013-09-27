@@ -1,4 +1,3 @@
-
 module VisitFactory
   module Referers
 
@@ -14,6 +13,7 @@ module VisitFactory
       def start_date_time
         @landing_page.start_date_time
       end
+
       def plan(scheduler, visitor_id)
         begin
           @landing_page.browse(scheduler, visitor_id)

@@ -20,7 +20,7 @@ module Flowing
         @logger.an_event.debug e
         @logger.an_event.error "some visits of #{inputflow.basename} are not built"
       end
-      #TODO archiver le flow
+      #TODO archiver le flow input venant de engine Bot
       #inputflow.archive
     end
   end

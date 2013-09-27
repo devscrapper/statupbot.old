@@ -33,14 +33,14 @@ logger.a_log.info "staging : #{$staging}"
 #--------------------------------------------------------------------------------------------------------------------
 
 EventMachine.run {
-  timer = EventMachine::PeriodicTimer.new(60) do
-    VisitorFactory.garbage_free_visitors
-  end
+  #timer = EventMachine::PeriodicTimer.new(60) do
+  #  VisitorFactory.garbage_free_visitors
+  #end
 
-  Signal.trap("INT") { EventMachine.stop ; timer.cancel }
-  Signal.trap("TERM") { EventMachine.stop ; timer.cancel }
+  Signal.trap("INT") { EventMachine.stop ;  }
+  Signal.trap("TERM") { EventMachine.stop ; }
 
-
+  EventMachine.add_periodic_timer( 60 ) { VisitorFactory.garbage_free_visitors }
 
   logger.a_log.info "visitor factory server is starting"
   EventMachine.start_server "127.0.0.1", VisitorFactory.assign_new_visitor_listening_port, VisitorFactory::AssignNewVisitorConnection,  logger

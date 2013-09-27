@@ -47,6 +47,7 @@ module VisitorFactory
       @id = visitor_details[:id]
       @nationality = French.new() # par defaut
       @geolocation = Geolocation.build() #TODO a revisiter avec la mise en oeuvre des web proxy d'internet
+      #TODO peut on partager les proxy entre visiteur de site different ?
       @browser = Browser.build(visitor_details, self)
     end
 

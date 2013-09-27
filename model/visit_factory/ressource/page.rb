@@ -10,16 +10,13 @@ module VisitFactory
       attr :id
 
       def self.plan(pages, scheduler, visitor_id)
-        last_date_time = Time.now
         begin
           pages.each { |page|
             page.click(scheduler, visitor_id)
-            last_date_time = page.stop_date_time
           }
         rescue Exception => e
           raise PageException, e.message
         end
-        last_date_time
       end
 
       def self.build(pages_details, landing_page)
@@ -34,7 +31,7 @@ module VisitFactory
         rescue Exception => e
           raise PageException, e.message
         end
-        pages
+        [pages, pages[pages.size - 1].stop_date_time]   #retourne les pages et le stop_date_time de la denriere page
       end
 
       #----------------------------------------------------------------------------------------------------------------

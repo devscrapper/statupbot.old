@@ -88,6 +88,8 @@ module VisitorFactory
     # operatingSystem:  "Windows", "Linux", "Macintosh"
     #----------------------------------------------------------------------------------------------------------------
     def self.build(browser_details, visitor)
+      #TODO Faire un point sur les navigateurs pris en charge par
+      StatupBot et les naviateurs dont on récupère les propriétés avec ScraperBot
       geolocation = visitor.geolocation
       nationality = visitor.nationality
       visitor_id = visitor.id
@@ -105,7 +107,8 @@ module VisitorFactory
       end
     end
 
-    #TODO s'assurer que les var http du header envoyé par ga.js ver sgoogle sont le reflet du fake navigateuyr
+    #TODO faire travailler firefox en http et pas https avce google
+    #TODO VALIDATE les variables HTTP, et UTM envoyé vers googlenanlytics reflete le FakeBrowser
     #TODO essayer de remplacer le mitm proxy par de l'injection de code javascript pour faker les function javascript du DOM utiliser par le script ga.js   ; (WebDriver::Element, ...) execute_script(script, *args) (also: #script)
     #TODO valider le ssl  : firefox accepte les certificats ; assume_untrusted_certificate_issuer?
     #----------------------------------------------------------------------------------------------------------------
@@ -263,6 +266,27 @@ module VisitorFactory
         @@logger.an_event.warn "browser #{@id} cannot found url #{landing_page_url}"
       ensure
         return landing_page_found
+      end
+    end
+
+
+    def click_on_pub(advertising, duration_pages)
+      begin
+        advert = Publicity.build(advertising, @driver)
+        if advert.nil?
+          @@logger.an_event.info "none publicity #{advertising} is found on #{@driver.current_url}"
+        else
+          advertiser = advert.click
+          @@logger.an_event.info "browser #{@id} click on publicity #{@driver.current_url}"
+          duration_pages.each { |duration|
+            sleep duration
+            advertiser.click_on(advertiser.select_link)
+            @@logger.an_event.info "after click on pub, browser #{@id} click on #{@driver.current_url}"
+          }
+        end
+      rescue Exception => e
+        @@logger.an_event.debug e
+        @@logger.an_event.error "an error occurend when browser #{@id} click on pub or later"
       end
     end
 

@@ -2,6 +2,7 @@ require 'uuid'
 require_relative '../../lib/logging'
 require_relative 'referer/referer'
 require_relative 'ressource/ressource'
+require_relative 'publicity/publicity'
 require_relative '../visitor_factory/public'
 
 module VisitFactory
@@ -10,18 +11,21 @@ module VisitFactory
     end
     DURATION = 60
     attr :start_date_time,
+         :stop_date_time,
          :id,
          :visitor_id,
          :visitor_details,
          :referer_details,
          :pages_details,
+         :publicity_details,
          :referer,
          :landing_page,
          :pages
 
     include VisitFactory::Ressources
     include VisitFactory::Referers
-    # a remplacer par un test lors du open d'une page par le raise d'une exception si absence de webdriver. (17 juin 2013)
+    include VisitFactory::Publicities
+
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
@@ -99,10 +103,20 @@ module VisitFactory
         @referer_details[:medium] = visit_details["medium"]
         @referer_details[:keyword] = visit_details["keyword"]
         @pages_details = visit_details["pages"]
+        @publicity_details = {}
+        @publicity_details[:advertising] = (visit_details["pub"].nil?) ? "none" : visit_details["pub"]
+
         @landing_page = LandingPage.new(@pages_details.first, Time.parse(visit_details["start_date_time"]))
-        @pages = Page.build(@pages_details.drop(1), @landing_page) if @pages_details.size > 1
         @referer = Referer.build(@referer_details, @landing_page)
         @start_date_time = @referer.start_date_time - DURATION
+        stop_date_time_pages = @landing_page.stop_date_time
+        if @pages_details.size > 1
+          @pages, stop_date_time_pages = Page.build(@pages_details.drop(1), @landing_page)
+        end
+
+        @publicity = Publicity.build(@publicity_details, stop_date_time_pages)
+        @stop_date_time = @publicity.stop_date_time + DURATION
+
         @@logger.an_event.info "visit #{@id} is built with #{@referer.class}, #{@pages.size + 1} pages"
       rescue Exception => e
         @@logger.an_event.debug e
@@ -128,15 +142,26 @@ module VisitFactory
 
         @referer.plan(scheduler, @visitor_id)
 
-        stop_date_time = Page.plan(@pages, scheduler, @visitor_id)
+        Page.plan(@pages, scheduler, @visitor_id)
 
-        scheduler.at stop_date_time do
+        #TODO VALIDATE la planification de la publcité
+        @publicity.plan(scheduler, @visitor_id)
+
+        scheduler.at @stop_date_time do
           free_visitor
         end
         @@logger.an_event.info "free visitor of visit #{@id} is planed at #{stop_date_time}"
-      rescue Exception => e
+      rescue VisitException => e
         @@logger.an_event.debug e
-        @@logger.an_event.info "visit #{@id} is not planed"
+        @@logger.an_event.info "assign or free visitor of visit #{@id} is not plan"
+        raise VisitException, e.message
+      rescue ReferralException => e
+        @@logger.an_event.debug e
+        @@logger.an_event.info "referrer of visit #{@id} is not plan"
+        raise VisitException, e.message
+      rescue PublicityException => e
+        @@logger.an_event.debug e
+        @@logger.an_event.info "publicity of visit #{@id} is not plan"
         raise VisitException, e.message
       end
 
@@ -155,7 +180,7 @@ module VisitFactory
     def assign_visitor
       begin
         VisitorFactory.assign_new_visitor(@visitor_details, @@logger) if @visitor_details[:return_visitor] == "false"
-        #TODO valider return visitor
+        #TODO VALIDATE l'usage des ReturnVisitor
         @visitor_id = VisitorFactory.assign_return_visitor(@visitor_details, @@logger).pop if @visitor_details[:return_visitor] == "true"
         @@logger.an_event.info "visitor #{@visitor_id} is assign to visit #{@id}"
       rescue Exception => e

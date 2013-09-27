@@ -9,6 +9,7 @@ development:
   browse_url_listening_port: 9223
   click_url_listening_port: 9224
   search_url_listening_port: 9225
+  click_pub_listenig_port: 9226
   debugging:  true
 test:
   firefox_path:
@@ -20,6 +21,7 @@ test:
   browse_url_listening_port: 9223
   click_url_listening_port: 9224
   search_url_listening_port: 9225
+  click_pub_listenig_port: 9226
   debugging:  false
 
 production:

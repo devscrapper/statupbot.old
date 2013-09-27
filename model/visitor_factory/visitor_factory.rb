@@ -4,7 +4,6 @@ require 'eventmachine'
 require_relative 'visitor'
 
 
-
 module VisitorFactory
   @@logger = nil
   @@busy_visitors = {}
@@ -36,7 +35,7 @@ module VisitorFactory
   end
   class AssignReturnVisitorConnection < EventMachine::Connection
     include EM::Protocols::ObjectProtocol
-    #TODO valider return visitor
+
     def initialize(logger)
       @@logger = logger
     end
@@ -169,7 +168,31 @@ module VisitorFactory
     end
   end
 
+  class ClickPubConnection < EventMachine::Connection
+    include EM::Protocols::ObjectProtocol
+
+    def initialize(logger)
+      @@logger = logger
+    end
+    def receive_object(visitor_url)
+        close_connection
+        @@logger.an_event.debug visitor_url
+        visitor_id = visitor_url["visitor_id"]
+        duration_pages = visitor_url["duration_pages"]
+        advertising = visitor_url["advertising"]
+        begin
+          visitor = @@busy_visitors[visitor_id]
+          visitor.browser.click_on_pub(advertising, duration_pages)
+          @@logger.an_event.info "visitor #{visitor_id} click on advertising #{advertising} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
+        rescue Exception => e
+          @@logger.an_event.error "visitor #{visitor.id} cannot click on pub with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
+          @@logger.an_event.debug e
+        end
+    end
+  end
+
   def garbage_free_visitors
+    begin
     @@logger.an_event.info "garbage free visitors is start"
     @@logger.an_event.debug "before cleaning, count free visitors : #{@@free_visitors.size}"
     @@logger.an_event.debug @@free_visitors
@@ -185,12 +208,17 @@ module VisitorFactory
     @@logger.an_event.debug "after cleaning, count free visitors : #{@@free_visitors.size}"
     @@logger.an_event.debug @@free_visitors
     @@logger.an_event.info "garbage free visitors is over, #{size - @@free_visitors.size} visitor(s) was(were) garbage"
+    rescue Exception => e
+      p e.message
+    end
+
   end
 
 
   def logger(logger)
     @@logger = logger
   end
+
   module_function :garbage_free_visitors
   module_function :logger
 

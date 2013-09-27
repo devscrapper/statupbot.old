@@ -11,15 +11,16 @@ module VisitorFactory
   $staging = "production"
   $debugging = false
   attr_reader :assign_new_visitor_listening_port,
-               :assign_return_visitor_listening_port,
-               :unassign_visitor_listening_port,
-               :return_visitors_listening_port,
-               :browse_url_listening_port,
-               :click_url_listening_port,
-               :search_url_listening_port,
-               :firefox_path,
-               :home, #détermine si on est à la maison ou au bouloit pour utiliser le bon geolocation
-               :debug_outbound_queries #determine si on envoie les requetes googleanalytics vers FakeProxy pour débugger ou directement (usage au boulot, Home alors utilise mitmproxy)
+              :assign_return_visitor_listening_port,
+              :unassign_visitor_listening_port,
+              :return_visitors_listening_port,
+              :browse_url_listening_port,
+              :click_url_listening_port,
+              :search_url_listening_port,
+              :click_pub_listening_port,
+              :firefox_path,
+              :home, #détermine si on est à la maison ou au bouloit pour utiliser le bon geolocation
+              :debug_outbound_queries #determine si on envoie les requetes googleanalytics vers FakeProxy pour débugger ou directement (usage au boulot, Home alors utilise mitmproxy)
 
   #--------------------------------------------------------------------------------------------------------------------
   # CLIENT
@@ -30,13 +31,21 @@ module VisitorFactory
     attr :logger
 
     def initialize(visitor_details, logger)
-      @visitor_details = visitor_details
-      @logger = logger
+      begin
+        @visitor_details = visitor_details
+        @logger = logger
+      rescue Exception => e
+        p e.message
+      end
     end
 
     def post_init
-      send_object @visitor_details
-      @logger.an_event.info "assignement of visitor #{@visitor_details[:id]} is asked to VisitorFactory"
+      begin
+        send_object @visitor_details
+        @logger.an_event.info "assignement of visitor #{@visitor_details[:id]} is asked to VisitorFactory"
+      rescue Exception => e
+        p e.message
+      end
     end
 
   end
@@ -134,8 +143,30 @@ module VisitorFactory
                    "keywords" => @keywords,
                    "sleeping_time" => @sleeping_time,
                    "count_max_page" => @count_max_page})
-      close_connection_after_writing
       @logger.an_event.info "search of #{@keywords} by visitor #{@visitor_id} on search engine #{@search_engine} is asked to VisitorFactory"
+    end
+  end
+
+
+  class ClickPubClient < EventMachine::Connection
+    include EM::Protocols::ObjectProtocol
+    attr :visitor_id,
+         :duration_pages,
+         :advertising,
+         :logger
+
+    def initialize(visitor_id, duration_pages, advertising, logger)
+      @visitor_id = visitor_id
+      @duration_pages = duration_pages
+      @advertising = advertising
+      @logger = logger
+    end
+
+    def post_init
+      send_object({"visitor_id" => @visitor_id,
+                   "duration_pages" => @duration_pages,
+                   "advertising" => @advertising})
+      @logger.an_event.info "click on pub by visitor #{@visitor_id} is asked to VisitorFactory"
     end
   end
   #--------------------------------------------------------------------------------------------------------------------
@@ -165,6 +196,15 @@ module VisitorFactory
     begin
       load_parameter()
       EM.connect "localhost", @browse_url_listening_port, BrowseUrlClient, visitor_id, url, logger
+    rescue Exception => e
+      @@logger.an_event.debug e
+    end
+  end
+
+  def click_pub(visitor_id, duration_pages, advertising, logger)
+    begin
+      load_parameter()
+      EM.connect "localhost", @click_pub_listening_port, ClickPubClient, visitor_id, duration_pages, advertising, logger
     rescue Exception => e
       @@logger.an_event.debug e
     end
@@ -222,6 +262,7 @@ module VisitorFactory
       @browse_url_listening_port = params[$staging]["browse_url_listening_port"] unless params[$staging]["browse_url_listening_port"].nil?
       @click_url_listening_port = params[$staging]["click_url_listening_port"] unless params[$staging]["click_url_listening_port"].nil?
       @search_url_listening_port = params[$staging]["search_url_listening_port"] unless params[$staging]["search_url_listening_port"].nil?
+      @click_pub_listening_port = params[$staging]["click_pub_listening_port"] unless params[$staging]["click_pub_listening_port"].nil?
       @firefox_path = params[$staging]["firefox_path"] unless params[$staging]["firefox_path"].nil?
       @home = params[$staging]["home"] unless params[$staging]["home"].nil?
       @debug_outbound_queries = params[$staging]["debug_outbound_queries"] unless params[$staging]["debug_outbound_queries"].nil?
@@ -240,6 +281,7 @@ module VisitorFactory
   module_function :load_parameter
   module_function :browse_url
   module_function :click_url
+  module_function :click_pub
   module_function :search_url
 
 end
