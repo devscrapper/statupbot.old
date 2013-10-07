@@ -34,7 +34,10 @@ module VisitorFactory
       # Si il ny a pas de fleche suivante alors retourne 0
       def next
         begin
-          @driver.find_element(:id => "pnnext").click
+          nxt = @driver.find_element(:id => "pnnext")
+          @driver.action.move_to(nxt)
+          #TODO controler le contenu des header http (referer)
+          nxt.click
           sleep(sleeping_time)
           @driver.find_element(:class, "cur").text.to_i
         rescue Exception => e
