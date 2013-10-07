@@ -1,6 +1,9 @@
 require 'selenium-webdriver'
 require 'uuid'
+require 'uri'
 require_relative '../search_engine/engine'
+require_relative '../publicity/publicity'
+
 module VisitorFactory
   require 'json'
   class CustomQuery
@@ -67,7 +70,9 @@ module VisitorFactory
     attr_reader :id,
                 :custom_queries
 
+    #TODO meo le monitoring de l'activité du browser
     include VisitorFactory::SearchEngines
+    include VisitorFactory::Publicities
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
@@ -88,8 +93,7 @@ module VisitorFactory
     # operatingSystem:  "Windows", "Linux", "Macintosh"
     #----------------------------------------------------------------------------------------------------------------
     def self.build(browser_details, visitor)
-      #TODO Faire un point sur les navigateurs pris en charge par
-      StatupBot et les naviateurs dont on récupère les propriétés avec ScraperBot
+      #TODO Faire un point sur les navigateurs pris en charge par      StatupBot et les naviateurs dont on récupère les propriétés avec ScraperBot
       geolocation = visitor.geolocation
       nationality = visitor.nationality
       visitor_id = visitor.id
@@ -154,6 +158,8 @@ module VisitorFactory
           @@logger.an_event.debug "href : #{a[:href]}"
           if a[:href] == url
             @@logger.an_event.info "browser #{@id} click on url #{url} on page #{@driver.current_url}"
+            @driver.action.move_to(a)
+            #TODO controler le contenu des header http (referer)
             a.click
             url_found = true
             break
@@ -171,6 +177,51 @@ module VisitorFactory
         @@logger.an_event.error "browser #{@id} cannot click on url #{url} on page #{@driver.current_url}"
         raise BrowserException, e.message
       end
+    end
+
+    def click_on_pub(advertising, duration_pages, around_pages)
+      time = nil
+      begin
+        advert = Publicity.build(advertising, @driver)
+      rescue Exception => e
+        @@logger.an_event.debug e
+        @@logger.an_event.error "an error occured when searching pub #{advertising} on  #{@driver.current_url}"
+        raise
+      end
+      if advert.nil?
+        @@logger.an_event.info "none publicity #{advertising} is found on #{@driver.current_url}"
+        raise
+      end
+      begin
+        advertiser = advert.click
+        time = Time.now
+        @@logger.an_event.info "browser #{@id} click on publicity on #{@driver.current_url}"
+      rescue Exception => e
+        @@logger.an_event.debug e
+        @@logger.an_event.error "an error occured when browser #{@id} click on pub on #{@driver.current_url}"
+        raise
+      end
+      begin
+        count_pages = duration_pages.size
+        i = 0
+        while i < count_pages
+          now = Time.now
+          if duration_pages[i] > (now - time)
+            sleeping_time = duration_pages[i] - (now - time)
+            @@logger.an_event.info "browser #{@id} sleeping #{sleeping_time}s"
+            sleep sleeping_time
+          end
+          time = Time.now
+          advertiser.click_on(advertiser.link(around_pages[i]))
+          @@logger.an_event.info "on website advertiser #{URI.parse(@driver.current_url).hostname}, browser #{@id} click on #{@driver.current_url}"
+          i += 1
+
+        end
+      rescue Exception => e
+        @@logger.an_event.debug e
+        @@logger.an_event.error "an error occured when browser #{@id} surf on advertiser #{@driver.current_url}"
+      end
+
     end
 
     #----------------------------------------------------------------------------------------------------------------
@@ -203,15 +254,23 @@ module VisitorFactory
 
 
     def browse(url)
-      begin
-        @driver.get url
-        @@logger.an_event.info "browser #{@id} browse url #{url}"
-        sleep(5)
-        @@logger.an_event.debug "cookies GA : #{cookies_ga}"
-      rescue Exception => e
-        @@logger.an_event.debug e
-        @@logger.an_event.error "browser #{@id} cannot browse url #{url}"
-        raise BrowserException, e.message
+      #le referer devrait être perdu
+      stop = false
+      while !stop
+        begin
+          @driver.get url
+          @@logger.an_event.info "browser #{@id} browse url #{url}"
+          sleep(5)
+          @@logger.an_event.debug "cookies GA : #{cookies_ga}"
+          stop = true
+        rescue TimeoutError => e
+          stop = false
+          @@logger.an_event.warn "Timeout on browser #{@id} to browse url #{url}"
+        rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
+          raise BrowserException, "url not found in page #{@driver.current_url} : #{e.message}"
+        rescue Exception => e
+          raise BrowserException, e.message
+        end
       end
     end
 
@@ -269,26 +328,6 @@ module VisitorFactory
       end
     end
 
-
-    def click_on_pub(advertising, duration_pages)
-      begin
-        advert = Publicity.build(advertising, @driver)
-        if advert.nil?
-          @@logger.an_event.info "none publicity #{advertising} is found on #{@driver.current_url}"
-        else
-          advertiser = advert.click
-          @@logger.an_event.info "browser #{@id} click on publicity #{@driver.current_url}"
-          duration_pages.each { |duration|
-            sleep duration
-            advertiser.click_on(advertiser.select_link)
-            @@logger.an_event.info "after click on pub, browser #{@id} click on #{@driver.current_url}"
-          }
-        end
-      rescue Exception => e
-        @@logger.an_event.debug e
-        @@logger.an_event.error "an error occurend when browser #{@id} click on pub or later"
-      end
-    end
 
     def cookies_ga
       cookies = []

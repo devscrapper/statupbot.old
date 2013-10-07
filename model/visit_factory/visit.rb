@@ -104,7 +104,12 @@ module VisitFactory
         @referer_details[:keyword] = visit_details["keyword"]
         @pages_details = visit_details["pages"]
         @publicity_details = {}
+        #TODO  meo {"pub" = "adsense", "count_page" = "5..15", "duration_visit" = "10..30"(en mn), "percent_local_page" = "80"}
+
         @publicity_details[:advertising] = (visit_details["pub"].nil?) ? "none" : visit_details["pub"]
+        @publicity_details[:count_page]  =  visit_details["count_page"]
+        @publicity_details[:duration_visit] = visit_details["duration_visit"]
+        @publicity_details[:percent_local_page] = visit_details["percent_local_page"]
 
         @landing_page = LandingPage.new(@pages_details.first, Time.parse(visit_details["start_date_time"]))
         @referer = Referer.build(@referer_details, @landing_page)

@@ -22,7 +22,7 @@ module VisitorFactory
     end
 
     def receive_object(visitor_details)
-      close_connection
+
       @@logger.an_event.debug "receive visitor details #{visitor_details}"
       visitor = Visitor.new(visitor_details)
       @@logger.an_event.info "create a visitor with id #{visitor_details[:id]}"
@@ -31,6 +31,7 @@ module VisitorFactory
       visitor.open_browser
       @@logger.an_event.info "open browser #{visitor.browser.id} of visitor id #{visitor.id}"
       @@logger.an_event.debug @@busy_visitors
+      close_connection
     end
   end
   class AssignReturnVisitorConnection < EventMachine::Connection
@@ -76,7 +77,7 @@ module VisitorFactory
     end
 
     def receive_object(visitor_id)
-      close_connection
+
       @@logger.an_event.debug "receive visitor #{visitor_id}"
       @@sem_free_visitors.synchronize { @@free_visitors << [Time.now, @@busy_visitors[visitor_id]] }
       @@logger.an_event.info "add visitor #{visitor_id} to free visitors"
@@ -84,6 +85,7 @@ module VisitorFactory
       @@logger.an_event.info "remove visitor #{visitor_id} from busy visitors"
       @@logger.an_event.debug "free visitors repository #{@@free_visitors}"
       @@logger.an_event.debug "busy visitors repository #{@@busy_visitors}"
+      close_connection
     end
   end
   class BrowseUrlConnection < EventMachine::Connection
@@ -94,19 +96,24 @@ module VisitorFactory
     end
 
     def receive_object(visitor_url)
-      close_connection
+
       visitor_id = visitor_url["visitor_id"]
       url = "http://#{visitor_url["url"]}"
       @@logger.an_event.debug visitor_id
       @@logger.an_event.debug url
       begin
         visitor = @@busy_visitors[visitor_id]
-        visitor.browser.browse url
-        @@logger.an_event.info "visitor #{visitor.id} browse #{url} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
+        if visitor.nil?
+          @@logger.an_event.error "visitor id <#{visitor_id}> is unknown, so cannot browse url #{url}"
+        else
+          visitor.browser.browse url
+          @@logger.an_event.info "visitor #{visitor.id} browse #{url} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
+        end
       rescue Exception => e
         @@logger.an_event.error "visitor #{visitor.id} cannot browse url #{url} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
         @@logger.an_event.debug e
       end
+      close_connection
     end
   end
   class ClickUrlConnection < EventMachine::Connection
@@ -117,19 +124,24 @@ module VisitorFactory
     end
 
     def receive_object(visitor_url)
-      close_connection
+
       visitor_id = visitor_url["visitor_id"]
       url = "http://#{visitor_url["url"]}"
       @@logger.an_event.debug visitor_id
       @@logger.an_event.debug url
       begin
         visitor = @@busy_visitors[visitor_id]
-        @@logger.an_event.info "visitor #{visitor.id} click on url #{url} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
-        visitor.browser.click url
+        if visitor.nil?
+          @@logger.an_event.error "visitor id <#{visitor_id}> is unknown, so cannot click on url #{url}"
+        else
+          @@logger.an_event.info "visitor #{visitor.id} click on url #{url} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
+          visitor.browser.click url
+        end
       rescue Exception => e
         @@logger.an_event.error "visitor #{visitor.id} cannot click on url #{url} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
         @@logger.an_event.debug e
       end
+      close_connection
     end
   end
   class SearchUrlConnection < EventMachine::Connection
@@ -140,7 +152,7 @@ module VisitorFactory
     end
 
     def receive_object(visitor_url)
-      close_connection
+
       @@logger.an_event.debug visitor_url
       visitor_id = visitor_url["visitor_id"]
       search_engine = visitor_url["search_engine"]
@@ -165,51 +177,57 @@ module VisitorFactory
         @@logger.an_event.error "visitor #{visitor.id} cannot search #{keywords} on search engine #{search_engine} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
         @@logger.an_event.debug e
       end
+      close_connection
     end
   end
 
   class ClickPubConnection < EventMachine::Connection
     include EM::Protocols::ObjectProtocol
+    #TODO  meo {"local" = "80"}
 
     def initialize(logger)
       @@logger = logger
     end
+
     def receive_object(visitor_url)
-        close_connection
-        @@logger.an_event.debug visitor_url
-        visitor_id = visitor_url["visitor_id"]
-        duration_pages = visitor_url["duration_pages"]
-        advertising = visitor_url["advertising"]
-        begin
-          visitor = @@busy_visitors[visitor_id]
-          visitor.browser.click_on_pub(advertising, duration_pages)
-          @@logger.an_event.info "visitor #{visitor_id} click on advertising #{advertising} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
-        rescue Exception => e
-          @@logger.an_event.error "visitor #{visitor.id} cannot click on pub with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
-          @@logger.an_event.debug e
-        end
+
+      @@logger.an_event.debug visitor_url
+      visitor_id = visitor_url["visitor_id"]
+      duration_pages = visitor_url["duration_pages"]
+      around_pages = visitor_url["around_pages"]
+      advertising = visitor_url["advertising"]
+      begin
+        visitor = @@busy_visitors[visitor_id]
+        visitor.browser.click_on_pub(advertising, duration_pages, around_pages)
+        @@logger.an_event.info "visitor #{visitor_id} click on advertising #{advertising} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
+      rescue Exception => e
+        @@logger.an_event.error "visitor #{visitor.id} cannot click on pub with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
+        @@logger.an_event.debug e
+      end
+      close_connection
     end
   end
 
   def garbage_free_visitors
     begin
-    @@logger.an_event.info "garbage free visitors is start"
-    @@logger.an_event.debug "before cleaning, count free visitors : #{@@free_visitors.size}"
-    @@logger.an_event.debug @@free_visitors
-    size = @@free_visitors.size
-    @@free_visitors.delete_if { |visitor|
-      if visitor[0] < Time.now - (5 + 5 + 5) * 60
-        @@logger.an_event.info "visitor #{visitor[1].id} is killed"
-        @@logger.an_event.debug "remove visitor #{visitor[1].id}"
-        visitor[1].close_browser
-        true
-      end
-    }
-    @@logger.an_event.debug "after cleaning, count free visitors : #{@@free_visitors.size}"
-    @@logger.an_event.debug @@free_visitors
-    @@logger.an_event.info "garbage free visitors is over, #{size - @@free_visitors.size} visitor(s) was(were) garbage"
+      @@logger.an_event.info "garbage free visitors is start"
+      @@logger.an_event.debug "before cleaning, count free visitors : #{@@free_visitors.size}"
+      @@logger.an_event.debug @@free_visitors
+      size = @@free_visitors.size
+      @@free_visitors.delete_if { |visitor|
+        if visitor[0] < Time.now - (5 + 5 + 5) * 60
+          @@logger.an_event.info "visitor #{visitor[1].id} is killed"
+          @@logger.an_event.debug "remove visitor #{visitor[1].id}"
+          visitor[1].close_browser
+          true
+        end
+      }
+      @@logger.an_event.debug "after cleaning, count free visitors : #{@@free_visitors.size}"
+      @@logger.an_event.debug @@free_visitors
+      @@logger.an_event.info "garbage free visitors is over, #{size - @@free_visitors.size} visitor(s) was(were) garbage"
     rescue Exception => e
-      p e.message
+      @@logger.an_event.debug e
+      @@logger.an_event.error e.message
     end
 
   end

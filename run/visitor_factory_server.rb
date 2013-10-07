@@ -40,7 +40,7 @@ EventMachine.run {
   Signal.trap("INT") { EventMachine.stop ;  }
   Signal.trap("TERM") { EventMachine.stop ; }
 
-  EventMachine.add_periodic_timer( 60 ) { VisitorFactory.garbage_free_visitors }
+  EventMachine.add_periodic_timer( 5*60 ) { VisitorFactory.garbage_free_visitors }
 
   logger.a_log.info "visitor factory server is starting"
   EventMachine.start_server "127.0.0.1", VisitorFactory.assign_new_visitor_listening_port, VisitorFactory::AssignNewVisitorConnection,  logger
@@ -49,6 +49,7 @@ EventMachine.run {
   EventMachine.start_server "127.0.0.1", VisitorFactory.browse_url_listening_port, VisitorFactory::BrowseUrlConnection,  logger
   EventMachine.start_server "127.0.0.1", VisitorFactory.click_url_listening_port, VisitorFactory::ClickUrlConnection,  logger
   EventMachine.start_server "127.0.0.1", VisitorFactory.search_url_listening_port, VisitorFactory::SearchUrlConnection,  logger
+  EventMachine.start_server "127.0.0.1", VisitorFactory.click_pub_listening_port, VisitorFactory::ClickPubConnection,  logger
 
 
 }

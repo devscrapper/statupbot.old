@@ -38,7 +38,6 @@ module VisitorFactory
         p e.message
       end
     end
-
     def post_init
       begin
         send_object @visitor_details
@@ -152,19 +151,22 @@ module VisitorFactory
     include EM::Protocols::ObjectProtocol
     attr :visitor_id,
          :duration_pages,
+         :around_pages,
          :advertising,
          :logger
 
-    def initialize(visitor_id, duration_pages, advertising, logger)
+    def initialize(visitor_id, duration_pages, around_pages,advertising, logger)
       @visitor_id = visitor_id
       @duration_pages = duration_pages
       @advertising = advertising
+      @around_pages = around_pages
       @logger = logger
     end
 
     def post_init
       send_object({"visitor_id" => @visitor_id,
                    "duration_pages" => @duration_pages,
+                   "around_pages" => @around_pages,
                    "advertising" => @advertising})
       @logger.an_event.info "click on pub by visitor #{@visitor_id} is asked to VisitorFactory"
     end
@@ -175,7 +177,7 @@ module VisitorFactory
   def assign_new_visitor(visitor_details, logger)
     begin
       load_parameter()
-      EM.connect "localhost", @assign_new_visitor_listening_port, AssignNewVisitorClient, visitor_details, logger
+      EM.connect '127.0.0.1', @assign_new_visitor_listening_port, AssignNewVisitorClient, visitor_details, logger
     rescue Exception => e
       logger.an_event.debug e
     end
@@ -185,7 +187,7 @@ module VisitorFactory
     begin
       load_parameter()
       q = EM::Queue.new
-      EM.connect "localhost", @assign_return_visitor_listening_port, AssignReturnVisitorClient, visitor_details, q, logger
+      EM.connect '127.0.0.1', @assign_return_visitor_listening_port, AssignReturnVisitorClient, visitor_details, q, logger
       q
     rescue Exception => e
       @@logger.an_event.debug e
@@ -195,16 +197,16 @@ module VisitorFactory
   def browse_url(visitor_id, url, logger)
     begin
       load_parameter()
-      EM.connect "localhost", @browse_url_listening_port, BrowseUrlClient, visitor_id, url, logger
+      EM.connect '127.0.0.1', @browse_url_listening_port, BrowseUrlClient, visitor_id, url, logger
     rescue Exception => e
       @@logger.an_event.debug e
     end
   end
 
-  def click_pub(visitor_id, duration_pages, advertising, logger)
+  def click_pub(visitor_id, duration_pages, around_pages, advertising, logger)
     begin
       load_parameter()
-      EM.connect "localhost", @click_pub_listening_port, ClickPubClient, visitor_id, duration_pages, advertising, logger
+      EM.connect '127.0.0.1', @click_pub_listening_port, ClickPubClient, visitor_id, duration_pages, around_pages, advertising, logger
     rescue Exception => e
       @@logger.an_event.debug e
     end
@@ -213,7 +215,7 @@ module VisitorFactory
   def click_url(visitor_id, url, logger)
     begin
       load_parameter()
-      EM.connect "localhost", @click_url_listening_port, ClickUrlClient, visitor_id, url, logger
+      EM.connect '127.0.0.1', @click_url_listening_port, ClickUrlClient, visitor_id, url, logger
     rescue Exception => e
       @@logger.an_event.debug e
     end
@@ -222,14 +224,14 @@ module VisitorFactory
   #def return_visitors()
   #  load_parameter()
   #  q = EM::Queue.new
-  #  EM.connect "localhost", @return_visitors_listening_port, ReturnVisitorsClient, q
+  #  EM.connect '127.0.0.1', @return_visitors_listening_port, ReturnVisitorsClient, q
   #  q
   #end
 
   def search_url(visitor_id, search_engine, landing_page_url, keywords, sleeping_time, count_max_page, logger)
     begin
       load_parameter()
-      EM.connect "localhost", @search_url_listening_port, SearchUrlClient, visitor_id, search_engine, landing_page_url, keywords, sleeping_time, count_max_page, logger
+      EM.connect '127.0.0.1', @search_url_listening_port, SearchUrlClient, visitor_id, search_engine, landing_page_url, keywords, sleeping_time, count_max_page, logger
     rescue Exception => e
       @@logger.an_event.debug e
     end
@@ -238,7 +240,7 @@ module VisitorFactory
   def unassign_visitor(visitor_id, logger)
     begin
       load_parameter()
-      EM.connect "localhost", @unassign_visitor_listening_port, UnAssignVisitorClient, visitor_id, logger
+      EM.connect '127.0.0.1', @unassign_visitor_listening_port, UnAssignVisitorClient, visitor_id, logger
     rescue Exception => e
       @@logger.an_event.debug e
     end
