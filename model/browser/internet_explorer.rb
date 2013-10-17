@@ -1,4 +1,4 @@
-module VisitorFactory
+module Browsers
   class InternetExplorer < Browser
     class InternetExplorerException < StandardError
 
@@ -10,8 +10,8 @@ module VisitorFactory
     #----------------------------------------------------------------------------------------------------------------
     # instance methods
     #----------------------------------------------------------------------------------------------------------------
-    def initialize(browser_details, nationality, geolocation, visitor_id)
-      super(browser_details, geolocation, visitor_id)
+    def initialize(browser_details, nationality, user_agent)
+      super(browser_details, user_agent)
 
       @profile['intl.accept_languages'] = "#{nationality.language.downcase}-#{nationality.language},en-US;q=0.5"
       @profile['network.http.accept-encoding'] = 'gzip, deflate'
@@ -26,13 +26,13 @@ module VisitorFactory
       # utmfl : #	Flash Version 	utmfl=9.0%20r48&
       # utme : variable personnalisée
       # utmul : Browser language. 	utmul=fr
-      cq.add_var_query("utmcs", nationality.charset(browser_details[:operating_system], browser_details[:browser]).downcase)
+      cq.add_var_query("utmcs", nationality.charset(browser_details[:operating_system], browser_details[:name]).downcase)
       cq.add_var_query("utmul", nationality.language.downcase)
       cq.add_var_query("utmsr", browser_details[:screen_resolution])
       cq.add_var_query("utmsc", browser_details[:screens_colors])
       cq.add_var_query("utmje", (browser_details[:java_enabled]=="Yes" ? 1 : 0))
       cq.add_var_query("utmfl", browser_details[:flash_version])
-      cq.add_var_query("utme", "IE#{browser_details[:browser_version]} \
+      cq.add_var_query("utme", "IE#{browser_details[:version]} \
       #{browser_details[:operating_system]} \
       #{browser_details[:operating_system_version]}")
       @custom_queries << cq

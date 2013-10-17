@@ -1,10 +1,10 @@
 require 'selenium-webdriver'
 require 'uuid'
 require 'uri'
-require_relative '../search_engine/engine'
-require_relative '../publicity/publicity'
+require_relative '../page/page'
+require_relative '../page/link'
 
-module VisitorFactory
+module Browsers
   require 'json'
   class CustomQuery
     attr :var_query,
@@ -61,18 +61,22 @@ module VisitorFactory
 
   class Browser
     class BrowserException < StandardError
+      URL_NOT_FOUND = "url not found"
+      DISPLAY_FAILED = "an exception raise during browser display an url"
+      LINK_NOT_FOUND = "link not found"
+      CLICK_ON_FAILED = "an exception raise during browser click on an url"
     end
-    attr :logger,
-         :profile,
-         :driver,
+    attr :driver,
          :screen_resolution
+
+    attr_accessor :profile
 
     attr_reader :id,
                 :custom_queries
 
+
     #TODO meo le monitoring de l'activité du browser
-    include VisitorFactory::SearchEngines
-    include VisitorFactory::Publicities
+    include Pages
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
@@ -92,22 +96,19 @@ module VisitorFactory
     # Browser : "Chrome", "Firefox", "Internet Explorer", "Safari"
     # operatingSystem:  "Windows", "Linux", "Macintosh"
     #----------------------------------------------------------------------------------------------------------------
-    def self.build(browser_details, visitor)
+    def self.build(browser_details, nationality, user_agent)
       #TODO Faire un point sur les navigateurs pris en charge par      StatupBot et les naviateurs dont on récupère les propriétés avec ScraperBot
-      geolocation = visitor.geolocation
-      nationality = visitor.nationality
-      visitor_id = visitor.id
-      case browser_details[:browser]
+      case browser_details[:name]
         when "Firefox"
-          return Firefox.new(browser_details, nationality, geolocation, visitor_id)
+          return Firefox.new(browser_details, nationality, user_agent)
         when "Internet Explorer"
-          return InternetExplorer.new(browser_details, nationality, geolocation, visitor_id)
+          return InternetExplorer.new(browser_details, nationality, user_agent)
         when "Chrome"
-          return Chrome.new(browser_details, nationality, geolocation, visitor_id)
+          return Chrome.new(browser_details, nationality, user_agent)
         when "Safari"
-          return Safari.new(browser_details, nationality, geolocation, visitor_id)
+          return Safari.new(browser_details, nationality, user_agent)
         else
-          raise BrowserException, "browser <#{browser_details[:browser]}> unknown"
+          raise BrowserException, "browser <#{browser_details[:name]}> unknown"
       end
     end
 
@@ -125,104 +126,63 @@ module VisitorFactory
     #["screens_colors", "24-bit"]
     #["screen_resolution", "1366x768"]
 
-    def initialize(browser_details, geolocation, visitor_id)
+    def initialize(browser_details, user_agent)
       @id = UUID.generate
       @screen_resolution = browser_details[:screen_resolution]
       @custom_queries = CustomQueries.new
-      @custom_queries.add_var_http("User-Agent", user_agent(browser_details[:browser_version], \
+      @custom_queries.add_var_http("User-Agent", user_agent(browser_details[:version], \
                                                             browser_details[:operating_system], \
                                                             browser_details[:operating_system_version]))
       @profile = Selenium::WebDriver::Firefox::Profile.new
       @profile['javascript.enabled'] = true
       @profile['network.http.accept-encoding'] = "gzip,deflate"
-      @profile['general.useragent.override'] = visitor_id
+      @profile['general.useragent.override'] = user_agent
       #TODO supprimer le user agent du profil et le remplacer par le visitor_id
-      @profile['general.useragent.override'] = user_agent(browser_details[:browser_version], \
+      @profile['general.useragent.override'] = user_agent(browser_details[:version], \
                                                             browser_details[:operating_system], \
                                                             browser_details[:operating_system_version])
-      @profile = geolocation.update_profile(@profile)
-    end
-
-    #----------------------------------------------------------------------------------------------------------------
-    # click
-    #----------------------------------------------------------------------------------------------------------------
-    # accède à une url
-    #----------------------------------------------------------------------------------------------------------------
-    # input :
-    #----------------------------------------------------------------------------------------------------------------
-    def click(url)
-      begin
-        url_found = false
-        @@logger.an_event.debug "url to find #{url}"
-        @driver.find_elements(:tag_name, "a").each { |a|
-          @@logger.an_event.debug "href : #{a[:href]}"
-          if a[:href] == url
-            @@logger.an_event.info "browser #{@id} click on url #{url} on page #{@driver.current_url}"
-            @driver.action.move_to(a)
-            #TODO controler le contenu des header http (referer)
-            a.click
-            url_found = true
-            break
-          end
-        }
-        if url_found
-          sleep(5)
-          @@logger.an_event.debug "cookies GA : #{cookies_ga}"
-        else
-          @@logger.an_event.warn "browser #{@id} not found url #{url} on page #{@driver.current_url}"
-          browse(url)
-        end
-      rescue Exception => e
-        @@logger.an_event.debug e
-        @@logger.an_event.error "browser #{@id} cannot click on url #{url} on page #{@driver.current_url}"
-        raise BrowserException, e.message
-      end
-    end
-
-    def click_on_pub(advertising, duration_pages, around_pages)
-      time = nil
-      begin
-        advert = Publicity.build(advertising, @driver)
-      rescue Exception => e
-        @@logger.an_event.debug e
-        @@logger.an_event.error "an error occured when searching pub #{advertising} on  #{@driver.current_url}"
-        raise
-      end
-      if advert.nil?
-        @@logger.an_event.info "none publicity #{advertising} is found on #{@driver.current_url}"
-        raise
-      end
-      begin
-        advertiser = advert.click
-        time = Time.now
-        @@logger.an_event.info "browser #{@id} click on publicity on #{@driver.current_url}"
-      rescue Exception => e
-        @@logger.an_event.debug e
-        @@logger.an_event.error "an error occured when browser #{@id} click on pub on #{@driver.current_url}"
-        raise
-      end
-      begin
-        count_pages = duration_pages.size
-        i = 0
-        while i < count_pages
-          now = Time.now
-          if duration_pages[i] > (now - time)
-            sleeping_time = duration_pages[i] - (now - time)
-            @@logger.an_event.info "browser #{@id} sleeping #{sleeping_time}s"
-            sleep sleeping_time
-          end
-          time = Time.now
-          advertiser.click_on(advertiser.link(around_pages[i]))
-          @@logger.an_event.info "on website advertiser #{URI.parse(@driver.current_url).hostname}, browser #{@id} click on #{@driver.current_url}"
-          i += 1
-
-        end
-      rescue Exception => e
-        @@logger.an_event.debug e
-        @@logger.an_event.error "an error occured when browser #{@id} surf on advertiser #{@driver.current_url}"
-      end
 
     end
+
+    #----------------------------------------------------------------------------------------------------------------
+    # click_on
+    #----------------------------------------------------------------------------------------------------------------
+    # click sur un lien
+    #----------------------------------------------------------------------------------------------------------------
+    # input : object Link
+    # output : Object Page
+    # exception : URL_NOT_FOUND, CLICK_ON_FAILED
+    #----------------------------------------------------------------------------------------------------------------
+
+
+    def click_on(link)
+      page = nil
+      begin
+        @driver.switch_to.window(link.window_tab)
+        switch_to_frame(link.path_frame)
+        raise BrowserException::LINK_NOT_FOUND unless link.exist?
+        link.click
+        raise BrowserException::URL_NOT_FOUND if error?
+        @@logger.an_event.info "browser #{@id} click on url #{link.url.to_s} in window #{link.window_tab}"
+        @@logger.an_event.debug "cookies GA : #{cookies_ga}"
+        #page = Page.new(link.url, links)
+        page = Page.new(@driver.current_url, @driver.window_handle, links)
+      rescue TimeoutError => e
+        @@logger.an_event.warn "Timeout on browser #{@id} on click link #{link.url.to_s}"
+        refresh
+        page = Page.new(@driver.current_url, @driver.window_handle, links)
+      rescue RuntimeError => e
+        @@logger.an_event.debug "browser #{@id} : #{error_label}"
+        @@logger.an_event.error "browser #{@id} not found url #{link.url.to_s}"
+        raise e
+      rescue Exception => e
+        @@logger.an_event.debug e
+        @@logger.an_event.error "browser #{@id} cannot try to click on url #{link.url.to_s}"
+        raise BrowserException::DISPLAY_FAILED
+      end
+      return page
+    end
+
 
     #----------------------------------------------------------------------------------------------------------------
     # close
@@ -243,36 +203,106 @@ module VisitorFactory
       end
     end
 
+    def cookies_ga
+      cookies = []
+      driver.manage.all_cookies.each { |cookie|
+        cookies << cookie if  ["__utma", "__utmb", "__utmc", "__utmz"].include?(cookie[:name])
+      }
+      cookies
+    end
 
     #----------------------------------------------------------------------------------------------------------------
-    # go
+    # display
     #----------------------------------------------------------------------------------------------------------------
     # accède à une url
     #----------------------------------------------------------------------------------------------------------------
-    # input :
+    # input : url
+    # output : Object Page
+    # exception : URL_NOT_FOUND, DISPLAY_FAILED
     #----------------------------------------------------------------------------------------------------------------
-
-
-    def browse(url)
-      #le referer devrait être perdu
+    def display(url)
       stop = false
+      page = nil
       while !stop
         begin
-          @driver.get url
-          @@logger.an_event.info "browser #{@id} browse url #{url}"
-          sleep(5)
+          @driver.get url.to_s
+          raise BrowserException::URL_NOT_FOUND if error?
+          @@logger.an_event.info "browser #{@id} browse url #{url.to_s} in windows #{@driver.window_handle}"
           @@logger.an_event.debug "cookies GA : #{cookies_ga}"
+          page = Page.new(@driver.current_url, @driver.window_handle, links)
+          #page = Page.new(url, links)
           stop = true
         rescue TimeoutError => e
           stop = false
-          @@logger.an_event.warn "Timeout on browser #{@id} to browse url #{url}"
-        rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
-          raise BrowserException, "url not found in page #{@driver.current_url} : #{e.message}"
+          @@logger.an_event.warn "Timeout on browser #{@id} on display url #{url.to_s}"
+        rescue RuntimeError => e
+          @@logger.an_event.debug "browser #{@id} : #{error_label}"
+          @@logger.an_event.error "browser #{@id} not found url #{url.to_s}"
+          raise e
         rescue Exception => e
-          raise BrowserException, e.message
+          @@logger.an_event.debug e
+          @@logger.an_event.error "browser #{@id} try to browse url #{url.to_s}"
+          raise BrowserException::DISPLAY_FAILED
         end
       end
+      return page
     end
+
+    def error?
+      begin
+        @driver.find_element(:id, "errorShortDescText").enabled? and @driver.find_element(:id, "errorShortDescText").displayed?
+      rescue Selenium::WebDriver::Error::NoSuchElementError => e
+        false
+      end
+    end
+
+    def error_label
+      @driver.find_element(:id, "errorShortDescText").text
+    end
+
+
+
+    #----------------------------------------------------------------------------------------------------------------
+    # links
+    #----------------------------------------------------------------------------------------------------------------
+    # dans la page courante, liste tous les href issue des tag : <a>, <map>.
+    #----------------------------------------------------------------------------------------------------------------
+    # input : RAS
+    # output : Array de Link
+    #----------------------------------------------------------------------------------------------------------------
+    def links(path_crt_frame=[], crt_frame=nil)
+      #TODO faire la liste de toutes les balises html qui referencent un lien http (a, map,...)
+      path_crt_frame << crt_frame unless crt_frame.nil?
+
+      switch_to_frame(path_crt_frame)
+
+      html_tag_a = @driver.find_elements(:tag_name, "a")
+      html_tag_a.select! { |l| l.enabled? and \
+                                l.displayed? and \
+                                !l[:href].nil? and \
+                                well_formed?(l[:href]) and \
+                                l[:href].start_with?("http:") and \
+                                l[:href] != @driver.current_url and \
+                                !l[:href].end_with?("png") and \
+                                !l[:href].end_with?("jpg") and \
+                                !l[:href].end_with?("jpeg") and \
+                                !l[:href].end_with?("gif") and \
+                                !l[:href].end_with?("pdf") and \
+                                !l[:href].end_with?("svg")
+      }
+
+      html_tag_a.uniq! { |p| p[:href] }
+      lnks = (html_tag_a.size > 0) ? html_tag_a.map { |link| Link.new(URI.parse(link[:href]), link, @driver.window_handle, Array.new(path_crt_frame)) } : []
+
+      @driver.find_elements(:tag_name, "iframe").each { |frame|
+        lnks += links(path_crt_frame, frame)
+
+        path_crt_frame.pop
+        switch_to_frame(path_crt_frame)
+      }
+      lnks
+    end
+
 
     #----------------------------------------------------------------------------------------------------------------
     # open
@@ -283,12 +313,12 @@ module VisitorFactory
     #----------------------------------------------------------------------------------------------------------------
     def open
       begin
-        firefox_binary_path = VisitorFactory.firefox_path || Selenium::WebDriver::Firefox::Binary.path
+        firefox_binary_path = @@firefox_path || Selenium::WebDriver::Firefox::Binary.path
         raise BrowserException, "firefox binary path not exist :#{firefox_binary_path}" unless File.exists?(firefox_binary_path)
 
         Selenium::WebDriver::Firefox.path = firefox_binary_path
         @driver = Selenium::WebDriver.for :firefox, :profile => @profile
-        @@logger.an_event.info "browser #{@id} is opend"
+        @@logger.an_event.info "browser #{@id} is opened"
         width, height = @screen_resolution.split(/x/)
         @driver.manage.window.resize_to(width.to_i, height.to_i)
         @@logger.an_event.debug "cookies GA : #{cookies_ga}"
@@ -299,42 +329,62 @@ module VisitorFactory
       end
     end
 
-    # realise la recherche dans le moteur et passe en revue les pages de resultat pour localiser la landing page
-    # le nombre de page maximum et le temporisation est calculé lors del planification de la visite (open visit/start visit)
-    # retourn true si la landing page a été localisé dans une page de resultat
-    # false sinon (cout_max_page dépassé ou pas de page suivante ou pas de resultat de recherche)
-    # le temps d'affichage de chaque page est defini pour s'assurer que les pages sont chargées car api drriver de chargement de page (get/click) sous windows on bloquante
-    def search(search_engine, landing_page_url, keywords, sleeping_time, count_max_page)
-      begin
-        search_engine = SearchEngine.build(search_engine, @driver, sleeping_time)
-        count_page = search_engine.search(keywords)
-        @@logger.an_event.debug "cookies GA : #{cookies_ga}"
-        landing_page_found = false
-        # on boucle tanque la landing page n'a pas été trouvé ou bien que le nombre de page de resultat n'est pas atteint ou bien qu'il eixte une page suivante
-        # count_page == 0 est synonyme de page non trouve ou affichée
-        while 0 < count_page and \
-          count_page <= count_max_page and \
-          !landing_page_found
-          @@logger.an_event.info "browser #{@id} display result page #{count_page} of #{search_engine.class} search with #{keywords}"
-          landing_page_found = search_engine.exist?(landing_page_url)
-          count_page = search_engine.next if !landing_page_found
-          @@logger.an_event.debug "cookies GA : #{cookies_ga}"
+    def refresh
+      display = false
+      while !display
+        begin
+          @@logger.an_event.warn "browser #{@id} refresh url #{@driver.current_url}"
+          @driver.navigate.refresh
+          display = true
+        rescue TimeoutError => e
+
         end
-      rescue Exception => e
-        @@logger.an_event.debug e
-        @@logger.an_event.warn "browser #{@id} cannot found url #{landing_page_url}"
-      ensure
-        return landing_page_found
       end
     end
 
+    def search(keywords, engine_search)
+      page = nil
+      begin
+        @driver.get engine_search.page_url
+        element = @driver.find_element(engine_search.tag_search, engine_search.id_search)
+        element.send_keys keywords
+        element.submit
+        lnks = links
+        page = Page.new(@driver.current_url, @driver.window_handle, lnks)
+      rescue TimeoutError => e
+        refresh
+        page = Page.new(@driver.current_url, @driver.window_handle, links)
+      rescue Exception => e
+        @@logger.an_event.debug e
+        @@logger.an_event.error "browser #{@id} cannot search a with engine #{engine_search.class}"
+      end
+      page
+    end
 
-    def cookies_ga
-      cookies = []
-      driver.manage.all_cookies.each { |cookie|
-        cookies << cookie if  ["__utma", "__utmb", "__utmc", "__utmz"].include?(cookie[:name])
-      }
-      cookies
+    def switch_to_frame(path_frame)
+      begin
+        @driver.switch_to.default_content
+        path_frame.each { |frame| @driver.switch_to.frame(frame) }
+      rescue Exception => e
+        raise BrowserException, e.message
+      end
+    end
+
+    def wait_on(page)
+      @@logger.an_event.debug "browser #{@id} start waiting on page #{page.url}"
+      @driver.switch_to.window(page.window_tab)
+      sleep page.duration
+      @@logger.an_event.debug "browser #{@id} finish waiting on page #{page.url}"
+    end
+
+    def well_formed?(url)
+      begin
+        URI.parse(url)
+        return true
+      rescue Exception => e
+        @@logger.an_event.debug "#{e.message}, url"
+        return false
+      end
     end
   end
 

@@ -1,5 +1,5 @@
-
-module VisitorFactory
+module Visitors
+  module Nationalities
   class French < Nationality
     class FrenchException < StandardError
     end
@@ -21,4 +21,6 @@ module VisitorFactory
 
     end
   end
-end
+  end
+
+  end

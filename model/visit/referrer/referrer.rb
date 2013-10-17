@@ -1,6 +1,7 @@
-module VisitFactory
-  module Referers
-    class Referer
+module Visits
+  module Referrers
+    class Referrer
+
       class RefererException < StandardError;
       end
 
@@ -43,7 +44,7 @@ module VisitFactory
       # Pour cela la sélection est réalisé lors de la recuperation des données de GA
       #
       #------------------------------------------------------------------------------------------------------------
-      attr :landing_page
+      attr :landing_url
 
       #----------------------------------------------------------------------------------------------------------------
       # class methods
@@ -68,14 +69,12 @@ module VisitFactory
       def self.build(referer_details, landing_page)
         case referer_details[:medium]
           when "(none)"
-            return NoReferer.new(landing_page)
+            return Direct.new(landing_page)
           when "organic"
-            return Search.new(referer_details[:source],
-                              referer_details[:keyword],
+            return Search.new(referer_details,
                               landing_page)
           when "referral"
-            return Referral.new(referer_details[:source],
-                                referer_details[:referral_path],
+            return Referral.new(referer_details,
                                 landing_page)
           else
             raise RefererException, "medium #{@medium} is unknonwn"
@@ -83,15 +82,15 @@ module VisitFactory
 
       end
 
-      def initialize(landing_page)
-        @landing_page = landing_page
+      def initialize(landing_url)
+        @landing_url = landing_url
       end
 
     end
   end
 end
 
-require_relative 'no_referer'
+require_relative 'direct'
 require_relative 'referral'
 require_relative 'search'
 
