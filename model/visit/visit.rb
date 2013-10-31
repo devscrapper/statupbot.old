@@ -51,7 +51,8 @@ module Visits
     #----------------------------------------------------------------------------------------------------------------
     def initialize(visit_details)
       begin
-        @visitor_details = visit_details[:visitor_details]
+        @id = visit_details[:id_visit]
+        @visitor_details = visit_details[:visitor]
         @start_date_time = visit_details[:start_date_time]
         @durations = visit_details[:durations]
         @around = (visit_details[:website][:many_hostname] == :true and visit_details[:website][:many_account_ga] == :no) ? :inside_hostname : :inside_fqdn
@@ -61,7 +62,7 @@ module Visits
         @advertising = Advertising.build(visit_details[:advert])
       rescue Exception => e
         @@logger.an_event.debug e
-        @@logger.an_event.error "visit #{visit_details["id_visit"]} is not built"
+        @@logger.an_event.error "visit #{visit_details[:id_visit]} is not built"
         raise VisitException::PARAM_DETAILS_MALFORMED
       end
     end

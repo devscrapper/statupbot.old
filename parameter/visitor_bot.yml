@@ -1,0 +1,12 @@
+development:
+  firefox_path: 'D:/FirefoxPortable/App/Firefox/Firefox.exe'
+  home: false
+  debug_outbound_queries: false
+  debugging:  true
+test:
+  firefox_path:
+  home: false
+  debug_outbound_queries: false
+  debugging:  false
+
+production:

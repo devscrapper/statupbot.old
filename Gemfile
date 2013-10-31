@@ -15,6 +15,7 @@ gem 'logging'
 #gem 'rest-client'
 gem 'uuid'
 gem 'selenium-webdriver'
+gem 'trollop'
 # fin new gem
 
 #group :development

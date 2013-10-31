@@ -65,6 +65,7 @@ module Browsers
       DISPLAY_FAILED = "an exception raise during browser display an url"
       LINK_NOT_FOUND = "link not found"
       CLICK_ON_FAILED = "an exception raise during browser click on an url"
+      LINKS_LIST_FAILED = "catch links failed"
     end
     attr :driver,
          :screen_resolution
@@ -134,7 +135,27 @@ module Browsers
                                                             browser_details[:operating_system], \
                                                             browser_details[:operating_system_version]))
       @profile = Selenium::WebDriver::Firefox::Profile.new
+
+      @profile['intl.charset.default'] = "UTF-8"
       @profile['javascript.enabled'] = true
+      #---------------------------------------------------------------------------------------------------------------
+      # ATTENTION : suuprimer du fichier D:\Ruby193\lib\ruby\gems\1.9.1\gems\selenium-webdriver-2.33.0\lib\selenium\webdriver\firefox\extension\prefs.json
+      # contenu dans le gem selenium, les variables :
+      # browser.link.open_newwindow
+      # browser.link.open_newwindow.restriction
+      # afin de pouvoir les modifier avec les valeurs suivantes :
+      #Where to open links that would normally open in a new window
+      #2 (default in SeaMonkey and Firefox 1.5): In a new window
+      #3 (default in Firefox 2 and above): In a new tab
+      #1 (or anything else): In the current tab or window
+      #Note: In Firefox 1.5, this can be changed via "Tools → Options → Tabs → Force links that open new windows to open in:"; in Firefox 2 and above, via “Tools → Options → Tabs → New pages should be opened in:” (same as browser.link.open_external) and, in SeaMonkey, via "Edit -> Preferences -> Navigator -> Tabbed browsing / Link open behavior -> Open links meant to open a new window in".
+      @profile['browser.link.open_newwindow'] = 3 #open link always in current tab =>never new tab and never new window
+      #Firefox and SeaMonkey only. Source: The Burning Edge.
+      #0 (Default in Firefox 1.0.x and SeaMonkey): Force all new windows opened by JavaScript into tabs.
+      #1: Let all windows opened by JavaScript open in new windows. (Default behavior in IE.)
+      #2 (Default in Firefox 1.5 and above): Catch new windows opened by JavaScript that do not have specific values set (how large the window should be, whether it should have a status bar, etc.) This is useful because some popups are legitimate — it really is useful to be able to see both the popup and the original window at the same time. However, most advertising popups also open in new windows with values set, so beware.
+      @profile['browser.link.open_newwindow.restriction'] = 0
+      #---------------------------------------------------------------------------------------------------------------
       @profile['network.http.accept-encoding'] = "gzip,deflate"
       @profile['general.useragent.override'] = user_agent
       #TODO supprimer le user agent du profil et le remplacer par le visitor_id
@@ -163,45 +184,29 @@ module Browsers
         raise BrowserException::LINK_NOT_FOUND unless link.exist?
         link.click
         raise BrowserException::URL_NOT_FOUND if error?
-        @@logger.an_event.info "browser #{@id} click on url #{link.url.to_s} in window #{link.window_tab}"
+        @@logger.an_event.info "browser click on url #{link.url.to_s} in window #{link.window_tab}"
         @@logger.an_event.debug "cookies GA : #{cookies_ga}"
-        #page = Page.new(link.url, links)
-        page = Page.new(@driver.current_url, @driver.window_handle, links)
+        start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
+        lnks = links
+        page = Page.new(@driver.current_url, get_window_handle(@driver.current_url), lnks, Time.now - start_time)
       rescue TimeoutError => e
         @@logger.an_event.warn "Timeout on browser #{@id} on click link #{link.url.to_s}"
         refresh
-        page = Page.new(@driver.current_url, @driver.window_handle, links)
+        start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
+        lnks = links
+        page = Page.new(@driver.current_url, get_window_handle(@driver.current_url), lnks, Time.now - start_time)
       rescue RuntimeError => e
-        @@logger.an_event.debug "browser #{@id} : #{error_label}"
-        @@logger.an_event.error "browser #{@id} not found url #{link.url.to_s}"
+        @@logger.an_event.debug "browser : #{error_label}"
+        @@logger.an_event.error "browser not found url #{link.url.to_s}"
         raise e
       rescue Exception => e
         @@logger.an_event.debug e
-        @@logger.an_event.error "browser #{@id} cannot try to click on url #{link.url.to_s}"
+        @@logger.an_event.error "browser cannot try to click on url #{link.url.to_s}"
         raise BrowserException::DISPLAY_FAILED
       end
       return page
     end
 
-
-    #----------------------------------------------------------------------------------------------------------------
-    # close
-    #----------------------------------------------------------------------------------------------------------------
-    # close un webdriver
-    #----------------------------------------------------------------------------------------------------------------
-    # input :
-    #----------------------------------------------------------------------------------------------------------------
-    def close
-      begin
-        @driver.manage.delete_all_cookies()
-        @driver.close
-        @@logger.an_event.info "browser #{@id} is closed"
-      rescue Exception => e
-        @@logger.an_event.debug e
-        @@logger.an_event.error "browser #{@id} is not closed"
-        raise BrowserException, e.message
-      end
-    end
 
     def cookies_ga
       cookies = []
@@ -227,21 +232,22 @@ module Browsers
         begin
           @driver.get url.to_s
           raise BrowserException::URL_NOT_FOUND if error?
-          @@logger.an_event.info "browser #{@id} browse url #{url.to_s} in windows #{@driver.window_handle}"
+          @@logger.an_event.info "browser browse url #{url.to_s} in windows #{@driver.window_handle}"
           @@logger.an_event.debug "cookies GA : #{cookies_ga}"
-          page = Page.new(@driver.current_url, @driver.window_handle, links)
-          #page = Page.new(url, links)
+          start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
+          lnks = links
+          page = Page.new(@driver.current_url, get_window_handle(@driver.current_url), lnks, Time.now - start_time)
           stop = true
         rescue TimeoutError => e
           stop = false
           @@logger.an_event.warn "Timeout on browser #{@id} on display url #{url.to_s}"
         rescue RuntimeError => e
-          @@logger.an_event.debug "browser #{@id} : #{error_label}"
-          @@logger.an_event.error "browser #{@id} not found url #{url.to_s}"
+          @@logger.an_event.debug "browser : #{error_label}"
+          @@logger.an_event.error "browser  not found url #{url.to_s}"
           raise e
         rescue Exception => e
           @@logger.an_event.debug e
-          @@logger.an_event.error "browser #{@id} try to browse url #{url.to_s}"
+          @@logger.an_event.error "browser try to browse url #{url.to_s}"
           raise BrowserException::DISPLAY_FAILED
         end
       end
@@ -260,7 +266,16 @@ module Browsers
       @driver.find_element(:id, "errorShortDescText").text
     end
 
-
+    def get_window_handle(url)
+      current_window_handle = @driver.window_handle
+      @driver.window_handles.each { |h|
+        @driver.switch_to.window(h)
+        if @driver.current_url == url
+          @driver.switch_to.window(current_window_handle)
+          return h
+        end
+      }
+    end
 
     #----------------------------------------------------------------------------------------------------------------
     # links
@@ -270,37 +285,49 @@ module Browsers
     # input : RAS
     # output : Array de Link
     #----------------------------------------------------------------------------------------------------------------
+
+
     def links(path_crt_frame=[], crt_frame=nil)
       #TODO faire la liste de toutes les balises html qui referencent un lien http (a, map,...)
-      path_crt_frame << crt_frame unless crt_frame.nil?
+      begin
+        path_crt_frame << crt_frame unless crt_frame.nil?
 
-      switch_to_frame(path_crt_frame)
-
-      html_tag_a = @driver.find_elements(:tag_name, "a")
-      html_tag_a.select! { |l| l.enabled? and \
-                                l.displayed? and \
-                                !l[:href].nil? and \
-                                well_formed?(l[:href]) and \
-                                l[:href].start_with?("http:") and \
-                                l[:href] != @driver.current_url and \
-                                !l[:href].end_with?("png") and \
-                                !l[:href].end_with?("jpg") and \
-                                !l[:href].end_with?("jpeg") and \
-                                !l[:href].end_with?("gif") and \
-                                !l[:href].end_with?("pdf") and \
-                                !l[:href].end_with?("svg")
-      }
-
-      html_tag_a.uniq! { |p| p[:href] }
-      lnks = (html_tag_a.size > 0) ? html_tag_a.map { |link| Link.new(URI.parse(link[:href]), link, @driver.window_handle, Array.new(path_crt_frame)) } : []
-
-      @driver.find_elements(:tag_name, "iframe").each { |frame|
-        lnks += links(path_crt_frame, frame)
-
-        path_crt_frame.pop
         switch_to_frame(path_crt_frame)
-      }
-      lnks
+        html_tag_a = @driver.find_elements(:tag_name, "a")
+        html_tag_a.select! { |l|
+          l.enabled? and \
+            l.displayed? and \
+            !l[:href].nil? and \
+            well_formed?(l[:href]) and \
+            l[:href].start_with?("http") and \
+            l[:href] != @driver.current_url and \
+            !l[:href].end_with?("png") and \
+            !l[:href].end_with?("jpg") and \
+            !l[:href].end_with?("jpeg") and \
+            !l[:href].end_with?("gif") and \
+            !l[:href].end_with?("pdf") and \
+            !l[:href].end_with?("svg")
+        }
+
+        html_tag_a.uniq! { |l| l[:href] }
+        lnks = (html_tag_a.size > 0) ? html_tag_a.map { |link| Link.new(URI.parse(link[:href]), link, @driver.window_handle, Array.new(path_crt_frame)) } : []
+
+        @driver.find_elements(:tag_name, "iframe").each { |frame|
+          lnks += links(path_crt_frame, frame)
+
+          path_crt_frame.pop
+          switch_to_frame(path_crt_frame)
+        }
+        lnks
+      rescue Selenium::WebDriver::Error::StaleElementReferenceError => e
+        return links
+      rescue Exception => e
+        @@logger.an_event.debug e.message
+        @@logger.an_event.debug "current window : #{@driver.window_handle}"
+        @@logger.an_event.debug "current page : #{@driver.current_url}"
+        @@logger.an_event.debug "current frame : #{path_crt_frame}"
+        raise BrowserException::LINKS_LIST_FAILED
+      end
     end
 
 
@@ -318,13 +345,32 @@ module Browsers
 
         Selenium::WebDriver::Firefox.path = firefox_binary_path
         @driver = Selenium::WebDriver.for :firefox, :profile => @profile
-        @@logger.an_event.info "browser #{@id} is opened"
+        @@logger.an_event.info "browser is opened"
         width, height = @screen_resolution.split(/x/)
         @driver.manage.window.resize_to(width.to_i, height.to_i)
         @@logger.an_event.debug "cookies GA : #{cookies_ga}"
       rescue Exception => e
         @@logger.an_event.debug e
-        @@logger.an_event.error "browser #{@id} is not opend"
+        @@logger.an_event.error "browser is not opend"
+        raise BrowserException, e.message
+      end
+    end
+
+    #----------------------------------------------------------------------------------------------------------------
+    # quit
+    #----------------------------------------------------------------------------------------------------------------
+    # close un webdriver
+    #----------------------------------------------------------------------------------------------------------------
+    # input :
+    #----------------------------------------------------------------------------------------------------------------
+    def quit
+      begin
+        #@driver.manage.delete_all_cookies()
+        @driver.quit
+        @@logger.an_event.info "browser is closed"
+      rescue Exception => e
+        @@logger.an_event.debug e
+        @@logger.an_event.error "browser is not closed"
         raise BrowserException, e.message
       end
     end
@@ -333,7 +379,7 @@ module Browsers
       display = false
       while !display
         begin
-          @@logger.an_event.warn "browser #{@id} refresh url #{@driver.current_url}"
+          @@logger.an_event.warn "browser refresh url #{@driver.current_url}"
           @driver.navigate.refresh
           display = true
         rescue TimeoutError => e
@@ -349,14 +395,20 @@ module Browsers
         element = @driver.find_element(engine_search.tag_search, engine_search.id_search)
         element.send_keys keywords
         element.submit
+        start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
         lnks = links
-        page = Page.new(@driver.current_url, @driver.window_handle, lnks)
+        page = Page.new(@driver.current_url, get_window_handle(@driver.current_url), lnks, Time.now - start_time)
       rescue TimeoutError => e
         refresh
-        page = Page.new(@driver.current_url, @driver.window_handle, links)
+        element = @driver.find_element(engine_search.tag_search, engine_search.id_search)
+        element.send_keys keywords
+        element.submit
+        start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
+        lnks = links
+        page = Page.new(@driver.current_url, get_window_handle(@driver.current_url), lnks, Time.now - start_time)
       rescue Exception => e
         @@logger.an_event.debug e
-        @@logger.an_event.error "browser #{@id} cannot search a with engine #{engine_search.class}"
+        @@logger.an_event.error "browser cannot search #{keywords} with engine #{engine_search.class}"
       end
       page
     end
@@ -371,10 +423,10 @@ module Browsers
     end
 
     def wait_on(page)
-      @@logger.an_event.debug "browser #{@id} start waiting on page #{page.url}"
+      @@logger.an_event.debug "browser start waiting on page #{page.url}"
       @driver.switch_to.window(page.window_tab)
-      sleep page.duration
-      @@logger.an_event.debug "browser #{@id} finish waiting on page #{page.url}"
+      sleep page.sleeping_time
+      @@logger.an_event.debug "browser finish waiting on page #{page.url}"
     end
 
     def well_formed?(url)

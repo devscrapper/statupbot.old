@@ -69,7 +69,7 @@ module Visitors
 #["screen_resolution", "1366x768"]
 #----------------------------------------------------------------------------------------------------------------
     def initialize(visitor_details)
-      @id = UUID.generate
+      @id = visitor_details[:id]
       @nationality = French.new() # par defaut
       @geolocation = Geolocation.build() #TODO a revisiter avec la mise en oeuvre des web proxy d'internet
                                   #TODO peut on partager les proxy entre visiteur de site different ?
@@ -88,42 +88,56 @@ module Visitors
             read(referral_page)
             return @browser.click_on(referral_page.link_by_url(referrer.landing_url))
           when Search
-            results_page = @browser.search(referrer.keywords, referrer.engine_search)
             landing_link_found = false
             landing_link = nil
-            index_current_page = 1
-            while index_current_page <= referrer.durations.size and \
-                !landing_link_found
-              results_page.duration = referrer.durations[index_current_page-1]
-              read(results_page)
-              landing_link_found, landing_link = referrer.engine_search.exist_link?(results_page, referrer.landing_url)
-              if !landing_link_found
-                index_current_page+=1
-                next_page_link_found, next_page_link = referrer.engine_search.next_page_link(results_page, index_current_page)
-                results_page = @browser.click_on(next_page_link) if next_page_link_found
-                break unless next_page_link_found
-              end
+            results_page = @browser.search(referrer.keywords, referrer.engine_search)
+            results_page.duration = referrer.durations.shift
+            read(results_page)
+            landing_link_found, landing_link = referrer.engine_search.exist_link?(results_page, referrer.landing_url)
+
+            if !landing_link_found
+              # landing n a pas ete trouvé dans la premiere page de resultats
+              # on chercher alors dans les pages suivantes dont le nombre est fixé par la taille du array referrer.durations
+              index_current_page = 1
+              referrer.durations.each_index { |i|
+                next_page_link_found, next_page_link = referrer.engine_search.next_page_link(results_page, index_current_page+1 )
+                if next_page_link_found
+                  # si il existe une page suivante on clique dessus et on  cherche landing_url
+                  results_page = @browser.click_on(next_page_link)
+                  results_page.duration = referrer.durations[i]
+                  read(results_page)
+                  landing_link_found, landing_link = referrer.engine_search.exist_link?(results_page, referrer.landing_url)
+                  break if landing_link_found #si landing url a ete trouve on sort brutalement
+                  index_current_page += 1
+                else
+                  # on na pas trouve de page suivante, on sort brutalement
+                  break
+                end
+              }
             end
-            raise VisitorException::BAD_KEYWORDS unless landing_link_found
             return @browser.click_on(landing_link) if landing_link_found
+            raise VisitorException, "keyword : #{referrer.keywords}" unless landing_link_found
         end
-      rescue Exception => e
-        #Browsers::BrowserException::SEARCH_FAILED,, SearchEngine::Not_found_link, SearchEngine::Not_found_next_link, SearchEngine::not_found_numcurrentpage
+      rescue VisitorException => e
         @@logger.an_event.debug e
-        @@logger.an_event.error "visitor #{id} not found landing page #{referrer.landing_url}"
+        @@logger.an_event.warn "visitor not found landing page #{referrer.landing_url} with keywords #{referrer.keywords}"
+        raise VisitorException::NOT_FOUND_LANDING_PAGE
+      rescue Exception => e
+        @@logger.an_event.debug e
+        @@logger.an_event.error "visitor not found landing page #{referrer.landing_url}"
         raise VisitorException::NOT_FOUND_LANDING_PAGE
       end
     end
 
 
     def close_browser
-      @browser.close
+      @browser.quit
       #supprimer file contenant la customisation
       File.delete("#{DIR_VISITORS}/#{@id}.json")
     end
 
     def execute(visit)
-      @@logger.an_event.debug visit.to_s
+      @@logger.an_event.info "visitor #{@id} start execution of visit #{visit.id}"
       begin
         landing_page = browse(visit.referrer)
         page = surf(visit.durations, landing_page, visit.around)
@@ -139,9 +153,10 @@ module Visitors
         end
       rescue Exception => e
         @@logger.an_event.debug e
-        @@logger.an_event.error "visitor #{@id} cannot execute visit #{visit.id}"
+        @@logger.an_event.error "visitor cannot execute visit #{visit.id}"
         raise VisitorException::CANNOT_CONTINUE_VISIT
       end
+      @@logger.an_event.info "visitor #{@id} stop execution of visit #{visit.id}"
     end
 
     def open_browser
@@ -153,7 +168,8 @@ module Visitors
     end
 
     def read(page)
-      @@logger.an_event.info "visitor #{@id} read page #{page.url} during #{page.duration}s"
+      #TODO lors wait_on déduire le temps passé à parser les links d'une page
+      @@logger.an_event.info "visitor read page #{page.url} during #{page.sleeping_time}s (= #{page.duration} - #{page.duration_search_link})"
       @browser.wait_on(page)
     end
 
@@ -165,14 +181,16 @@ module Visitors
         durations.each_index { |i|
           page.duration = durations[i]
           read(page)
-          link = page.link(arounds[i])
-          page = @browser.click_on(link)
+          if i < durations.size - 1
+            link = page.link(arounds[i])
+            page = @browser.click_on(link)
+          end # on ne clique pas quand on est sur la denriere page
 
         }
         page
       rescue Exception => e
         @@logger.an_event.debug e
-        @@logger.an_event.error "visitor #{@id} stop surf at page #{page.url}"
+        @@logger.an_event.error "visitor stop surf at page #{page.url}"
         raise VisitorException::CANNOT_CONTINUE_SURF
       end
     end

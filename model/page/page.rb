@@ -5,13 +5,21 @@ module Pages
       AROUND_UNKNOWN = "around unknown"
     end
     attr_accessor :duration
-    attr_reader :url, :window_tab, :links
+    attr_reader :url, :window_tab, :links,:duration_search_link
 
-    def initialize(url, window_tab, links)
+
+    def sleeping_time
+      #on deduit le temps passé à chercher les liens dans la page
+      (@duration - @duration_search_link <= 0) ? 0 : @duration - @duration_search_link
+    end
+
+    def initialize(url, window_tab, links, duration_search_link=0)
+      #duration est initialisé avec le temps passé à chercher les liens dans la page
       begin
         @url = url.is_a?(URI) ? url : URI.parse(url)
         @window_tab = window_tab
         @links= links
+        @duration_search_link = duration_search_link.to_i
       rescue Exception => e
         raise PageException::PARAM_MALFORMED
       end

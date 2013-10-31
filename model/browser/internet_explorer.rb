@@ -76,4 +76,5 @@ module Browsers
       end
     end
   end
+
 end
