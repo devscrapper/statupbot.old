@@ -32,9 +32,9 @@ module Browsers
       cq.add_var_query("utmsc", browser_details[:screens_colors])
       cq.add_var_query("utmje", (browser_details[:java_enabled]=="Yes" ? 1 : 0))
       cq.add_var_query("utmfl", browser_details[:flash_version])
-      cq.add_var_query("utme", "IE#{browser_details[:version]} \
-      #{browser_details[:operating_system]} \
-      #{browser_details[:operating_system_version]}")
+      #cq.add_var_query("utme", "IE#{browser_details[:version]} \
+      ##{browser_details[:operating_system]} \
+      ##{browser_details[:operating_system_version]}")
       @custom_queries << cq
     end
     def user_agent(browserversion, os, osversion)

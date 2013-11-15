@@ -160,11 +160,11 @@ module Visitors
     end
 
     def open_browser
-      @browser.open
       # send customize queries to mitm
       File.open("#{DIR_VISITORS}/#{@id}.json", 'w') do |io|
         io.write @browser.custom_queries.to_json
       end
+      @browser.open
     end
 
     def read(page)

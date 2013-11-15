@@ -17,7 +17,7 @@ module Browsers
       @profile['network.http.accept-encoding'] = 'gzip, deflate'
 
       cq = CustomQuery.new("http://www.google-analytics.com/__utm.gif")
-      cq.add_var_http("Accept", "image/png, image/svg+xml, image/*;q=0.8, */*;q=0.5")
+      cq.add_var_http("Accept", "image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5")
       # Liste des variables customisable par le proxy (car pas le choix)
       # utmcs : charset
       # utmsr : screen resolution
@@ -32,9 +32,9 @@ module Browsers
       cq.add_var_query("utmsc", browser_details[:screens_colors])
       cq.add_var_query("utmje", (browser_details[:java_enabled]=="Yes" ? 1 : 0))
       cq.add_var_query("utmfl", browser_details[:flash_version])
-      cq.add_var_query("utme", "IE#{browser_details[:version]} \
-      #{browser_details[:operating_system]} \
-      #{browser_details[:operating_system_version]}")
+      #cq.add_var_query("utme", "IE#{browser_details[:version]} \
+      ##{browser_details[:operating_system]} \
+      ##{browser_details[:operating_system_version]}")
       @custom_queries << cq
     end
 

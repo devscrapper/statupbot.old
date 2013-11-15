@@ -12,7 +12,7 @@ module Browsers
     attr_reader :domain_path #shceme/domain/path
 
 
-    def initialize(domain_path)
+    def initialize(domain_path="*")
       @domain_path = domain_path
       @var_query = {}
       @var_http = {}
@@ -66,7 +66,12 @@ module Browsers
       LINK_NOT_FOUND = "link not found"
       CLICK_ON_FAILED = "an exception raise during browser click on an url"
       LINKS_LIST_FAILED = "catch links failed"
+
     end
+    VISITORS_DIR = File.dirname(__FILE__) + "/../../visitors"
+    EXTENSION_DIR = File.dirname(__FILE__) + "/../../extension"
+    LOG_DIR = File.dirname(__FILE__) + "/../../log"
+    EXTENSION_URL_REWRITING = "urlrewriting@statupbot.com"
     attr :driver,
          :screen_resolution
 
@@ -130,12 +135,26 @@ module Browsers
     def initialize(browser_details, user_agent)
       @id = UUID.generate
       @screen_resolution = browser_details[:screen_resolution]
-      @custom_queries = CustomQueries.new
-      @custom_queries.add_var_http("User-Agent", user_agent(browser_details[:version], \
-                                                            browser_details[:operating_system], \
-                                                            browser_details[:operating_system_version]))
-      @profile = Selenium::WebDriver::Firefox::Profile.new
 
+      @custom_queries = CustomQueries.new
+      @profile = Selenium::WebDriver::Firefox::Profile.new
+      # le separator utiliser par ruby est / qq soit l'os. Ruby gere en interne l'adaptation au file system
+      # le chemin du fichier de paramétrage visitor est manipuler par javascript dans une extension firefox. Ruby ne peut
+      # donc faire l'adaptation au file system. En conséquence il y a obligation de gérer le séparator pour javascript manuellement
+      # car il ne comprend pas le separator '/' sous windows
+      case RbConfig::CONFIG['host_os']
+        when /mswin|msys|mingw|cygwin|bccwin|wince|emc/
+          @profile["extensions.#{EXTENSION_URL_REWRITING}.visitor.filename"] = File.join(File.absolute_path(VISITORS_DIR), "#{user_agent}.json").gsub("/","\\")
+          @profile["extensions.#{EXTENSION_URL_REWRITING}.log.filename"] = File.join(File.absolute_path(LOG_DIR), "#{EXTENSION_URL_REWRITING}.log").gsub("/","\\")
+        when /linux/
+          @profile["extensions.#{EXTENSION_URL_REWRITING}.visitor.filename"] = File.join(File.absolute_path(VISITORS_DIR), "#{user_agent}.json")
+          @profile["extensions.#{EXTENSION_URL_REWRITING}.log.filename"] = File.join(File.absolute_path(LOG_DIR), "#{EXTENSION_URL_REWRITING}.log")
+        else
+          raise BrowserException, "unknown os: #{RbConfig::CONFIG['host_os']}"
+      end
+      @profile["extensions.#{EXTENSION_URL_REWRITING}.visitor.id"] = user_agent
+      @profile["extensions.checkCompatibility"] = false
+      @profile.add_extension(File.join(EXTENSION_DIR, EXTENSION_URL_REWRITING))
       @profile['intl.charset.default'] = "UTF-8"
       @profile['javascript.enabled'] = true
       #---------------------------------------------------------------------------------------------------------------
