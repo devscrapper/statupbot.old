@@ -153,6 +153,7 @@ module Browsers
           raise BrowserException, "unknown os: #{RbConfig::CONFIG['host_os']}"
       end
       @profile["extensions.#{EXTENSION_URL_REWRITING}.visitor.id"] = user_agent
+      @profile["extensions.#{EXTENSION_URL_REWRITING}.debugging"] = $debugging
       @profile["extensions.checkCompatibility"] = false
       @profile.add_extension(File.join(EXTENSION_DIR, EXTENSION_URL_REWRITING))
       @profile['intl.charset.default'] = "UTF-8"
