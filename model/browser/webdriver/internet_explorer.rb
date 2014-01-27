@@ -1,4 +1,5 @@
 module Browsers
+  module Webdriver
   class InternetExplorer < Browser
     class InternetExplorerException < StandardError
 
@@ -77,4 +78,5 @@ module Browsers
     end
   end
 
-end
+  end
+  end

@@ -1,7 +1,10 @@
 module Pages
   class Link
 
-    attr_reader :url, :path_frame, :element, :window_tab
+    attr_reader :url,
+                :path_frame,# cette donnée n'est pas utilisée avec Sahi
+                :element,
+                :window_tab
 
     def initialize(url, element, window_tab, path_frame)
       @url = url

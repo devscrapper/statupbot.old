@@ -6,23 +6,39 @@ require 'trollop'
 require 'eventmachine'
 include Visits
 include Visitors
-#--visit-file-name, -v <s>:   Path and name of visit file to browse
-#          --slave, -s <s>:   Visitor is slave of Visitor Factory (yes/no) (default: no)
-#--listening-port-visitor-factory, -l <i>:   Listening port of Visitor Factory (default: 9220)
-# --listening-port, -i <i>:   Listening port of Visitor Bot (default: 9800)
-#     --proxy-type, -p <s>:   Type of proxy use (none|http|https|socks) (default: none)
-#       --proxy-ip, -r <s>:   @ip of proxy
-#     --proxy-port, -o <i>:   Port of proxy
-#     --proxy-user, -x <s>:   Identified user of proxy
-#      --proxy-pwd, -y <s>:   Authentified pwd of proxy
-#--[[:depends, [:slave, :listening-port, :listening-port-visitor-factory]], [:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]], -[:
-#--[[:depends, [:slave, :listening-port, :listening-port-visitor-factory]], [:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]], -[:
-#--[[:depends, [:slave, :listening-port, :listening-port-visitor-factory]], [:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]], -[:
-#--[[:depends, [:slave, :listening-port, :listening-port-visitor-factory]], [:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]], -[:
-#            --version, -e:   Print version and exit
-#               --help, -h:   Show this message
+#bot which surf on website
+#
+#Usage:
+#       visitor_bot [options]
+#where [options] are:
+#                                                                                                    --visit-file-name, -v <s>:   Path and name of visit file to browse
+#                                                                                                              --slave, -s <s>:   Visitor
+#                                                                                                                                 is slave
+#                                                                                                                                 of
+#                                                                                                                                 Visitor
+#                                                                                                                                 Factory
+#                                                                                                                                 (yes/no)
+#                                                                                                                                 (default:
+#                                                                                                                                 no)
+#                                                                                     --listening-port-visitor-factory, -l <i>:   Listening port of Visitor Factory (default: 9220)
+#                                                                                                     --listening-port, -i <i>:   Listening port of Visitor Bot (default: 9800)
+#                                                                                          --listening-port-sahi-proxy, -t <i>:   Listening port of Sahi proxy (default: 9999)
+#                                                                                                         --proxy-type, -p <s>:   Type of geolocation
+#                                                                                                                                 proxy use
+#                                                                                                                                 (none|http|https|socks)
+#                                                                                                                                 (default:
+#                                                                                                                                 none)
+#                                                                                                           --proxy-ip, -r <s>:   @ip of geolocation proxy
+#                                                                                                         --proxy-port, -o <i>:   Port of geolocation proxy
+#                                                                                                         --proxy-user, -x <s>:   Identified user of geolocation proxy
+#                                                                                                          --proxy-pwd, -y <s>:   Authentified pwd of geolocation proxy
+#  --[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]], -[:
+#  --[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]], -[:
+#  --[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]], -[:
+#                                                                                                                --version, -e:   Print version and exit
+                                                                                                                   #--help, -h:   Show this message
 # sample :
-# Visitor_bot is no slave : visitor_bot -v d:\toto\visit.yaml
+# Visitor_bot is no slave without geolocation : visitor_bot -v d:\toto\visit.yaml -t 9998
 # Visitor_bot is slave : visitor_bot -v d:\toto\visit.yaml -s yes -l 9220 -i 9800
 
 opts = Trollop::options do
@@ -38,11 +54,12 @@ where [options] are:
   opt :slave, "Visitor is slave of Visitor Factory (yes/no)", :type => :string, :default => "no"
   opt :listening_port_visitor_factory, "Listening port of Visitor Factory", :type => :integer, :default => 9220
   opt :listening_port, "Listening port of Visitor Bot", :type => :integer, :default => 9800
-  opt :proxy_type, "Type of proxy use (none|http|https|socks)", :type => :string, :default => "none"
-  opt :proxy_ip, "@ip of proxy", :type => :string
-  opt :proxy_port, "Port of proxy", :type => :integer
-  opt :proxy_user, "Identified user of proxy", :type => :string
-  opt :proxy_pwd, "Authentified pwd of proxy", :type => :string
+  opt :listening_port_sahi_proxy, "Listening port of Sahi proxy", :type => :integer, :default => 9999
+  opt :proxy_type, "Type of geolocation proxy use (none|http|https|socks)", :type => :string, :default => "none"
+  opt :proxy_ip, "@ip of geolocation proxy", :type => :string
+  opt :proxy_port, "Port of geolocation proxy", :type => :integer
+  opt :proxy_user, "Identified user of geolocation proxy", :type => :string
+  opt :proxy_pwd, "Authentified pwd of geolocation proxy", :type => :string
 
   #opt depends(:slave, :listening_port, :listening_port_visitor_factory)
   opt depends(:proxy_type, :proxy_ip)
@@ -52,8 +69,8 @@ end
 
 Trollop::die :visit_file_name, "is require" if opts[:visit_file_name].nil?
 Trollop::die :visit_file_name, ": <#{opts[:visit_file_name]}> is not valid, or not find" unless File.file?(opts[:visit_file_name])
-Trollop::die :proxy_ip, "is require with proxy" if opts[:proxy_type] != "none" and !opts[:proxy_ip].nil?
-Trollop::die :proxy_port, "is require with proxy" if opts[:proxy_type] != "none" and !opts[:proxy_port].nil?
+Trollop::die :proxy_ip, "is require with proxy" if opts[:proxy_type] != "none" and opts[:proxy_ip].nil?
+Trollop::die :proxy_port, "is require with proxy" if opts[:proxy_type] != "none" and opts[:proxy_port].nil?
 
 class VisitException < StandardError
 
@@ -66,7 +83,7 @@ class Connection < EventMachine::Connection
 
   attr :visitor, :opts
 
-  def initialize(opts,  visitor)
+  def initialize(opts, visitor)
     @visitor = visitor
     @opts = opts
   end
@@ -78,27 +95,29 @@ class Connection < EventMachine::Connection
   end
 end
 class Client < EventMachine::Connection
-   include EM::Protocols::ObjectProtocol
-   attr_accessor :visit_details
-   attr :logger
+  include EM::Protocols::ObjectProtocol
+  attr_accessor :visit_details
+  attr :logger
 
-   def initialize(visit_details)
-     begin
-       @visitor_details = visit_details
+  def initialize(visit_details)
+    begin
+      @visitor_details = visit_details
 
-     rescue Exception => e
-       p e.message
-     end
-   end
-   def post_init
-     begin
-       send_object @visit_details
-     rescue Exception => e
-       p e.message
-     end
-   end
+    rescue Exception => e
+      p e.message
+    end
+  end
 
- end
+  def post_init
+    begin
+      send_object @visit_details
+    rescue Exception => e
+      p e.message
+    end
+  end
+
+end
+
 def build_visit(visit_details)
   visit = nil
   begin
@@ -112,10 +131,13 @@ def build_visit(visit_details)
   visit
 end
 
-def build_visitor(visitor_details)
+def build_visitor(visitor_details,
+    exist_pub_in_visit,
+    listening_port_sahi_proxy = nil, proxy_ip=nil, proxy_port=nil, proxy_user=nil, proxy_pwd=nil)
   visitor = nil
   begin
-    visitor = Visitor.build(visitor_details)
+    visitor = Visitor.build(visitor_details, exist_pub_in_visit,
+                            listening_port_sahi_proxy, proxy_ip, proxy_port, proxy_user, proxy_pwd)
     @@logger.an_event.debug visitor.to_yaml
   rescue Exception => e
     @@logger.an_event.error "building visitor of visit #{visit_details[:id_visit]} failed"
@@ -128,35 +150,48 @@ end
 def visitor_is_slave(opts)
   visit_details = YAML::load(File.read(opts[:visit_file_name]))
   visitor_details = visit_details[:visitor]
-  visitor = build_visitor(visitor_details)
+  visitor = build_visitor(visitor_details, visit_details[:advert][:advertising] != :none)
   visitor.open_browser
   EventMachine.run {
     Signal.trap("INT") { EventMachine.stop; }
     Signal.trap("TERM") { EventMachine.stop; }
 
     EventMachine.start_server "127.0.0.1", opts[:listening_port], Connection, opts, visitor
-    EM.connect '127.0.0.1', opts[:listening_port], Client,visit_details
+    EM.connect '127.0.0.1', opts[:listening_port], Client, visit_details
   }
 end
 
 def visitor_is_no_slave(opts)
   visitor = nil
   begin
-    visit_file = File.open(opts[:visit_file_name],"r:BOM|UTF-8:-")
+    visit_file = File.open(opts[:visit_file_name], "r:BOM|UTF-8:-")
     visit_details = YAML::load(visit_file.read)
     visit_file.close
     visitor_details = visit_details[:visitor]
     visit = build_visit(visit_details)
     context = ["#{visit_details[:website][:label]}:#{visit.id}"]
     @@logger.ndc context
-    visitor = build_visitor(visitor_details)
-
+    if  visit_details[:advert][:advertising] != :none
+      visitor = build_visitor(visitor_details,
+                              visit_details[:advert][:advertising] != :none)
+    else
+      #pas de pub dans la visit
+      visitor = build_visitor(visitor_details,
+                              visit_details[:advert][:advertising] != :none,
+                              opts[:listening_port_sahi_proxy],
+                              opts[:proxy_ip],
+                              opts[:proxy_port],
+                              opts[:proxy_user],
+                              opts[:proxy_pwd])
+    end
     visitor.open_browser
     visitor.execute(visit)
     visitor.close_browser
+    visitor.die
     return 0
   rescue Exception => e
     visitor.close_browser unless visitor.nil?
+    visitor.die unless visitor.nil?
     #STDERR << "failed : #{e.message}"
     return -1
   end
@@ -166,23 +201,24 @@ PARAMETERS = File.dirname(__FILE__) + "/../parameter/visitor_bot.yml"
 ENVIRONMENT= File.dirname(__FILE__) + "/../parameter/environment.yml"
 $staging = "production"
 $debugging = false
-def load_parameter
-    begin
-      environment = YAML::load(File.open(ENVIRONMENT), "r:UTF-8")
-      $staging = environment["staging"] unless environment["staging"].nil?
-    rescue Exception => e
-      STDERR << "loading parameter file #{ENVIRONMENT} failed : #{e.message}"
-    end
 
-    begin
-      params = YAML::load(File.open(PARAMETERS), "r:UTF-8")
-      @@debug_outbound_queries = params[$staging]["debug_outbound_queries"] unless params[$staging]["debug_outbound_queries"].nil? #geolocation
-      @@home = params[$staging]["home"] unless params[$staging]["home"].nil? #geolocation
-      @@firefox_path = params[$staging]["firefox_path"] unless params[$staging]["firefox_path"].nil?
-      $debugging = params[$staging]["debugging"] unless params[$staging]["debugging"].nil?
-    rescue Exception => e
-      STDERR << "loading parameters file #{PARAMETERS} failed : #{e.message}"
-    end
+def load_parameter
+  begin
+    environment = YAML::load(File.open(ENVIRONMENT), "r:UTF-8")
+    $staging = environment["staging"] unless environment["staging"].nil?
+  rescue Exception => e
+    STDERR << "loading parameter file #{ENVIRONMENT} failed : #{e.message}"
+  end
+
+  begin
+    params = YAML::load(File.open(PARAMETERS), "r:UTF-8")
+    @@debug_outbound_queries = params[$staging]["debug_outbound_queries"] unless params[$staging]["debug_outbound_queries"].nil? #geolocation
+    @@home = params[$staging]["home"] unless params[$staging]["home"].nil? #geolocation
+    @@firefox_path = params[$staging]["firefox_path"] unless params[$staging]["firefox_path"].nil?
+    $debugging = params[$staging]["debugging"] unless params[$staging]["debugging"].nil?
+  rescue Exception => e
+    STDERR << "loading parameters file #{PARAMETERS} failed : #{e.message}"
+  end
 end
 
 load_parameter

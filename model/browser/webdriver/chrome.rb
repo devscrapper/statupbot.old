@@ -1,4 +1,5 @@
 module Browsers
+  module Webdriver
   class Chrome < Browser
     class ChromeException < StandardError
 
@@ -69,4 +70,5 @@ module Browsers
 
 
   end
-end
+  end
+  end

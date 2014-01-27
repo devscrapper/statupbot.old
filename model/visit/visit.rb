@@ -10,9 +10,8 @@ module Visits
     class VisitException < StandardError
       PARAM_DETAILS_MALFORMED = "visit parameters are malformed"
     end
-
+    attr_reader :landing_url
     attr :referrer,
-         :landing_url,
          :durations,
          :advertising,
          :start_date_time,

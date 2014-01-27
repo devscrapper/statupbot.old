@@ -3,9 +3,13 @@ module Pages
     class PageException < StandardError
       PARAM_MALFORMED = "paramaters of page are malformed"
       AROUND_UNKNOWN = "around unknown"
+      URL_NOT_FOUND = "url not found"
     end
     attr_accessor :duration
-    attr_reader :url, :window_tab, :links,:duration_search_link
+    attr_reader :url,
+                :window_tab, # cette données n'est pas utilisée avec Sahi
+                :links,
+                :duration_search_link
 
 
     def sleeping_time
@@ -51,10 +55,17 @@ module Pages
 
 
     #Retourne un link au hasard de la liste d’ url fournie ou url
+    # url peut être :
+    # soit un array d'url au format string
+    # soit un array d'url au format URI => transformation dans al fonction en string
+    # soit une url au format string
+    # soit une url au format URI   => transformation dans al fonction en string
     #Pour rechercher landing_url dans referral_page : Referral_Page.link_by_url(landing_url)
     def link_by_url(url)
-      urls = (url.is_a?(Array)) ? url : [url]
-      @links.select { |l| urls.include?(l.url) }.shuffle[0]
+      urls = (url.is_a?(Array)) ? url.map { |u| (u.is_a?(URI)) ? u.to_s : u } : [(url.is_a?(URI)) ? url.to_s : url]
+      res = @links.select { |l| urls.include?(l.url.to_s) }
+      raise PageException::URL_NOT_FOUND if res.size == 0
+      res.shuffle[0]
     end
 
     def link_by_hostname(hostname)
