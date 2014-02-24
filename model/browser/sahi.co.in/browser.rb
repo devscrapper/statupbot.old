@@ -15,15 +15,20 @@ module Browsers
         LINK_NOT_FOUND = "link not found"
         CLICK_ON_FAILED = "an exception raise during browser click on an url"
         LINKS_LIST_FAILED = "catch links failed"
+        GO_TO_FAILED = "go to failed"
 
       end
       VISITORS_DIR = File.dirname(__FILE__) + "/../../visitors"
       LOG_DIR = File.dirname(__FILE__) + "/../../log"
 
-      attr :driver,
-           :screen_resolution
+      attr_accessor :driver,
+                    :listening_port_proxy
 
-      attr_reader :id
+
+      attr_reader :id,
+                  :height,
+                  :width,
+                  :start_page
 
       #TODO meo le monitoring de l'activité du browser
       include Pages
@@ -46,19 +51,20 @@ module Browsers
       # Browser : "Chrome", "Firefox", "Internet Explorer", "Safari"
       # operatingSystem:  "Windows", "Linux", "Macintosh"
       #----------------------------------------------------------------------------------------------------------------
-      def self.build(browser_details)
+      def self.build(visitor_dir, browser_details)
+        #TODO mettre en oevre opera & safari
         #Les navigateurs disponibles sont definis dans le fichier d:\sahi\userdata\config\browser_types.xml
         case browser_details[:name]
           when "Firefox"
-            return Browser.new(browser_details, "firefox")
+            return Firefox.new(visitor_dir, browser_details)
           when "Internet Explorer"
-            return Browser.new(browser_details, "ie")
+            return InternetExplorer.new(visitor_dir, browser_details)
           when "Chrome"
-            return Browser.new(browser_details, "chrome")
-          when "Safari"
-            return Browser.new(browser_details, "safari")
-          when "Opera"
-            return Browser.new(browser_details, "opera")
+            return Chrome.new(visitor_dir, browser_details)
+          #when "Safari"
+          #  return Safari.new(visitor_dir, browser_details)
+          #when "Opera"
+          #  return Opera.new(visitor_dir, browser_details)
           else
             @@logger.an_event.debug "browser <#{browser_details[:name]}> unknown"
             raise BrowserException, "browser <#{browser_details[:name]}> unknown"
@@ -75,10 +81,10 @@ module Browsers
       #["screens_colors", "24-bit"]      : fourni par le navigateur utilisé
       #["screen_resolution", "1366x768"]
 
-      def initialize(browser_details, browser_type)
+      def initialize(browser_details)
         @id = UUID.generate
-        @screen_resolution = browser_details[:screen_resolution]
-        @driver = Driver.new(browser_type)
+        @listening_port_proxy = browser_details[:listening_port_proxy]
+        @width, @height = browser_details[:screen_resolution].split(/x/)
       end
 
       #----------------------------------------------------------------------------------------------------------------
@@ -96,6 +102,7 @@ module Browsers
         page = nil
         begin
           link.click
+          sleep(5)
           #raise BrowserException::URL_NOT_FOUND if error?
           @@logger.an_event.debug "browser #{name} #{@id} click on url #{link.url.to_s} in window #{link.window_tab}"
           #@@logger.an_event.debug "cookies GA : #{cookies_ga}"
@@ -126,7 +133,7 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       # accède à une url
       #----------------------------------------------------------------------------------------------------------------
-      # input : url
+      # input : url  (uri)
       # output : Object Page
       # exception : URL_NOT_FOUND, DISPLAY_FAILED
       #----------------------------------------------------------------------------------------------------------------
@@ -139,12 +146,15 @@ module Browsers
             @@logger.an_event.debug "browser #{name} #{@id} display url #{url.to_s}"
             start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
             lnks = links
+            @@logger.an_event.debug "links of url #{url.to_s} : "
+            @@logger.an_event.debug lnks
             page = Page.new(@driver.current_url, nil, lnks, Time.now - start_time)
             stop = true
           rescue TimeoutError => e
             stop = false
             @@logger.an_event.warn "Timeout on browser #{name} #{@id}  on display url #{url.to_s}"
           rescue RuntimeError => e
+            @@logger.an_event.debug e
             @@logger.an_event.error "browser #{name} #{@id} not found url #{url.to_s}"
             raise e
           rescue Exception => e
@@ -179,6 +189,8 @@ module Browsers
         }
       end
 
+
+
       #----------------------------------------------------------------------------------------------------------------
       # links
       #----------------------------------------------------------------------------------------------------------------
@@ -189,7 +201,17 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       def links
         begin
-          @driver.fetch("_sahi.links()").split("|").map { |link| Link.new(URI.parse(link), @driver.link(link), @driver.title, nil) }
+          #TODO à supprimer si mass test et qu'aucune erreur nest affichée ne reproduit pas l'ouverture de tab dans IE
+          arr = @driver.fetch("_sahi.links()").split("|").map { |link|
+            href, target, text  = link.split("!")
+            if target != "_top" and target != "_self" and target != "_parent" and target != ""
+              @@logger.an_event.debug "link = <#{link}> has bad target <#{target}>, so it is rejected"
+              nil
+            else
+              Link.new(URI.parse(href), @driver.link(href), @driver.title,text, nil)
+            end
+          }.compact
+          arr
         rescue Exception => e
           @@logger.an_event.debug e.message
           @@logger.an_event.debug "browser #{name} #{@id} cannot retrieve links in window : #{@driver.title}"
@@ -208,6 +230,7 @@ module Browsers
       def name
         @driver.browser_type
       end
+
       #----------------------------------------------------------------------------------------------------------------
       # open
       #----------------------------------------------------------------------------------------------------------------
@@ -218,10 +241,8 @@ module Browsers
       def open
         begin
           @driver.open
+
           @@logger.an_event.debug "browser #{name} #{@id} is opened"
-            #TODO resize la fenetre du browser.
-            #width, height = @screen_resolution.split(/x/)
-            #@driver.manage.window.resize_to(width.to_i, height.to_i)
         rescue Exception => e
           @@logger.an_event.debug e
           @@logger.an_event.error "browser #{name} #{@id} cannot be opened"
@@ -239,7 +260,7 @@ module Browsers
       def quit
         begin
           @driver.close
-          @@logger.an_event.info "browser #{name} #{@id} is closed"
+          @@logger.an_event.debug "browser #{name} #{@id} is closed"
         rescue Exception => e
           @@logger.an_event.debug e
           @@logger.an_event.error "browser #{name} #{@id} cannot be closed"
@@ -260,24 +281,25 @@ module Browsers
         end
       end
 
+      #@browser.navigate_to("http://www.google.com")
+      #@browser.textbox("q").value = "sahi forums"
+      #@browser.submit("Google Search").click
+      #@browser.link("Forums - Sahi - Web Automation and Test Tool").click
+      #@browser.link("Login").click
+      #assert @browser.textbox("req_username").exists?
+
       def search(keywords, engine_search)
         page = nil
         begin
-          @driver.get engine_search.page_url
-          element = @driver.find_element(engine_search.tag_search, engine_search.id_search)
-          element.send_keys keywords
-          element.submit
+          display(engine_search.page_url)
+          @driver.textbox(engine_search.id_search).value = keywords
+          @driver.submit(engine_search.label_search_button).click
+          @@logger.an_event.debug "browser #{name} #{@id} open url #{engine_search.page_url.to_s} in a new window"
           start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
           lnks = links
-          page = Page.new(@driver.current_url, get_window_handle(@driver.current_url), lnks, Time.now - start_time)
-        rescue TimeoutError => e
-          refresh
-          element = @driver.find_element(engine_search.tag_search, engine_search.id_search)
-          element.send_keys keywords
-          element.submit
-          start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-          lnks = links
-          page = Page.new(@driver.current_url, get_window_handle(@driver.current_url), lnks, Time.now - start_time)
+          @@logger.an_event.debug "links of url #{engine_search.page_url.to_s} : "
+          @@logger.an_event.debug lnks
+          page = Page.new(@driver.current_url, nil, lnks, Time.now - start_time)
         rescue Exception => e
           @@logger.an_event.debug e
           @@logger.an_event.error "browser #{name} #{@id} cannot search #{keywords} with engine #{engine_search.class}"
@@ -315,3 +337,8 @@ module Browsers
 
   end
 end
+require_relative 'firefox'
+require_relative 'internet_explorer'
+require_relative 'chrome'
+require_relative 'safari'
+require_relative 'opera'

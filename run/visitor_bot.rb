@@ -192,7 +192,7 @@ def visitor_is_no_slave(opts)
   rescue Exception => e
     visitor.close_browser unless visitor.nil?
     visitor.die unless visitor.nil?
-    #STDERR << "failed : #{e.message}"
+    STDERR << "failed : #{e.message}"
     return -1
   end
 end

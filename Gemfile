@@ -17,6 +17,7 @@ gem 'uuid'
 gem 'selenium-webdriver'
 gem 'trollop'
 gem 'sahi'
+gem 'webrick'
 # fin new gem
 
 #group :development

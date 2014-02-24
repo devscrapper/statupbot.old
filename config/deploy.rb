@@ -15,7 +15,7 @@ set :password, "Brembo01"
 #set :copy_compression, :zip
 default_run_options[:pty] = true
 set :use_sudo, false
-set :server_list, ["input_flows_statupbot", "visit_factory_statupbot", "visitor_factory_statupbot"]
+set :server_list, ["input_flows_statupbot", "visit_factory_statupbot", "visitor_factory_statupbot", "start_page_visit_statupbot"]
 role :app, server_name
 
 require "rvm/capistrano"

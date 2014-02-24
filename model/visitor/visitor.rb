@@ -84,9 +84,16 @@ module Visitors
         @id = visitor_details[:id]
         FileUtils.mkdir_p(File.join(DIR_VISITORS, @id))
         if browser_type == :sahi
-          @proxy = Browsers::SahiCoIn::Proxy.new(@id, listening_port_sahi_proxy, proxy_ip, proxy_port, proxy_user, proxy_pwd)
+          @proxy = Browsers::SahiCoIn::Proxy.new(File.join(DIR_VISITORS, @id),
+                                                 listening_port_sahi_proxy,
+                                                 proxy_ip, proxy_port, proxy_user, proxy_pwd)
+          visitor_details[:browser][:listening_port_proxy] = listening_port_sahi_proxy
+          @browser = Browsers::SahiCoIn::Browser.build(File.join(DIR_VISITORS, @id),
+                                                       visitor_details[:browser])
           @proxy.start
-          @browser = Browsers::SahiCoIn::Browser.build(visitor_details[:browser])
+
+          @browser.deploy_properties(File.join(DIR_VISITORS, @id)) if @browser.is_a?(Browsers::SahiCoIn::Opera)
+
           @@logger.an_event.info "visitor #{@id} is born"
         else
 
@@ -99,47 +106,26 @@ module Visitors
         @@logger.an_event.debug e
         @@logger.an_event.error "visitor #{@id} dead borned"
       end
-
     end
 
     def browse(referrer)
       begin
+        @browser.display_start_page
         case referrer
           when Direct
             return @browser.display(referrer.landing_url)
           when Referral
-            referral_page = @browser.display(referrer.page_url)
+            return @browser.display(referrer.page_url)
+            referral_page = @browser.open_start_page(referrer.page_url)
             referral_page.duration = referrer.duration
             read(referral_page)
             return @browser.click_on(referral_page.link_by_url(referrer.landing_url))
           when Search
-            landing_link_found = false
-            landing_link = nil
-            results_page = @browser.search(referrer.keywords, referrer.engine_search)
-            results_page.duration = referrer.durations.shift
-            read(results_page)
-            landing_link_found, landing_link = referrer.engine_search.exist_link?(results_page, referrer.landing_url)
-
-            if !landing_link_found
-              # landing n a pas ete trouvé dans la premiere page de resultats
-              # on chercher alors dans les pages suivantes dont le nombre est fixé par la taille du array referrer.durations
-              index_current_page = 1
-              referrer.durations.each_index { |i|
-                next_page_link_found, next_page_link = referrer.engine_search.next_page_link(results_page, index_current_page+1)
-                if next_page_link_found
-                  # si il existe une page suivante on clique dessus et on  cherche landing_url
-                  results_page = @browser.click_on(next_page_link)
-                  results_page.duration = referrer.durations[i]
-                  read(results_page)
-                  landing_link_found, landing_link = referrer.engine_search.exist_link?(results_page, referrer.landing_url)
-                  break if landing_link_found #si landing url a ete trouve on sort brutalement
-                  index_current_page += 1
-                else
-                  # on na pas trouve de page suivante, on sort brutalement
-                  break
-                end
-              }
-            end
+            landing_link_found, landing_link = search(referrer.keywords,
+                                                      referrer.engine_search,
+                                                      referrer.durations,
+                                                      referrer.landing_url) if referrer.keywords.is_a?(String)
+            landing_link_found, landing_link = many_search(referrer) if referrer.keywords.is_a?(Array)
             return @browser.click_on(landing_link) if landing_link_found
             raise VisitorException, "keyword : #{referrer.keywords}" unless landing_link_found
         end
@@ -186,9 +172,10 @@ module Visitors
 
     def execute(visit)
       @@logger.an_event.info "visitor #{@id} start execution of visit #{visit.id}"
+
+
       begin
         landing_page = browse(visit.referrer)
-        @@logger.an_event.info "visitor #{@id} browse landing page #{visit.landing_url}"
         page = surf(visit.durations, landing_page, visit.around)
         if !visit.advertising.is_a?(NoAdvertising)
           advertiser = visit.advertising.advertiser
@@ -208,6 +195,22 @@ module Visitors
       @@logger.an_event.info "visitor #{@id} stop execution of visit #{visit.id}"
     end
 
+    #permet de realiser plusieurs recherche avec à chaque fois une list de mot clé différent
+    # cette liste de mot clé sera calculé par scraperbot en fonction d'un paramètage de statupweb
+    # cela permetra par exemple de realisé des recherches qui échouent
+    def many_search(referrer)
+      #TODO tester lorsqu'il y a plusieurs liste de mot clé
+      referrer.keywords.each { |kw|
+        @@logger.an_event.info "visitor #{@id} search landing page #{kw} with keywords #{keywords} on #{referrer.engine_search.class}"
+        landing_link_found, landing_link = search(kw,
+                                                  referrer.engine_search,
+                                                  referrer.durations,
+                                                  referrer.landing_url)
+        @@logger.an_event.info "visitor #{@id} not found landing page #{referrer.landing_url} with keywords #{kw} on #{referrer.engine_search.class}" unless  landing_link_found
+        return landing_link_found, landing_link if landing_link_found
+      }
+    end
+
     def open_browser
       begin
         @browser.open
@@ -223,6 +226,37 @@ module Visitors
       @browser.wait_on(page)
     end
 
+    def search(keywords, engine_search, durations, landing_url)
+      results_page = @browser.search(keywords, engine_search)
+      results_page.duration = durations.shift
+      read(results_page)
+      landing_link_found, landing_link = engine_search.exist_link?(results_page, landing_url)
+
+      if !landing_link_found
+        # landing n a pas ete trouvé dans la premiere page de resultats
+        # on chercher alors dans les pages suivantes dont le nombre est fixé par la taille du array referrer.durations
+        index_current_page = 1
+        durations.each_index { |i|
+          next_page_link_found, next_page_link = engine_search.next_page_link(results_page, index_current_page+1)
+          if next_page_link_found
+            # si il existe une page suivante on clique dessus et on  cherche landing_url
+            results_page = @browser.click_on(next_page_link)
+            results_page.duration = durations[i]
+            read(results_page)
+            landing_link_found, landing_link = engine_search.exist_link?(results_page, landing_url)
+
+            break if landing_link_found #si landing url a ete trouve on sort brutalement
+            index_current_page += 1
+          else
+            # on na pas trouve de page suivante, on sort brutalement
+
+            break
+          end
+        }
+      end
+      return [landing_link_found, landing_link]
+    end
+
     def surf(durations, page, around)
       # le surf sur le website prend en entrée un around => arounds est rempli avec cette valeur
       # le surf sur l'advertiser predn en entrée un array de around pré calculé par engine bot en fonction des paramètre saisis au moyen de statupweb
@@ -234,7 +268,6 @@ module Visitors
           if i < durations.size - 1
             link = page.link(arounds[i])
             page = @browser.click_on(link)
-            @@logger.an_event.info "visitor #{@id} click on link #{link.url}"
           end # on ne clique pas quand on est sur la denriere page
 
         }

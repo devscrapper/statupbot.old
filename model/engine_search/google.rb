@@ -3,12 +3,32 @@ module EngineSearches
     class GoogleException < StandardError
     end
 
-    URL = "http://www.google.fr"
+    URL = "http://www.google.fr/?nord=1"
+
+    #+----------------------------------------+
+    #| attr                 | Selenium | Sahi |
+    #+----------------------------------------+
+    #| :page_url            |    X     |   X  |
+    #| :tag_search          |    X     |      |
+    #| :id_search           |    X     |   X  |
+    #| :id_search_button    |          |   X  |
+    #| :name_search_button  |          |   X  |
+    #| :label_search_button |          |   X  |
+    #+----------------------------------------+
+    attr_reader :page_url,
+                :tag_search,
+                :id_search,
+                :id_search_button,
+                :name_search_button,
+                :label_search_button
 
     def initialize
       @page_url = URL
       @tag_search = :name
       @id_search = 'q'
+      @id_search_button ="gbqfba"
+      @name_search_button = "btnK"
+      @label_search_button = "Recherche Google"
     end
 
     def exist_link?(results_page, landing_url)
