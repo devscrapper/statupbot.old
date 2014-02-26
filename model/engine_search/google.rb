@@ -3,7 +3,7 @@ module EngineSearches
     class GoogleException < StandardError
     end
 
-    URL = "http://www.google.fr/?nord=1"
+
 
     #+----------------------------------------+
     #| attr                 | Selenium | Sahi |
@@ -23,7 +23,8 @@ module EngineSearches
                 :label_search_button
 
     def initialize
-      @page_url = URL
+      @page_url = "http://www.google.fr/?nord=1"
+      @page_url = "https://www.google.fr/"
       @tag_search = :name
       @id_search = 'q'
       @id_search_button ="gbqfba"

@@ -1,9 +1,10 @@
 require_relative 'geolocation/geolocation'
+require_relative 'nationality/nationality'
 require_relative '../../model/browser/webdriver/browser'
 require_relative '../../model/browser/sahi.co.in/browser'
 require_relative '../visit/referrer/referrer'
 require_relative '../visit/advertising/advertising'
-require_relative 'nationality/nationality'
+
 
 #require_relative 'customize_queries_connection'
 #require_relative 'custom_gif_request/custom_gif_request'
@@ -201,7 +202,7 @@ module Visitors
     def many_search(referrer)
       #TODO tester lorsqu'il y a plusieurs liste de mot clé
       referrer.keywords.each { |kw|
-        @@logger.an_event.info "visitor #{@id} search landing page #{kw} with keywords #{keywords} on #{referrer.engine_search.class}"
+        @@logger.an_event.info "visitor #{@id} search landing page #{kw} with keywords #{kw} on #{referrer.engine_search.class}"
         landing_link_found, landing_link = search(kw,
                                                   referrer.engine_search,
                                                   referrer.durations,

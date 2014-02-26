@@ -1,7 +1,7 @@
 require 'rubygems' # if you use RubyGems
 require 'socket'
 require 'eventmachine'
-require_relative 'visitor'
+
 
 
 module VisitorFactory
@@ -10,34 +10,49 @@ module VisitorFactory
   @@sem_busy_visitors = Mutex.new
   @@free_visitors = []
   @@sem_free_visitors = Mutex.new
-
+  @@listening_port_proxy = 9999
   #--------------------------------------------------------------------------------------------------------------------
   # CONNECTION
   #--------------------------------------------------------------------------------------------------------------------
   class AssignNewVisitorConnection < EventMachine::Connection
     include EM::Protocols::ObjectProtocol
+    attr :default_ip_geo,
+         :default_port_geo,
+         :default_user_geo,
+         :default_pwd_geo,
+         :default_type_geo
 
-    def initialize(logger)
+
+    def initialize(logger, geolocation)
       @@logger = logger
+      @default_type_geo = geolocation[:proxy_type]
+      if @default_type_geo != "none"
+        @default_ip_geo = geolocation[:proxy_ip]
+        @default_port_geo = geolocation[:proxy_port]
+        @default_user_geo = geolocation[:proxy_user]
+        @default_pwd_geo = geolocation[:proxy_pwd]
+      end
     end
 
-    def receive_object(visitor_details)
+    def receive_object(filename_visit)
+      #TODO meo l'asservissement du visitor_bot avec listening_port_visitor_bot
+      @@logger.an_event.debug "receive visit filename #{filename_visit}"
+      port_proxy = listening_port_proxy
+      port_visitor_bot = listening_port_visitor_bot
+      execute_visit(filename_visit, port_proxy, port_visitor_bot)
+      @@sem_busy_visitors.synchronize {
+        @@busy_visitors[port_proxy] = port_visitor_bot
+        @@logger.an_event.info "add visitor listening port visitor #{port_visitor_bot} to busy visitors"
+      }
 
-      @@logger.an_event.debug "receive visitor details #{visitor_details}"
-      visitor = Visitor.new(visitor_details)
-      @@logger.an_event.info "create a visitor with id #{visitor_details[:id]}"
-      @@sem_busy_visitors.synchronize { @@busy_visitors[visitor.id] = visitor }
-      @@logger.an_event.info "add visitor #{visitor.id} to busy visitors"
-      visitor.open_browser
-      @@logger.an_event.info "open browser #{visitor.browser.id} of visitor id #{visitor.id}"
       @@logger.an_event.debug @@busy_visitors
       close_connection
     end
   end
   class AssignReturnVisitorConnection < EventMachine::Connection
     include EM::Protocols::ObjectProtocol
-
-    def initialize(logger)
+    #TODO meo l'asservissement du visitor_bot
+    def initialize(logger, geolocation)
       @@logger = logger
     end
 
@@ -46,11 +61,10 @@ module VisitorFactory
       @@sem_free_visitors.synchronize {
         if @@free_visitors.empty?
           @@logger.an_event.debug "receive visitor details #{visitor_details}"
-          visitor = Visitor.new(visitor_details)
           @@logger.an_event.info "create a visitor with id #{visitor_details[:id]}"
           @@sem_busy_visitors.synchronize { @@busy_visitors[visitor.id] = visitor }
           @@logger.an_event.info "add visitor #{visitor.id} to busy visitors"
-          visitor.open_browser
+#          visitor.open_browser
           @@logger.an_event.info "open browser #{visitor.browser.id} of visitor id #{visitor.id}"
           @@logger.an_event.debug @@busy_visitors
           visitor_id = visitor.id
@@ -69,144 +83,26 @@ module VisitorFactory
     end
   end
 
-  class UnAssignVisitorConnection < EventMachine::Connection
-    include EM::Protocols::ObjectProtocol
-
-    def initialize(logger)
-      @@logger = logger
+  def execute_visit(file_name, listening_port_sahi, listening_port_visitor_bot)
+    #TODO meo asservissement en passant par parametre le listening_port_visitor_bot
+    @@logger.an_event.info "execute visit is starting"
+    visitor_bot = File.join(File.dirname(__FILE__), "..", "..", "run", "visitor_bot.rb")
+    geolocation = "" if @default_type_geo == "none"
+    geolocation = "-p #{@default_type_geo} -r #{@default_ip_geo} -o #{@default_port_geo} -x #{@default_user_geo} -y #{@default_pwd_geo}" unless @default_type_geo == "none"
+    #TODO déterminer la localisation du runtime ruby par parametrage ou automatiquement
+    ruby = File.join("d:", "ruby193", "bin", "ruby.exe")
+    begin
+      cmd = "#{ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  #{visitor_bot} -v #{file_name} -t #{listening_port_sahi} #{geolocation}"
+      sleep(2)
+      status = 0
+      Process.spawn(cmd)
+    rescue Exception => e
+      @@logger.an_event.debug e
+      @@logger.an_event.error "factory server cannot start visitor_bot"
     end
-
-    def receive_object(visitor_id)
-
-      @@logger.an_event.debug "receive visitor #{visitor_id}"
-      @@sem_free_visitors.synchronize { @@free_visitors << [Time.now, @@busy_visitors[visitor_id]] }
-      @@logger.an_event.info "add visitor #{visitor_id} to free visitors"
-      @@sem_busy_visitors.synchronize { @@busy_visitors.delete(visitor_id) }
-      @@logger.an_event.info "remove visitor #{visitor_id} from busy visitors"
-      @@logger.an_event.debug "free visitors repository #{@@free_visitors}"
-      @@logger.an_event.debug "busy visitors repository #{@@busy_visitors}"
-      close_connection
-    end
-  end
-  class BrowseUrlConnection < EventMachine::Connection
-    include EM::Protocols::ObjectProtocol
-
-    def initialize(logger)
-      @@logger = logger
-    end
-
-    def receive_object(visitor_url)
-
-      visitor_id = visitor_url["visitor_id"]
-      url = "http://#{visitor_url["url"]}"
-      @@logger.an_event.debug visitor_id
-      @@logger.an_event.debug url
-      begin
-        visitor = @@busy_visitors[visitor_id]
-        if visitor.nil?
-          @@logger.an_event.error "visitor id <#{visitor_id}> is unknown, so cannot browse url #{url}"
-        else
-          visitor.browser.browse url
-          @@logger.an_event.info "visitor #{visitor.id} browse #{url} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
-        end
-      rescue Exception => e
-        @@logger.an_event.error "visitor #{visitor.id} cannot browse url #{url} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
-        @@logger.an_event.debug e
-      end
-      close_connection
-    end
-  end
-  class ClickUrlConnection < EventMachine::Connection
-    include EM::Protocols::ObjectProtocol
-
-    def initialize(logger)
-      @@logger = logger
-    end
-
-    def receive_object(visitor_url)
-
-      visitor_id = visitor_url["visitor_id"]
-      url = "http://#{visitor_url["url"]}"
-      @@logger.an_event.debug visitor_id
-      @@logger.an_event.debug url
-      begin
-        visitor = @@busy_visitors[visitor_id]
-        if visitor.nil?
-          @@logger.an_event.error "visitor id <#{visitor_id}> is unknown, so cannot click on url #{url}"
-        else
-          @@logger.an_event.info "visitor #{visitor.id} click on url #{url} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
-          visitor.browser.click url
-        end
-      rescue Exception => e
-        @@logger.an_event.error "visitor #{visitor.id} cannot click on url #{url} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
-        @@logger.an_event.debug e
-      end
-      close_connection
-    end
-  end
-  class SearchUrlConnection < EventMachine::Connection
-    include EM::Protocols::ObjectProtocol
-
-    def initialize(logger)
-      @@logger = logger
-    end
-
-    def receive_object(visitor_url)
-
-      @@logger.an_event.debug visitor_url
-      visitor_id = visitor_url["visitor_id"]
-      search_engine = visitor_url["search_engine"]
-      landing_page_url = visitor_url["landing_page_url"]
-      keywords = visitor_url["keywords"]
-      sleeping_time = visitor_url["sleeping_time"]
-      count_max_page = visitor_url["count_max_page"]
-      @@logger.an_event.debug visitor_id
-      @@logger.an_event.debug search_engine
-      @@logger.an_event.debug landing_page_url
-      @@logger.an_event.debug keywords
-      @@logger.an_event.debug sleeping_time
-      @@logger.an_event.debug count_max_page
-
-      begin
-        visitor = @@busy_visitors[visitor_id]
-        @@logger.an_event.info "visitor #{visitor.id} search #{keywords} on search engine #{search_engine} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
-        landing_page_found = visitor.browser.search(search_engine, landing_page_url, keywords, sleeping_time, count_max_page)
-        @@logger.an_event.warn "landing page url #{landing_page_url} is not found in results search" unless landing_page_found
-        @@logger.an_event.info "landing page url #{landing_page_url} is found in results search" if landing_page_found
-      rescue Exception => e
-        @@logger.an_event.error "visitor #{visitor.id} cannot search #{keywords} on search engine #{search_engine} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
-        @@logger.an_event.debug e
-      end
-      close_connection
-    end
+    @@logger.an_event.info "execute visit is stopped"
   end
 
-  class ClickPubConnection < EventMachine::Connection
-    include EM::Protocols::ObjectProtocol
-    #TODO  meo {"local" = "80"}
-
-    def initialize(logger)
-      @@logger = logger
-    end
-
-    def receive_object(visitor_url)
-
-      @@logger.an_event.debug visitor_url
-      visitor_id = visitor_url["visitor_id"]
-      duration_pages = visitor_url["duration_pages"]
-      around_pages = visitor_url["around_pages"]
-      advertising = visitor_url["advertising"]
-      begin
-        visitor = @@busy_visitors[visitor_id]
-        visitor.browser.click_on_pub(advertising, duration_pages, around_pages)
-        @@logger.an_event.info "visitor #{visitor_id} click on advertising #{advertising} with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
-      rescue Exception => e
-        @@logger.an_event.error "visitor #{visitor.id} cannot click on pub with browser #{visitor.browser.id}  with access #{visitor.geolocation.class}"
-        @@logger.an_event.debug e
-      end
-      close_connection
-    end
-  end
 
   def garbage_free_visitors
     begin
@@ -232,16 +128,23 @@ module VisitorFactory
 
   end
 
+  def listening_port_proxy
+     @@listening_port_proxy-=1
+  end
+
+  def listening_port_visitor_bot
+     10000
+  end
 
   def logger(logger)
     @@logger = logger
   end
 
+  module_function :execute_visit
   module_function :garbage_free_visitors
+  module_function :listening_port_proxy #le port d'écoute du proxy sahi ou webdriver
+  module_function :listening_port_visitor_bot #le port d'écoute du visitor_bot qd il est asservi pour gérer les returnVisitor
   module_function :logger
-
-
-
 
 
 end
