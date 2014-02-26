@@ -17,6 +17,7 @@ module Browsers
       def initialize(visitor_dir, browser_details)
         super(browser_details)
         @driver = Browsers::SahiCoIn::Driver.new("chrome", @listening_port_proxy)
+        #TODO supprimer @start_page
         @start_page = "http://www.google.fr/?nord=1"
         customize_properties(visitor_dir)
       end

@@ -53,6 +53,7 @@ module Browsers
         @visitor_dir = visitor_dir
         @home = File.join(@visitor_dir, 'proxy')
         @user_home = File.join(@visitor_dir, 'proxy', 'userdata')
+        @log_properties = File.join(@user_home, 'config', 'log.properties')
         copy_config
         customize_properties
       end
@@ -61,7 +62,7 @@ module Browsers
         begin
 
           #@pid = spawn("java -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" ") #lanceur proxy open source
-          @pid = spawn("java -Djava.util.logging.config.file=#{@user_home}\config\log.properties -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" ")
+          @pid = spawn("java -Djava.util.logging.config.file=#{@log_properties} -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" ")
           @@logger.an_event.debug "Sahi proxy is started"
         rescue Exception => e
           @@logger.an_event.debug "Sahi proxy is not started"
@@ -105,8 +106,11 @@ module Browsers
         # statupbot\lib\sahi.in.co\htdocs to #id_visitor\proxy\htdocs
         # statupbot\lib\sahi.in.co\tools to #id_visitor\proxy\tools
         FileUtils.mkdir_p(File.join(@visitor_dir, 'proxy', 'userdata', 'config'))
+
+
         FileUtils.cp_r(File.join(DIR_SAHI, 'userdata', 'config'), File.join(@visitor_dir, 'proxy', 'userdata'))
         FileUtils.cp_r(File.join(DIR_SAHI, 'userdata', 'certgen'), File.join(@visitor_dir, 'proxy', 'userdata'))
+        FileUtils.cp_r(File.join(DIR_SAHI, 'certgen'), File.join(@visitor_dir, 'proxy'))
         FileUtils.cp_r(File.join(DIR_SAHI, 'config'), File.join(@visitor_dir, 'proxy'))
         FileUtils.cp_r(File.join(DIR_SAHI, 'htdocs'), File.join(@visitor_dir, 'proxy'))
         FileUtils.cp_r(File.join(DIR_SAHI, 'tools'), File.join(@visitor_dir, 'proxy'))
