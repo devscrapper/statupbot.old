@@ -35,7 +35,6 @@ module VisitorFactory
     end
 
     def receive_object(filename_visit)
-      #TODO meo l'asservissement du visitor_bot avec listening_port_visitor_bot
       @@logger.an_event.debug "receive visit filename #{filename_visit}"
       port_proxy = listening_port_proxy
       port_visitor_bot = listening_port_visitor_bot
@@ -51,35 +50,40 @@ module VisitorFactory
   end
   class AssignReturnVisitorConnection < EventMachine::Connection
     include EM::Protocols::ObjectProtocol
-    #TODO meo l'asservissement du visitor_bot
+
     def initialize(logger, geolocation)
       @@logger = logger
     end
 
-    def receive_object(visitor)
+    def receive_object(filename_visit)
+
       visitor_id = nil
       @@sem_free_visitors.synchronize {
         if @@free_visitors.empty?
-          @@logger.an_event.debug "receive visitor details #{visitor_details}"
-          @@logger.an_event.info "create a visitor with id #{visitor_details[:id]}"
-          @@sem_busy_visitors.synchronize { @@busy_visitors[visitor.id] = visitor }
-          @@logger.an_event.info "add visitor #{visitor.id} to busy visitors"
-#          visitor.open_browser
-          @@logger.an_event.info "open browser #{visitor.browser.id} of visitor id #{visitor.id}"
+          @@logger.an_event.debug "receive visit filename #{filename_visit}"
+          port_proxy = listening_port_proxy
+          port_visitor_bot = listening_port_visitor_bot
+          execute_visit(filename_visit, port_proxy, port_visitor_bot)
+          @@sem_busy_visitors.synchronize {
+            @@busy_visitors[port_proxy] = port_visitor_bot
+            @@logger.an_event.info "add visitor listening port visitor #{port_visitor_bot} to busy visitors"
+          }
+
           @@logger.an_event.debug @@busy_visitors
-          visitor_id = visitor.id
+          close_connection
         else
-          return_visitor = @@free_visitors.shift[1]
-          @@logger.an_event.info "remove visitor #{return_visitor.id} from free visitors"
+          #TODO meo du reveil d'un visitor_bot pour un return visitor
+          port_visitor_bot = @@free_visitors.shift[1]
+          @@logger.an_event.info "remove visitor #{port_visitor_bot} from free visitors"
           @@logger.an_event.debug @@free_visitors
-          @@sem_busy_visitors.synchronize { @@busy_visitors[return_visitor.id] = return_visitor }
-          @@logger.an_event.info "add visitor #{return_visitor.id} to busy visitors"
+          @@sem_busy_visitors.synchronize { @@busy_visitors[port_proxy] = port_visitor_bot }
+          @@logger.an_event.info "add visitor #{port_visitor_bot} to busy visitors"
           @@logger.an_event.debug @@busy_visitors
-          visitor_id = return_visitor.id
+          #TODO Connect to visitor_bot port_visitor_bot et lui envoyer le filename_visit
+          close_connection_after_writing
         end
       }
-      send_object visitor_id
-      close_connection_after_writing
+
     end
   end
 
@@ -129,10 +133,12 @@ module VisitorFactory
   end
 
   def listening_port_proxy
+    #TODO calculer le listening port du proxy webdriver ou sahi
      @@listening_port_proxy-=1
   end
 
   def listening_port_visitor_bot
+    #TODO calculer le listening port de visitor bot pour l"asservissemnt"
      10000
   end
 

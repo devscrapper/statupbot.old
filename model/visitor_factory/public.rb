@@ -35,7 +35,7 @@ module VisitorFactory
     def post_init
       begin
         send_object @visitor_details
-        @logger.an_event.info "assignement of visitor #{@visitor_details[:id]} is asked to VisitorFactory"
+        @logger.an_event.info "assignement of visitor is asked to VisitorFactory"
       rescue Exception => e
         p e.message
       end

@@ -163,6 +163,9 @@ module Visitors
         @@logger.an_event.warn "visitor #{@id} die dirty"
       end
       begin
+        # on patiente un peu que processus ne tienne plus les fiochiers
+        #TODO valider l'attente lors de la suppression des fichiers du visitor
+        sleep (1 * 60)
         FileUtils.rm_r(File.join(DIR_VISITORS, @id))
         @@logger.an_event.info "visitor #{@id} is dead"
       rescue Exception => e
