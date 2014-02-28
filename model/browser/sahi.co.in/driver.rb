@@ -52,9 +52,11 @@ module Browsers
       end
 
       def open_start_page(window_parameters)
+        # pour maitriser le referer on passe par un site local en https qui permet de ne pas affecter le referer
+        # incontournable sinon Google analityc enregistre la page de lancement de Sahi initializer
         fetch("_sahi.open_start_page(\"https://localhost/\",\"#{window_parameters}\")")
-        @popup_name = "defaultSahiPopup"
-        @@logger.an_event.debug "open start page with parameters : #{window_parameters}"
+       # @popup_name = "defaultSahiPopup"    etait utiliser quand on ouvrait une nouvelle window pour lzncer https://localhost, supprimer pour r"duire le nombre de fentre à l'ecran car les ressources du PC explose"
+        @@logger.an_event.info "open start page with parameters : #{window_parameters}"
       end
 
       #recupere l'url de la page affichée dans le navigateur
