@@ -61,6 +61,7 @@ module Browsers
         #titlebar=yes|no|1|0 	Whether or not to display the title bar. Ignored unless the calling application is an HTML Application or a trusted dialog box
         #top=pixels 	The top position of the window. Negative values not allowed
         #width=pixels 	The width of the window. Min. value is 100
+        #TODO controler le lancement  : voir le comportement comme IE ou FF ou CH
         @driver.open_start_page("width=#{@width},height=#{@height},fullscreen=0,left=0,location=1,menubar=1,scrollbars=1,status=1,titlebar=1,top=0")
       end
     end

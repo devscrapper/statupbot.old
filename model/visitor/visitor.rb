@@ -116,8 +116,7 @@ module Visitors
           when Direct
             return @browser.display(referrer.landing_url)
           when Referral
-            return @browser.display(referrer.page_url)
-            referral_page = @browser.open_start_page(referrer.page_url)
+            referral_page = @browser.display(referrer.page_url)
             referral_page.duration = referrer.duration
             read(referral_page)
             return @browser.click_on(referral_page.link_by_url(referrer.landing_url))
@@ -136,7 +135,7 @@ module Visitors
         raise VisitorException::NOT_FOUND_LANDING_PAGE
       rescue Exception => e
         @@logger.an_event.debug e
-        @@logger.an_event.error "visitor #{@id} not found landing page #{referrer.landing_url}"
+        @@logger.an_event.warn "visitor #{@id} not found landing page #{referrer.landing_url}"
         raise VisitorException::NOT_FOUND_LANDING_PAGE
       end
     end

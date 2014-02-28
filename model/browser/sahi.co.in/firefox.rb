@@ -84,7 +84,16 @@ module Browsers
         #toolbar=yes|no|1|0 	Whether or not to display the browser toolbar. IE and Firefox only
         #top=pixels 	The top position of the window. Negative values not allowed
         #width=pixels 	The width of the window. Min. value is 100
-        @driver.open_start_page("width=#{@width},height=#{@height},fullscreen=no,left=0,menubar=yes,scrollbars=yes,status=yes,titlebar=yes,toolbar=yes,top=0")
+        #@driver.open_start_page("width=#{@width},height=#{@height},fullscreen=no,left=0,menubar=yes,scrollbars=yes,status=yes,titlebar=yes,toolbar=yes,top=0")
+        #TODO etudeir pour les windows parameter ne sont pas pris en compte lros de l' window.open => tous browser cela merde.
+        window_parameters = "width=#{@width},height=#{@height},fullscreen=no,left=0,menubar=yes,scrollbars=yes,status=yes,titlebar=yes,toolbar=yes,top=0"
+         # pour maitriser le referer on passe par un site local en https qui permet de ne pas affecter le referer
+        # incontournable sinon Google analityc enregistre la page de lancement de Sahi initializer
+        @driver.fetch("_sahi.open_start_page_ff(\"https://localhost\",\"#{window_parameters}\")")
+        #@driver.fetch("_sahi._closeWindow()") marche pas pour fermer la première fenetre
+
+        @driver.popup_name = "defaultSahiPopup"
+        @@logger.an_event.info "display start page with parameters : #{window_parameters}"
       end
     end
   end

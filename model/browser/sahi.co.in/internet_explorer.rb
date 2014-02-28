@@ -55,7 +55,13 @@ module Browsers
         #toolbar=yes|no|1|0 	Whether or not to display the browser toolbar. IE and Firefox only
         #top=pixels 	The top position of the window. Negative values not allowed
         #width=pixels 	The width of the window. Min. value is 100
-        @driver.open_start_page("width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0")
+        #@driver.open_start_page("width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0")
+
+         # pour maitriser le referer on passe par un site local en https qui permet de ne pas affecter le referer
+        # incontournable sinon Google analityc enregistre la page de lancement de Sahi initializer
+        window_parameters = "width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0"
+        @driver.fetch("_sahi.open_start_page_ie(\"https://sahi.example.com/_s_/dyn/Driver_initialized\",\"#{window_parameters}\")")
+        @@logger.an_event.info "display start page with parameters : #{window_parameters}"
       end
     end
   end
