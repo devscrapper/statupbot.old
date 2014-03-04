@@ -36,7 +36,7 @@ include Visitors
 #  --[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]], -[:
 #  --[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]], -[:
 #                                                                                                                --version, -e:   Print version and exit
-                                                                                                                   #--help, -h:   Show this message
+#--help, -h:   Show this message
 # sample :
 # Visitor_bot is no slave without geolocation : visitor_bot -v d:\toto\visit.yaml -t 9998
 # Visitor_bot is slave : visitor_bot -v d:\toto\visit.yaml -s yes -l 9220 -i 9800
@@ -189,6 +189,34 @@ def visitor_is_no_slave(opts)
     visitor.close_browser
     visitor.die
     return 0
+  rescue Visitors::VisitorException::CANNOT_CONTINUE_VISIT => e
+    visitor.close_browser unless visitor.nil?
+    visitor.die unless visitor.nil?
+    STDERR << "failed : #{e.message}"
+    return 1
+  rescue Visitors::VisitorException::NOT_FOUND_LANDING_PAGE => e
+    visitor.close_browser unless visitor.nil?
+    visitor.die unless visitor.nil?
+    STDERR << "failed : #{e.message}"
+    return 2
+  rescue Visitors::VisitorException::CANNOT_CONTINUE_SURF => e
+    visitor.close_browser unless visitor.nil?
+    visitor.die unless visitor.nil?
+    STDERR << "failed : #{e.message}"
+    return 3
+  rescue Visitors::VisitorException::CANNOT_CLOSE_BROWSER => e
+    STDERR << "failed : #{e.message}"
+    return 4
+  rescue Visitors::VisitorException::CANNOT_DIE => e
+    visitor.close_browser unless visitor.nil?
+    visitor.die unless visitor.nil?
+    STDERR << "failed : #{e.message}"
+    return 5
+  rescue Visitors::VisitorException::DIE_DIRTY => e
+    visitor.close_browser unless visitor.nil?
+    visitor.die unless visitor.nil?
+    STDERR << "failed : #{e.message}"
+    return 6
   rescue Exception => e
     visitor.close_browser unless visitor.nil?
     visitor.die unless visitor.nil?

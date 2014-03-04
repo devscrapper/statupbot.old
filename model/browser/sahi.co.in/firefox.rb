@@ -92,7 +92,8 @@ module Browsers
         @driver.fetch("_sahi.open_start_page_ff(\"https://localhost\",\"#{window_parameters}\")")
         #@driver.fetch("_sahi._closeWindow()") marche pas pour fermer la première fenetre
 
-        @driver.popup_name = "defaultSahiPopup"
+        #@driver.popup_name = "defaultSahiPopup"
+
         @@logger.an_event.info "display start page with parameters : #{window_parameters}"
       end
     end

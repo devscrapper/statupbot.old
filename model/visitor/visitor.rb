@@ -22,6 +22,9 @@ module Visitors
       CANNOT_CONTINUE_VISIT = "visitor cannot continue visit"
       NOT_FOUND_LANDING_PAGE = "visitor not found landing page"
       CANNOT_CONTINUE_SURF = "visitor cannot surf"
+      CANNOT_CLOSE_BROWSER = "visitor cannot close his browser"
+      CANNOT_DIE = "visitor cannot die"
+      DIE_DIRTY = "visitor die dirty"
       BAD_KEYWORDS = "keywords are bad"
     end
 
@@ -148,6 +151,7 @@ module Visitors
       rescue Exception => e
         @@logger.an_event.debug e
         @@logger.an_event.error "visitor #{@id} cannot close his browser"
+        raise VisitorException::CANNOT_CLOSE_BROWSER
       end
     end
 
@@ -157,19 +161,19 @@ module Visitors
       rescue Browsers::SahiCoIn::Proxy::ProxyException::PROXY_FAIL_TO_STOP => e
         @@logger.an_event.debug e
         @@logger.an_event.error "visitor #{@id} cannot die"
+        raise VisitorException::CANNOT_DIE
       rescue Browsers::SahiCoIn::Proxy::ProxyException::PROXY_FAIL_TO_CLEAN_PROPERTIES => e
         @@logger.an_event.debug e
         @@logger.an_event.warn "visitor #{@id} die dirty"
+        raise VisitorException::DIE_DIRTY
       end
       begin
-        # on patiente un peu que processus ne tienne plus les fiochiers
-        #TODO valider l'attente lors de la suppression des fichiers du visitor
-        sleep (1 * 60)
         FileUtils.rm_r(File.join(DIR_VISITORS, @id))
         @@logger.an_event.info "visitor #{@id} is dead"
       rescue Exception => e
         @@logger.an_event.debug e
         @@logger.an_event.warn "visitor #{@id} die dirty"
+        raise VisitorException::DIE_DIRTY
       end
     end
 

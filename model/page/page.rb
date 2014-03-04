@@ -4,6 +4,7 @@ module Pages
       PARAM_MALFORMED = "paramaters of page are malformed"
       AROUND_UNKNOWN = "around unknown"
       URL_NOT_FOUND = "url not found"
+      NONE_LINK = "page has no link"
     end
     attr_accessor :duration
     attr_reader :url,
@@ -30,6 +31,7 @@ module Pages
     end
 
     def link(around=:inside_fqdn)
+      raise PageException::NONE_LINK if @links.size == 0
       case around
         when :inside_fqdn
           @links.select { |l| l.url.hostname == @url.hostname }.shuffle[0]

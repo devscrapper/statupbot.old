@@ -87,7 +87,7 @@ module Browsers
         # incontournable sinon Google analityc enregistre la page de lancement de Sahi initializer
         window_parameters = "width=#{@width},height=#{@height},fullscreen=0,left=0,menubar=1,status=1,titlebar=1,top=0"
         @driver.fetch("_sahi.open_start_page_ch(\"https://localhost\",\"#{window_parameters}\")")
-        @driver.popup_name = "defaultSahiPopup"
+       # @driver.popup_name = "defaultSahiPopup"
         @@logger.an_event.info "display start page with parameters : #{window_parameters}"
       end
     end

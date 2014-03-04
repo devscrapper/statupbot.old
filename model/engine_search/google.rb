@@ -4,7 +4,6 @@ module EngineSearches
     end
 
 
-
     #+----------------------------------------+
     #| attr                 | Selenium | Sahi |
     #+----------------------------------------+
@@ -50,13 +49,22 @@ module EngineSearches
 
     def next_page_link(results_page, index_next_page)
       #https://www.google.fr/search?q=hkl&ei=6StyUonHOLGR7AbH1YCoBg&sqi=2&start=80&sa=N&biw=1508&bih=741
+
       results_page.links.each { |link|
-        # permet de s'assurer que on selectionne une url de recherche de google de la meme provenance .fr
-        return [true, link] if link.url.scheme == results_page.url.scheme and \
+        begin
+          # permet de s'assurer que on selectionne une url de recherche de google de la meme provenance .fr
+          return [true, link] if link.url.scheme == results_page.url.scheme and \
                               link.url.host == results_page.url.host and \
                               link.element.text.to_i == index_next_page
+        rescue Exception => e
+          @@logger.an_event.debug e
+          @@logger.an_event.error "text not retrieve for link <#{link.url}> "
+          return [false, nil]
+        end
       }
       return [false, nil]
+
+
     end
   end
 end

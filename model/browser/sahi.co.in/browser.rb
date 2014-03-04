@@ -116,7 +116,7 @@ module Browsers
           lnks = links
           page = Page.new(@driver.current_url, nil, lnks, Time.now - start_time)
         rescue RuntimeError => e
-          @@logger.an_event.debug "browser #{name} #{@id}  : #{error_label}"
+          @@logger.an_event.debug e
           @@logger.an_event.error "browser #{name} #{@id} not found url #{link.url.to_s}"
           raise e
         rescue Exception => e
@@ -190,7 +190,6 @@ module Browsers
       end
 
 
-
       #----------------------------------------------------------------------------------------------------------------
       # links
       #----------------------------------------------------------------------------------------------------------------
@@ -202,15 +201,22 @@ module Browsers
       def links
         begin
           #TODO à supprimer si mass test et qu'aucune erreur nest affichée ne reproduit pas l'ouverture de tab dans IE
-          arr = @driver.fetch("_sahi.links()").split("|").map { |link|
-            href, target, text  = link.split("!")
-            if target != "_top" and target != "_self" and target != "_parent" and target != ""
-              @@logger.an_event.debug "link = <#{link}> has bad target <#{target}>, so it is rejected"
-              nil
+          start_time = Time.now
+          arr = JSON.parse(@driver.fetch("_sahi.links()"))
+          if arr.is_a?(String)
+            @@logger.an_event.debug "error from extension.js : #{arr}"
+            raise BrowserException::LINKS_LIST_FAILED
+          end
+
+          arr.map! { |link|
+            if ["", "_top", "_self", "_parent"].include?(link["target"])
+              Link.new(URI.parse(link["href"]), @driver.link(link["href"]), @driver.title, link["text"], nil)
             else
-              Link.new(URI.parse(href), @driver.link(href), @driver.title,text, nil)
+              @@logger.an_event.debug "link, href <#{link["href"]}> has bad target <#{link["target"]}>, so it is rejected"
+              nil
             end
           }.compact
+          p "delay #{Time.now - start_time}"
           arr
         rescue Exception => e
           @@logger.an_event.debug e.message
@@ -291,6 +297,7 @@ module Browsers
       def search(keywords, engine_search)
         page = nil
         begin
+          # OK pour FF & CH, KO pour IE
           display(engine_search.page_url)
           @driver.textbox(engine_search.id_search).value = keywords
           @driver.submit(engine_search.label_search_button).click
