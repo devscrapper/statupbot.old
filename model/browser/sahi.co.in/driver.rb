@@ -64,11 +64,14 @@ module Browsers
       #  @@logger.an_event.info "open start page with parameters : #{window_parameters}"
       #end
 
+      #recupere le referrer de la page affichée dans le navigateur
+      def referrer
+        fetch("_sahi.referrer()")
+      end
+
       #recupere l'url de la page affichée dans le navigateur
       def current_url
-        url = fetch("_sahi.current_url()")
-        @@logger.an_event.debug "current url #{url}"
-        url
+        fetch("_sahi.current_url()")
       end
 
       def navigate_to(url, force_reload=false)

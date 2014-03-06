@@ -73,16 +73,10 @@ module Browsers
       # output : Array de Link
       #----------------------------------------------------------------------------------------------------------------
       def links
-        sleep(5)
+        sleep(4)
         super
       end
 
     end
   end
 end
-#TODO [2014-03-01 09:08:14] INFO  root: visitor 0ea3aae0-7c38-0131-8750-00ffb0ebd50a read page https://www.google.fr/#q=recreation+beaute+pamiers during 12s (= 19 - 7)
-# #TODO "error:_sahi.setServerVarPlain('___lastValue___2014-03-01 08:08:26 UTC', _getText(_link(\"https://www.google.fr/imghp?hl=fr&tab=wi\")))\nError: The parameter passed to _getText was not found on the browser"
-#TODO ERROR root: browser ie 7c12cd40-8346-0131-6273-00ff5045be0a cannot be closed
-#TODO[2014-03-01 09:09:37] ERROR root: visitor 0ea3aae0-7c38-0131-8750-00ffb0ebd50a cannot close his browser
-#TODO  mars 01, 2014 7:25:19 AM net.sf.sahi.test.ProcessHelper kill
-#TODO INFO: PIDs not available yet. Waiting for 1 sec

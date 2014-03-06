@@ -142,6 +142,7 @@ module Browsers
         page = nil
         while !stop
           begin
+            @@logger.an_event.info "browser #{name} #{@id} : referrer <#{@driver.referrer}> of #{@driver.current_url}"
             @driver.navigate_to url.to_s
             @@logger.an_event.debug "browser #{name} #{@id} display url #{url.to_s}"
             start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
@@ -286,7 +287,7 @@ module Browsers
           end
         end
       end
-
+      #TODO recuperer le referer pour valider qu'il est caché
       #@browser.navigate_to("http://www.google.com")
       #@browser.textbox("q").value = "sahi forums"
       #@browser.submit("Google Search").click
@@ -297,7 +298,6 @@ module Browsers
       def search(keywords, engine_search)
         page = nil
         begin
-          # OK pour FF & CH, KO pour IE
           display(engine_search.page_url)
           @driver.textbox(engine_search.id_search).value = keywords
           @driver.submit(engine_search.label_search_button).click

@@ -75,9 +75,7 @@ Trollop::die :proxy_port, "is require with proxy" if opts[:proxy_type] != "none"
 class VisitException < StandardError
 
 end
-class VisitorException < StandardError
 
-end
 class Connection < EventMachine::Connection
   include EM::Protocols::ObjectProtocol
 
@@ -189,38 +187,23 @@ def visitor_is_no_slave(opts)
     visitor.close_browser
     visitor.die
     return 0
-  rescue Visitors::VisitorException::CANNOT_CONTINUE_VISIT => e
-    visitor.close_browser unless visitor.nil?
-    visitor.die unless visitor.nil?
-    STDERR << "failed : #{e.message}"
-    return 1
-  rescue Visitors::VisitorException::NOT_FOUND_LANDING_PAGE => e
-    visitor.close_browser unless visitor.nil?
-    visitor.die unless visitor.nil?
-    STDERR << "failed : #{e.message}"
-    return 2
-  rescue Visitors::VisitorException::CANNOT_CONTINUE_SURF => e
-    visitor.close_browser unless visitor.nil?
-    visitor.die unless visitor.nil?
-    STDERR << "failed : #{e.message}"
-    return 3
-  rescue Visitors::VisitorException::CANNOT_CLOSE_BROWSER => e
-    STDERR << "failed : #{e.message}"
-    return 4
-  rescue Visitors::VisitorException::CANNOT_DIE => e
-    visitor.close_browser unless visitor.nil?
-    visitor.die unless visitor.nil?
-    STDERR << "failed : #{e.message}"
-    return 5
-  rescue Visitors::VisitorException::DIE_DIRTY => e
-    visitor.close_browser unless visitor.nil?
-    visitor.die unless visitor.nil?
-    STDERR << "failed : #{e.message}"
-    return 6
   rescue Exception => e
+    case e.message
+      when Visitors::Visitor::VisitorException::CANNOT_DIE
+        return 1
+      when Visitors::Visitor::VisitorException::CANNOT_CLOSE_BROWSER
+        visitor.die unless visitor.nil?
+        return 2
+      when Visitors::Visitor::VisitorException::CANNOT_CONTINUE_VISIT
+        visitor.close_browser unless visitor.nil?
+        visitor.die unless visitor.nil?
+        return 3
+      when Visitors::Visitor::VisitorException::DIE_DIRTY
+        return 4
+    end
     visitor.close_browser unless visitor.nil?
     visitor.die unless visitor.nil?
-    STDERR << "failed : #{e.message}"
+    STDERR << "visitor_bot : failed : #{e.message}"
     return -1
   end
 end

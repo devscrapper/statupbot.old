@@ -4,7 +4,7 @@ require_relative '../../model/browser/webdriver/browser'
 require_relative '../../model/browser/sahi.co.in/browser'
 require_relative '../visit/referrer/referrer'
 require_relative '../visit/advertising/advertising'
-
+require 'pathname'
 
 #require_relative 'customize_queries_connection'
 #require_relative 'custom_gif_request/custom_gif_request'
@@ -28,7 +28,7 @@ module Visitors
       BAD_KEYWORDS = "keywords are bad"
     end
 
-    DIR_VISITORS = File.dirname(__FILE__) + "/../../visitors"
+    DIR_VISITORS = File.join(File.dirname(__FILE__), '..', '..', 'visitors')
 
     attr_accessor :id,
                   :browser,
@@ -151,7 +151,7 @@ module Visitors
       rescue Exception => e
         @@logger.an_event.debug e
         @@logger.an_event.error "visitor #{@id} cannot close his browser"
-        raise VisitorException::CANNOT_CLOSE_BROWSER
+       raise VisitorException::CANNOT_CLOSE_BROWSER
       end
     end
 
@@ -168,7 +168,7 @@ module Visitors
         raise VisitorException::DIE_DIRTY
       end
       begin
-        FileUtils.rm_r(File.join(DIR_VISITORS, @id))
+        FileUtils.rm_r(Pathname(File.join(DIR_VISITORS, @id)))
         @@logger.an_event.info "visitor #{@id} is dead"
       rescue Exception => e
         @@logger.an_event.debug e
@@ -234,6 +234,11 @@ module Visitors
     end
 
     def search(keywords, engine_search, durations, landing_url)
+      #TODO le referer est passé à google.fr
+      #TODO exemple :  referrer <https://sahi.example.com/_s_/dyn/Driver_initialized> of https://www.google.fr/
+      #TODO exemple : referrer <http://sahi.example.com/_s_/dyn/Driver_initialized> of https://www.google.fr/
+      #TODO exemple : referrer <http://sahi.example.com/_s_/dyn/Driver_initialized?startUrl=http%3A%2F%2Fsahi.example.com%2F_s_%2Fdyn%2FDriver_initialized> of https://www.google.fr/
+      #TODO exemple : referrer <> of https://www.google.fr/
       results_page = @browser.search(keywords, engine_search)
       results_page.duration = durations.shift
       read(results_page)
@@ -282,7 +287,7 @@ module Visitors
       rescue Exception => e
         @@logger.an_event.debug e
         @@logger.an_event.error "visitor  #{@id} stop surf at page #{page.url}"
-        raise VisitorException::CANNOT_CONTINUE_SURF
+      #  raise Visitors::Visitor::VisitorException::CANNOT_CONTINUE_SURF
       end
     end
   end

@@ -1,8 +1,7 @@
 require 'rubygems' # if you use RubyGems
 require 'socket'
 require 'eventmachine'
-
-
+require 'pathname'
 
 module VisitorFactory
   @@logger = nil
@@ -14,6 +13,7 @@ module VisitorFactory
   #--------------------------------------------------------------------------------------------------------------------
   # CONNECTION
   #--------------------------------------------------------------------------------------------------------------------
+  DIR_VISITORS = File.join(File.dirname(__FILE__), '..', '..', 'visitors')
   class AssignNewVisitorConnection < EventMachine::Connection
     include EM::Protocols::ObjectProtocol
     attr :default_ip_geo,
@@ -99,7 +99,35 @@ module VisitorFactory
       cmd = "#{ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  #{visitor_bot} -v #{file_name} -t #{listening_port_sahi} #{geolocation}"
       sleep(2)
       status = 0
-      Process.spawn(cmd)
+      pid = Process.spawn(cmd)
+      pid, status = Process.wait2(pid, 0)
+      if status.exitstatus > 0
+         visit_file = File.open(file_name, "r:BOM|UTF-8:-")
+         visit_details = YAML::load(visit_file.read)
+         visit_file.close
+
+         case status.exitstatus
+
+           when 1 #Visitors::Visitor::VisitorException::CANNOT_DIE
+             @@logger.an_event.error "visitor_bot cannot die"
+           when 2 #Visitors::Visitor::VisitorException::CANNOT_CLOSE_BROWSER
+             @@logger.an_event.error "visitor_bot cannot close his browser"
+             browser_exe = "chrome.exe" if visit_details[:visitor][:browser][:name] == "Chrome"
+             browser_exe = "iexplore.exe" if visit_details[:visitor][:browser][:name] == "Internet Explorer"
+             browser_exe = "firefox.exe" if visit_details[:visitor][:browser][:name] == "Firefox"
+             pid = Process.spawn("taskkill /F /IM #{browser_exe}")
+             pid, status = Process.wait2(pid, 0)
+             @@logger.an_event.info "Visitor_Factory close all browser #{browser_exe}"
+             FileUtils.rm_r(Pathname(File.join(DIR_VISITORS, visit_details[:visitor][:id]))) if Dir.exists?(File.join(DIR_VISITORS, visit_details[:visitor][:id]))
+             @@logger.an_event.info "delete #{Pathname(File.join(DIR_VISITORS, visit_details[:visitor][:id]))}" if Dir.exists?(File.join(DIR_VISITORS, visit_details[:visitor][:id]))
+           when 3 #Visitors::Visitor::VisitorException::CANNOT_CONTINUE_VISIT
+             @@logger.an_event.error  "visitor_bot cannnot continue visit"
+           when 4 #Visitors::Visitor::VisitorException::DIE_DIRTY
+             @@logger.an_event.error  "visitor_bot die dirty"
+             FileUtils.rm_r(Pathname(File.join(DIR_VISITORS, visit_details[:visitor][:id]))) if Dir.exists?(File.join(DIR_VISITORS, visit_details[:visitor][:id]))
+             @@logger.an_event.info "delete #{Pathname(File.join(DIR_VISITORS, visit_details[:visitor][:id]))}"
+         end
+       end
     rescue Exception => e
       @@logger.an_event.debug e
       @@logger.an_event.error "factory server cannot start visitor_bot"
@@ -134,12 +162,12 @@ module VisitorFactory
 
   def listening_port_proxy
     #TODO calculer le listening port du proxy webdriver ou sahi
-     @@listening_port_proxy-=1
+    @@listening_port_proxy-=1
   end
 
   def listening_port_visitor_bot
     #TODO calculer le listening port de visitor bot pour l"asservissemnt"
-     10000
+    10000
   end
 
   def logger(logger)
