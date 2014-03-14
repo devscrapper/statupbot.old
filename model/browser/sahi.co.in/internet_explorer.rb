@@ -4,7 +4,7 @@ module Browsers
       class InternetExplorerException < StandardError
 
       end
-      #TODO ie ne se ferme pas lors du close.
+
       #TODO la size du browser nest pas gerer car window.open dans le self
       #----------------------------------------------------------------------------------------------------------------
       # class methods
@@ -63,8 +63,6 @@ module Browsers
         # incontournable sinon Google analityc enregistre la page de lancement de Sahi initializer
         window_parameters = "width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0"
         @driver.fetch("_sahi.open_start_page_ie(\"https://sahi.example.com/_s_/dyn/Driver_initialized\",\"#{window_parameters}\")")
-        #TODO le referer passe en clair => le localhost est mal accepté par IE => à creuser pour touver une solution = sol extreme un site https sur internet pour ne pas être en local
-        #TODO ajouter un fichier yml à  la calsse browser qui determine une liste de poortail pour faire croire à google que le refererer change
         #TODO comment google fait pour recuperer le referrer sur un https ?
         @driver.navigate_to "https://www.sfr.fr"
         @@logger.an_event.info "display start page with parameters : #{window_parameters}"
@@ -92,7 +90,7 @@ module Browsers
           raise BrowserException::BROWSER_NOT_CLOSE
         end
       end
-      #TODO search avec ie ne trouve pas l'url de la landing page alors que les autres oui exemple [2014-03-11 20:55:31] INFO  root: visitor 0d10b910-7c38-0131-8750-00ffb0ebd50a not found landing page http://centre-moselle.epilation-laser-definitive.info/ville-57-stiring_wendel.htm with keywords Centre d'épilation laser STIRING WENDEL centres de remise en forme STIRING WENDEL on EngineSearches::Google
+
     end
 
   end

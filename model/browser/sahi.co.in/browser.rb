@@ -249,7 +249,7 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       # input :
       #----------------------------------------------------------------------------------------------------------------
-      def open #TODO meo plusieurs essais de lancement du browser.
+      def open
         count_try = 1
         max_count_try = 3
         fin = false
@@ -311,7 +311,7 @@ module Browsers
         end
       end
 
-      #TODO recuperer le referer pour valider qu'il est caché
+
       #@browser.navigate_to("http://www.google.com")
       #@browser.textbox("q").value = "sahi forums"
       #@browser.submit("Google Search").click
@@ -320,7 +320,7 @@ module Browsers
       #assert @browser.textbox("req_username").exists?
 
       def search(keywords, engine_search)
-        #TODO ATTENTION google.fr capte le referer même avce https
+        #TODO ATTENTION google.fr capte le referer même avce https car google est un https pou un site destination en http cela fonctionne
         page = nil
         begin
           display(engine_search.page_url)
