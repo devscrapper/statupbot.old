@@ -2,9 +2,10 @@ module Browsers
   module SahiCoIn
     class Driver < Sahi::Browser
       class DriverSahiException < StandardError
-        DRIVER_NOT_STARTED = "driver sahi cannot start"
         INSTANCE_FF_ALREADY_RUNNING = "an instance of firefox is already running"
-        BROWSER_NOT_STARTED = "browser #{@browser_type} cannot start"
+        DRIVER_NOT_STARTED = "driver sahi cannot start #{@browser_type}"
+        DRIVER_NOT_CLOSE = "driver sahi cannot stop #{@browser_type}"
+        DRIVER_NOT_NAVIGATE = "driver cannot navigate to "
       end
 
       def browser_type
@@ -24,7 +25,13 @@ module Browsers
 
       # closes the browser
       def close
-        exec_command("kill");
+        begin
+          exec_command("kill");
+        rescue Exception => e
+          @@logger.an_event.debug e
+          @@logger.an_event.error DRIVER_NOT_CLOSE
+          raise DriverSahiException::DRIVER_NOT_CLOSE
+        end
       end
 
       #opens the browser
@@ -33,9 +40,7 @@ module Browsers
           check_proxy
           @sahisid = Time.now.to_f
           start_url = "http://sahi.example.com/_s_/dyn/Driver_initialized"
-
           exec_command("launchPreconfiguredBrowser", {"browserType" => @browser_type, "startUrl" => start_url})
-
           i = 0
           while (i < 500)
             i+=1
@@ -46,7 +51,7 @@ module Browsers
         rescue RuntimeError => e
           @@logger.an_event.debug e
           @@logger.an_event.error e.message
-          raise DriverSahiException::BROWSER_NOT_STARTED
+          raise DriverSahiException::DRIVER_NOT_STARTED
         end
       end
 
@@ -91,10 +96,10 @@ module Browsers
                 raise Exception, "error http : #{title[/[0-9]{3}/]}"
             end
           end
-          @@logger.an_event.debug "origin informations : #{fetch("_sahi.info()")}"
         rescue Exception => e
+          @@logger.an_event.debug e
           @@logger.an_event.error e.message
-          raise e
+          raise DriverSahiException::DRIVER_NOT_NAVIGATE
 
         end
       end

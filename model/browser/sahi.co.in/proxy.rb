@@ -62,10 +62,10 @@ module Browsers
         begin
 
           #@pid = spawn("java -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" ") #lanceur proxy open source
-          @pid = spawn("java -Djava.util.logging.config.file=#{@log_properties} -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" ")
-          @@logger.an_event.debug "Sahi proxy is started"
+          @pid = Process.spawn("java -Djava.util.logging.config.file=#{@log_properties} -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" ")
+          @@logger.an_event.info "Sahi proxy is started with pid #{@pid}"
         rescue Exception => e
-          @@logger.an_event.debug "Sahi proxy is not started"
+          @@logger.an_event.error "Sahi proxy is not started"
           @@logger.an_event.debug e
           raise ProxyException::PROXY_NOT_STARTED
         end
@@ -74,8 +74,9 @@ module Browsers
       def stop
         begin
           Process.kill("KILL", @pid)
+          @@logger.an_event.info "Sahi proxy pid #{@pid} is stop"
         rescue SignalException => e
-          @@logger.an_event.debug "java Sahi proxy failed to stop"
+          @@logger.an_event.error "java Sahi proxy #{@pid} failed to stop"
           @@logger.an_event.debug e
           raise ProxyException::PROXY_FAIL_TO_STOP
         end
@@ -86,15 +87,15 @@ module Browsers
           @@logger.an_event.debug "java Sahi proxy is stopped"
         rescue Exception => e
           @@logger.an_event.error "java Sahi proxy is not stopped"
-          @@logger.an_event.debug e
+          @@logger.an_event.error e
           raise ProxyException::PROXY_FAIL_TO_STOP
         end
 
         begin
-          FileUtils.rm_r File.join(@visitor_dir, 'proxy'), :force => true
-          @@logger.an_event.debug "all customize files are deleted"
+          FileUtils.rm_r(Pathname(File.join(@visitor_dir, 'proxy')), :force => true)
+          @@logger.an_event.info "all customize files of proxy Sahi are deleted"
         rescue Exception => e
-          @@logger.an_event.warn "all customize files are not completly deleted"
+          @@logger.an_event.warn "all customize files of proxy Sahi are not completly deleted"
           @@logger.an_event.debug e
           raise ProxyException::PROXY_FAIL_TO_CLEAN_PROPERTIES
         end

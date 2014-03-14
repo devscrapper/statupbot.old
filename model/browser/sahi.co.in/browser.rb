@@ -16,7 +16,9 @@ module Browsers
         CLICK_ON_FAILED = "an exception raise during browser click on an url"
         LINKS_LIST_FAILED = "catch links failed"
         GO_TO_FAILED = "go to failed"
-
+        BROWSER_NOT_STARTED = "browser #{name} #{@id} cannot be opened"
+        BROWSER_NOT_CLOSE = "browser #{name} #{@id} cannot be closed"
+        BROWSER_NOT_NAVIGATE = "browser  cannot navigate to "
       end
       VISITORS_DIR = File.dirname(__FILE__) + "/../../visitors"
       LOG_DIR = File.dirname(__FILE__) + "/../../log"
@@ -28,7 +30,7 @@ module Browsers
       attr_reader :id,
                   :height,
                   :width,
-                  :start_page
+                  :start_page  #TODO supprimer variable start_page
 
       #TODO meo le monitoring de l'activité du browser
       include Pages
@@ -104,7 +106,7 @@ module Browsers
           link.click
           sleep(5)
           #raise BrowserException::URL_NOT_FOUND if error?
-          @@logger.an_event.debug "browser #{name} #{@id} click on url #{link.url.to_s} in window #{link.window_tab}"
+          @@logger.an_event.info "browser #{name} #{@id} click on url #{link.url.to_s} in window #{link.window_tab}"
           #@@logger.an_event.debug "cookies GA : #{cookies_ga}"
           start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
           lnks = links
@@ -142,9 +144,9 @@ module Browsers
         page = nil
         while !stop
           begin
-            @@logger.an_event.info "browser #{name} #{@id} : referrer <#{@driver.referrer}> of #{@driver.current_url}"
             @driver.navigate_to url.to_s
-            @@logger.an_event.debug "browser #{name} #{@id} display url #{url.to_s}"
+            @@logger.an_event.info "browser #{name} #{@id} : referrer <#{@driver.referrer}> of #{@driver.current_url}"
+            @@logger.an_event.info "browser #{name} #{@id} display url #{url.to_s}"
             start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
             lnks = links
             @@logger.an_event.debug "links of url #{url.to_s} : "
@@ -217,7 +219,7 @@ module Browsers
               nil
             end
           }.compact
-          p "delay #{Time.now - start_time}"
+          #p "delay #{Time.now - start_time}"
           arr
         rescue Exception => e
           @@logger.an_event.debug e.message
@@ -245,15 +247,26 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       # input :
       #----------------------------------------------------------------------------------------------------------------
-      def open
-        begin
-          @driver.open
+      def open #TODO meo plusieurs essais de lancement du browser.
+        count_try = 1
+        max_count_try = 3
+        fin = false
+        while !fin
+          begin
+            @driver.open
+            fin = true
+            @@logger.an_event.debug "browser #{name} #{@id} is opened"
+          rescue Exception => e
+            @@logger.an_event.debug e
+            @@logger.an_event.warn "browser #{name} #{@id} cannot be opened, try #{count_try}"
+           count_try += 1
+            fin = count_try > max_count_try
+         end
 
-          @@logger.an_event.debug "browser #{name} #{@id} is opened"
-        rescue Exception => e
-          @@logger.an_event.debug e
-          @@logger.an_event.error "browser #{name} #{@id} cannot be opened"
-          raise BrowserException, e.message
+        end
+        if  count_try > max_count_try
+          @@logger.an_event.error BrowserException::BROWSER_NOT_STARTED
+          raise BrowserException::BROWSER_NOT_STARTED
         end
       end
 
@@ -270,8 +283,8 @@ module Browsers
           @@logger.an_event.debug "browser #{name} #{@id} is closed"
         rescue Exception => e
           @@logger.an_event.debug e
-          @@logger.an_event.error "browser #{name} #{@id} cannot be closed"
-          raise BrowserException, e.message
+          @@logger.an_event.error  BrowserException::BROWSER_NOT_CLOSE
+          raise BrowserException::BROWSER_NOT_CLOSE
         end
       end
 
@@ -287,6 +300,7 @@ module Browsers
           end
         end
       end
+
       #TODO recuperer le referer pour valider qu'il est caché
       #@browser.navigate_to("http://www.google.com")
       #@browser.textbox("q").value = "sahi forums"
@@ -296,6 +310,7 @@ module Browsers
       #assert @browser.textbox("req_username").exists?
 
       def search(keywords, engine_search)
+        #TODO ATTENTION google.fr capte le referer même avce https
         page = nil
         begin
           display(engine_search.page_url)

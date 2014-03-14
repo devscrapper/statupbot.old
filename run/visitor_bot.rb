@@ -76,6 +76,7 @@ class VisitException < StandardError
 
 end
 
+DIR_VISITORS = File.join(File.dirname(__FILE__), '..', '..', 'visitors')
 class Connection < EventMachine::Connection
   include EM::Protocols::ObjectProtocol
 
@@ -139,7 +140,7 @@ def build_visitor(visitor_details,
     @@logger.an_event.debug visitor.to_yaml
   rescue Exception => e
     @@logger.an_event.error "building visitor of visit #{visit_details[:id_visit]} failed"
-    @@logger.an_event.error e.message
+    @@logger.an_event.debug e.message
     raise VisitorException, e.message
   end
   visitor
@@ -192,14 +193,46 @@ def visitor_is_no_slave(opts)
       when Visitors::Visitor::VisitorException::CANNOT_DIE
         return 1
       when Visitors::Visitor::VisitorException::CANNOT_CLOSE_BROWSER
+        begin
         visitor.die unless visitor.nil?
+        rescue Exception => e
+          STDERR << "visitor_bot : cannot die visitor after cannot close browser : #{e.message}"
+          return 1
+        end
         return 2
-      when Visitors::Visitor::VisitorException::CANNOT_CONTINUE_VISIT
+      when Visitors::Visitor::VisitorException::CANNOT_CONTINUE_SURF
+        begin
         visitor.close_browser unless visitor.nil?
+        rescue Exception => e
+          STDERR << "visitor_bot : cannot close browser  after cannot continue surf : #{e.message}"
+        end
+        begin
         visitor.die unless visitor.nil?
+        rescue Exception => e
+          STDERR << "visitor_bot : cannot die visitor after cannot continue surf : #{e.message}"
+        end
         return 3
       when Visitors::Visitor::VisitorException::DIE_DIRTY
         return 4
+      when Visitors::Visitor::VisitorException::CANNOT_OPEN_BROWSER
+        begin
+        visitor.die unless visitor.nil?
+        rescue Exception => e
+          STDERR << "visitor_bot : cannot die visitor after cannot open browser : #{e.message}"
+        end
+        return 5
+      when Visitors::Visitor::VisitorException::NOT_FOUND_LANDING_PAGE
+        begin
+        visitor.close_browser unless visitor.nil?
+        rescue Exception => e
+          STDERR << "visitor_bot : cannot close browser  after not found landing page : #{e.message}"
+        end
+        begin
+        visitor.die unless visitor.nil?
+        rescue Exception => e
+          STDERR << "visitor_bot : cannot die visitor after not found landing pag : #{e.message}"
+        end
+        return 6
     end
     visitor.close_browser unless visitor.nil?
     visitor.die unless visitor.nil?

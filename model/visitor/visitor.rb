@@ -19,10 +19,11 @@ module Visitors
   class Visitor
     class VisitorException < StandardError
       BAD_VALUE_FOR_RETURN_VISITOR = "value unknown for :return_visitor in visitor_details"
+      CANNOT_OPEN_BROWSER = "visitor cannot open browser"
       CANNOT_CONTINUE_VISIT = "visitor cannot continue visit"
-      NOT_FOUND_LANDING_PAGE = "visitor not found landing page"
+      NOT_FOUND_LANDING_PAGE = "visitor #{@id} not found landing page"
       CANNOT_CONTINUE_SURF = "visitor cannot surf"
-      CANNOT_CLOSE_BROWSER = "visitor cannot close his browser"
+      CANNOT_CLOSE_BROWSER = "visitor #{@id} cannot close his browser"
       CANNOT_DIE = "visitor cannot die"
       DIE_DIRTY = "visitor die dirty"
       BAD_KEYWORDS = "keywords are bad"
@@ -134,11 +135,6 @@ module Visitors
         end
       rescue VisitorException => e
         @@logger.an_event.debug e
-        @@logger.an_event.warn "visitor #{@id} not found landing page #{referrer.landing_url} with keywords #{referrer.keywords}"
-        raise VisitorException::NOT_FOUND_LANDING_PAGE
-      rescue Exception => e
-        @@logger.an_event.debug e
-        @@logger.an_event.warn "visitor #{@id} not found landing page #{referrer.landing_url}"
         raise VisitorException::NOT_FOUND_LANDING_PAGE
       end
     end
@@ -150,7 +146,7 @@ module Visitors
         @@logger.an_event.info "visitor #{@id} has closed his browser"
       rescue Exception => e
         @@logger.an_event.debug e
-        @@logger.an_event.error "visitor #{@id} cannot close his browser"
+        @@logger.an_event.error VisitorException::CANNOT_CLOSE_BROWSER
        raise VisitorException::CANNOT_CLOSE_BROWSER
       end
     end
@@ -168,7 +164,7 @@ module Visitors
         raise VisitorException::DIE_DIRTY
       end
       begin
-        FileUtils.rm_r(Pathname(File.join(DIR_VISITORS, @id)))
+        FileUtils.rm_r(Pathname(File.join(DIR_VISITORS, @id)).realpath, :force => true)
         @@logger.an_event.info "visitor #{@id} is dead"
       rescue Exception => e
         @@logger.an_event.debug e
@@ -179,8 +175,6 @@ module Visitors
 
     def execute(visit)
       @@logger.an_event.info "visitor #{@id} start execution of visit #{visit.id}"
-
-
       begin
         landing_page = browse(visit.referrer)
         page = surf(visit.durations, landing_page, visit.around)
@@ -196,8 +190,14 @@ module Visitors
         end
       rescue Exception => e
         @@logger.an_event.debug e
-        @@logger.an_event.error "visitor #{@id} cannot execute visit #{visit.id}"
-        raise VisitorException::CANNOT_CONTINUE_VISIT
+        case e.message
+          when VisitorException::NOT_FOUND_LANDING_PAGE
+            @@logger.an_event.error "visitor #{@id} not found landing page #{visit.referrer.landing_url}"
+            raise e
+          when VisitorException::CANNOT_CONTINUE_SURF
+            @@logger.an_event.error "visitor #{@id} not complete visit #{visit.id}"
+            raise e
+        end
       end
       @@logger.an_event.info "visitor #{@id} stop execution of visit #{visit.id}"
     end
@@ -206,16 +206,20 @@ module Visitors
     # cette liste de mot clé sera calculé par scraperbot en fonction d'un paramètage de statupweb
     # cela permetra par exemple de realisé des recherches qui échouent
     def many_search(referrer)
-      #TODO tester lorsqu'il y a plusieurs liste de mot clé
+      #TODO meo plusieurs methodes pour saiir les mots clés et les choisir aléatoirement :
+      #TODO afficher la page google.fr, comme c'est le cas actuellement
+      #TODO dans la derniere page des resultats, saisir les nouveaux mot clés dans la zone idoine.
       referrer.keywords.each { |kw|
-        @@logger.an_event.info "visitor #{@id} search landing page #{kw} with keywords #{kw} on #{referrer.engine_search.class}"
+        @@logger.an_event.info "visitor #{@id} search landing page #{referrer.landing_url} with keywords #{kw} on #{referrer.engine_search.class}"
+        durations = referrer.durations.map{|d|d}
         landing_link_found, landing_link = search(kw,
                                                   referrer.engine_search,
-                                                  referrer.durations,
+                                                  durations,
                                                   referrer.landing_url)
         @@logger.an_event.info "visitor #{@id} not found landing page #{referrer.landing_url} with keywords #{kw} on #{referrer.engine_search.class}" unless  landing_link_found
         return landing_link_found, landing_link if landing_link_found
       }
+      [false, nil]
     end
 
     def open_browser
@@ -225,6 +229,7 @@ module Visitors
       rescue Exception => e
         @@logger.an_event.debug e
         @@logger.an_event.error "visitor #{@id} cannot open browser #{@browser.name} #{@browser.id}"
+        raise VisitorException::CANNOT_OPEN_BROWSER
       end
     end
 
@@ -234,11 +239,6 @@ module Visitors
     end
 
     def search(keywords, engine_search, durations, landing_url)
-      #TODO le referer est passé à google.fr
-      #TODO exemple :  referrer <https://sahi.example.com/_s_/dyn/Driver_initialized> of https://www.google.fr/
-      #TODO exemple : referrer <http://sahi.example.com/_s_/dyn/Driver_initialized> of https://www.google.fr/
-      #TODO exemple : referrer <http://sahi.example.com/_s_/dyn/Driver_initialized?startUrl=http%3A%2F%2Fsahi.example.com%2F_s_%2Fdyn%2FDriver_initialized> of https://www.google.fr/
-      #TODO exemple : referrer <> of https://www.google.fr/
       results_page = @browser.search(keywords, engine_search)
       results_page.duration = durations.shift
       read(results_page)
@@ -286,8 +286,8 @@ module Visitors
         page
       rescue Exception => e
         @@logger.an_event.debug e
-        @@logger.an_event.error "visitor  #{@id} stop surf at page #{page.url}"
-      #  raise Visitors::Visitor::VisitorException::CANNOT_CONTINUE_SURF
+        @@logger.an_event.error "visitor #{@id} stop surf at page #{page.url}"
+        raise Visitors::Visitor::VisitorException::CANNOT_CONTINUE_SURF
       end
     end
   end
