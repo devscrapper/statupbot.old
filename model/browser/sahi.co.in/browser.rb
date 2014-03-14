@@ -6,6 +6,7 @@ require 'sahi'
 require_relative 'driver'
 require_relative 'proxy'
 require 'json'
+require 'csv'
 module Browsers
   module SahiCoIn
     class Browser
@@ -30,7 +31,7 @@ module Browsers
       attr_reader :id,
                   :height,
                   :width,
-                  :start_page  #TODO supprimer variable start_page
+                  :start_page #TODO supprimer variable start_page
 
       #TODO meo le monitoring de l'activité du browser
       include Pages
@@ -181,6 +182,7 @@ module Browsers
         @driver.find_element(:id, "errorShortDescText").text
       end
 
+
       def get_window_handle(url)
         current_window_handle = @driver.window_handle
         @driver.window_handles.each { |h|
@@ -253,21 +255,22 @@ module Browsers
         fin = false
         while !fin
           begin
-            @driver.open
+            @driver.open(@id)
             fin = true
             @@logger.an_event.debug "browser #{name} #{@id} is opened"
           rescue Exception => e
             @@logger.an_event.debug e
             @@logger.an_event.warn "browser #{name} #{@id} cannot be opened, try #{count_try}"
-           count_try += 1
+            count_try += 1
             fin = count_try > max_count_try
-         end
+          end
 
         end
         if  count_try > max_count_try
           @@logger.an_event.error BrowserException::BROWSER_NOT_STARTED
           raise BrowserException::BROWSER_NOT_STARTED
         end
+
       end
 
       #----------------------------------------------------------------------------------------------------------------
@@ -280,12 +283,19 @@ module Browsers
       def quit
         begin
           @driver.close
-          @@logger.an_event.debug "browser #{name} #{@id} is closed"
+
         rescue Exception => e
           @@logger.an_event.debug e
-          @@logger.an_event.error  BrowserException::BROWSER_NOT_CLOSE
-          raise BrowserException::BROWSER_NOT_CLOSE
+          @@logger.an_event.warn "browser #{name} #{@id} is not closed"
+          begin
+            @driver.kill
+          rescue Exception => e
+            @@logger.an_event.debug e
+            @@logger.an_event.error "browser #{name} #{@id} is not killed"
+            raise BrowserException::BROWSER_NOT_CLOSE
+          end
         end
+        @@logger.an_event.debug "browser #{name} #{@id} is closed"
       end
 
       def refresh

@@ -6,7 +6,10 @@ module Browsers
         DRIVER_NOT_STARTED = "driver sahi cannot start #{@browser_type}"
         DRIVER_NOT_CLOSE = "driver sahi cannot stop #{@browser_type}"
         DRIVER_NOT_NAVIGATE = "driver cannot navigate to "
+        DRIVER_NOT_SET_TITLE = "driver not set title"
       end
+
+      attr_reader :pids # pid browser
 
       def browser_type
         @browser_type
@@ -29,13 +32,39 @@ module Browsers
           exec_command("kill");
         rescue Exception => e
           @@logger.an_event.debug e
-          @@logger.an_event.error DRIVER_NOT_CLOSE
+          @@logger.an_event.warn "driver #{@browser_type} is not close"
+          raise DriverSahiException::DRIVER_NOT_CLOSE
+        end
+      end
+
+      def get_pid(browser_id)
+        f = IO.popen("tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{browser_id}*\"")
+        f.readlines("\n").each { |l|
+          CSV.parse(l) do |row|
+            @pids = @pids.nil? ? [row[1]] : @pids + row[1]
+          end
+        }
+        @@logger.an_event.error "driver #{@browser_type} pid not found #{@pids}" if @pids.nil?
+        @@logger.an_event.info "driver #{@browser_type} pid #{@pids} is opened" unless @pids.nil?
+      end
+
+      def kill
+        raise DriverSahiException::DRIVER_NOT_CLOSE if @pids.nil?
+        begin
+          @pids.each { |pid|
+            f = IO.popen("TASKKILL /PID #{pid} /T /F")
+            @@logger.an_event.info f.read
+            @@logger.an_event.info "browser #{@browser_type} pid #{pid} is killed"
+          }
+        rescue Exception => e
+          @@logger.an_event.debug e
+          @@logger.an_event.error "driver  #{@browser_type} cannot be killed"
           raise DriverSahiException::DRIVER_NOT_CLOSE
         end
       end
 
       #opens the browser
-      def open
+      def open(browser_id)
         begin
           check_proxy
           @sahisid = Time.now.to_f
@@ -53,6 +82,8 @@ module Browsers
           @@logger.an_event.error e.message
           raise DriverSahiException::DRIVER_NOT_STARTED
         end
+        set_title(browser_id)
+        get_pid(browser_id)
       end
 
       #def open_start_page(window_parameters)
@@ -104,6 +135,10 @@ module Browsers
         end
       end
 
+      def set_title(title)
+        res = fetch("_sahi.set_title(\"#{title}\")")
+        raise DriverSahiException::DRIVER_NOT_SET_TITLE unless res.empty?
+      end
 
     end
   end
