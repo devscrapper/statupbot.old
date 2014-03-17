@@ -77,6 +77,17 @@ class VisitException < StandardError
 end
 
 DIR_VISITORS = File.join(File.dirname(__FILE__), '..', '..', 'visitors')
+VISITOR_NOT_LOADED_VISIT_FILE = 1
+VISITOR_NOT_BUILT_VISIT = 2
+VISITOR_IS_NOT_BORN = 10
+VISITOR_NOT_OPEN_BROWSER = 20
+VISITOR_NOT_EXECUTE_VISIT = 30
+VISITOR_NOT_FOUND_LANDING_PAGE = 31
+VISITOR_NOT_SURF_COMPLETLY = 32
+VISITOR_NOT_CLOSE_BROWSER = 40
+VISITOR_NOT_DIE = 50
+VISITOR_NOT_CLOSE_BROWSER_AND_NOT_DIE = 60
+OK = 0
 class Connection < EventMachine::Connection
   include EM::Protocols::ObjectProtocol
 
@@ -160,7 +171,148 @@ def visitor_is_slave(opts)
   }
 end
 
+def visitor_load_visit_file(file_path)
+  begin
+    visit_file = File.open(file_path, "r:BOM|UTF-8:-")
+    visit_details = YAML::load(visit_file.read)
+    visit_file.close
+    @@logger.an_event.info "visit file #{file_path} is loaded"
+    [OK, visit_details]
+  rescue Exception => e
+    @@logger.an_event.debug e
+    @@logger.an_event.error "visit file #{file_path} is not loaded"
+    [VISITOR_NOT_LOADED_VISIT_FILE, nil]
+  end
+end
+
+def visitor_build_visit(visit_details)
+  visit = nil
+  begin
+    visit = Visit.new(visit_details)
+    @@logger.an_event.debug visit.to_yaml
+    @@logger.an_event.info "visitor built visit #{visit_details[:id_visit]}"
+    [OK, visit]
+  rescue Exception => e
+    @@logger.an_event.debug e
+    @@logger.an_event.error "visitor not built visit #{visit_details[:id_visit]}"
+    #TODO delete visit file in tmp directory
+    [VISITOR_NOT_BUILT_VISIT, nil]
+  end
+
+end
+
+def visitor_born(visitor_details,
+    exist_pub_in_visit,
+    listening_port_sahi_proxy = nil, proxy_ip=nil, proxy_port=nil, proxy_user=nil, proxy_pwd=nil)
+  visitor = nil
+  begin
+    visitor = Visitor.build(visitor_details, exist_pub_in_visit,
+                            listening_port_sahi_proxy, proxy_ip, proxy_port, proxy_user, proxy_pwd)
+    @@logger.an_event.debug visitor.to_yaml
+    @@logger.an_event.info "visitor #{visitor_details[:id]} is born"
+    [OK, visitor]
+  rescue Exception => e
+    @@logger.an_event.error "visitor #{visitor_details[:id]}  is not born"
+    @@logger.an_event.debug e
+    #TODO delete visit file in tmp directory
+    [VISITOR_IS_NOT_BORN, nil]
+  end
+end
+
+def visitor_open_browser(visitor)
+  begin
+    visitor.open_browser
+    @@logger.an_event.info "visitor #{visitor.id} opened his browser"
+    OK
+  rescue Exception => e
+    @@logger.an_event.error "visitor #{visitor.id} not opened his browser"
+    @@logger.an_event.debug e
+    VISITOR_NOT_OPEN_BROWSER
+  end
+end
+
+def visitor_execute_visit(visitor, visit)
+  begin
+    @@logger.an_event.info "visitor #{visitor.id} start execution of visit #{visit.id}"
+    visitor.execute(visit)
+    @@logger.an_event.info "visitor #{visitor.id} terminate execution of visit #{visit.id}"
+    #TODO delete visit file in tmp directory
+    OK
+  rescue Exception => e
+    @@logger.an_event.error "visitor #{visitor.id} not execute the visit #{visit.id}"
+    @@logger.an_event.debug e
+    case e.message
+      #erreur fonctionnelle => le menage sera fait par lexcécution naturelle de visitor_bot
+      when Visitors::Visitor::VisitorException::NOT_FOUND_LANDING_PAGE
+        VISITOR_NOT_FOUND_LANDING_PAGE
+      when Visitors::Visitor::VisitorException::CANNOT_CONTINUE_SURF
+        VISITOR_NOT_SURF_COMPLETLY
+      else
+        #erreur technique irrémdiable, le menage a du être fait dans visitor.execute
+        VISITOR_NOT_EXECUTE_VISIT
+    end
+
+  end
+
+
+end
+
+def visitor_close_browser(visitor)
+  begin
+    visitor.close_browser
+    @@logger.an_event.info "visitor #{visitor.id} close his browser"
+    OK
+  rescue Exception => e
+    #TODO faire le nettoyage (kill process, supp rep,...)
+    @@logger.an_event.debug e
+    @@logger.an_event.error "visitor #{visitor.id} not close his browser"
+    VISITOR_NOT_CLOSE_BROWSER
+  end
+end
+
+def visitor_die(visitor)
+  begin
+    visitor.die
+    @@logger.an_event.info "visitor #{visitor.id} is dead"
+    OK
+  rescue Exception => e
+    #TODO faire le nettoyage (kill process, supp rep,...)
+    @@logger.an_event.debug e
+    @@logger.an_event.error "visitor #{visitor.id} is not dead"
+    VISITOR_NOT_DIE
+  end
+end
+
 def visitor_is_no_slave(opts)
+  cr, visit_details = visitor_load_visit_file(opts[:visit_file_name])
+  context = ["#{visit_details[:website][:label]}:visit=#{visit_details[:id_visit]}:visitor=#{visit_details[:visitor][:id]}"] if cr == OK
+  @@logger.ndc context if cr == OK
+  cr, visit = visitor_build_visit(visit_details) if cr == OK
+  cr, visitor = visitor_born(visit_details[:visitor],
+                             visit_details[:advert][:advertising] != :none) if  cr == OK and visit_details[:advert][:advertising] != :none
+  cr, visitor = visitor_born(visit_details[:visitor],
+                             visit_details[:advert][:advertising] != :none,
+                             opts[:listening_port_sahi_proxy],
+                             opts[:proxy_ip],
+                             opts[:proxy_port],
+                             opts[:proxy_user],
+                             opts[:proxy_pwd]) if  cr == OK and visit_details[:advert][:advertising] == :none
+
+  cr = visitor_open_browser(visitor) if cr == OK
+  cr = visitor_execute_visit(visitor, visit) if cr == OK
+  if cr != VISITOR_NOT_EXECUTE_VISIT
+    cr1 = visitor_close_browser(visitor)
+    cr2 = visitor_die(visitor)
+    cr = VISITOR_NOT_CLOSE_BROWSER_AND_NOT_DIE if cr1 != OK and cr2 != OK
+    cr = OK if cr1 == OK and cr2 == OK
+    cr = cr1 if cr1 != OK
+    cr = cr2 if cr2 != OK
+  end
+
+  return cr
+end
+
+def visitor_is_no_slave_old(opts)
   visitor = nil
   begin
     visit_file = File.open(opts[:visit_file_name], "r:BOM|UTF-8:-")
@@ -194,7 +346,7 @@ def visitor_is_no_slave(opts)
         return 1
       when Visitors::Visitor::VisitorException::CANNOT_CLOSE_BROWSER
         begin
-        visitor.die unless visitor.nil?
+          visitor.die unless visitor.nil?
         rescue Exception => e
           STDERR << "visitor_bot : cannot die visitor after cannot close browser : #{e.message}"
           return 1
@@ -202,12 +354,12 @@ def visitor_is_no_slave(opts)
         return 2
       when Visitors::Visitor::VisitorException::CANNOT_CONTINUE_SURF
         begin
-        visitor.close_browser unless visitor.nil?
+          visitor.close_browser unless visitor.nil?
         rescue Exception => e
           STDERR << "visitor_bot : cannot close browser  after cannot continue surf : #{e.message}"
         end
         begin
-        visitor.die unless visitor.nil?
+          visitor.die unless visitor.nil?
         rescue Exception => e
           STDERR << "visitor_bot : cannot die visitor after cannot continue surf : #{e.message}"
         end
@@ -216,19 +368,19 @@ def visitor_is_no_slave(opts)
         return 4
       when Visitors::Visitor::VisitorException::CANNOT_OPEN_BROWSER
         begin
-        visitor.die unless visitor.nil?
+          visitor.die unless visitor.nil?
         rescue Exception => e
           STDERR << "visitor_bot : cannot die visitor after cannot open browser : #{e.message}"
         end
         return 5
       when Visitors::Visitor::VisitorException::NOT_FOUND_LANDING_PAGE
         begin
-        visitor.close_browser unless visitor.nil?
+          visitor.close_browser unless visitor.nil?
         rescue Exception => e
           STDERR << "visitor_bot : cannot close browser  after not found landing page : #{e.message}"
         end
         begin
-        visitor.die unless visitor.nil?
+          visitor.die unless visitor.nil?
         rescue Exception => e
           STDERR << "visitor_bot : cannot die visitor after not found landing pag : #{e.message}"
         end

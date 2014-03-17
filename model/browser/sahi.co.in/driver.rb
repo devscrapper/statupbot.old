@@ -7,9 +7,10 @@ module Browsers
         DRIVER_NOT_CLOSE = "driver sahi cannot stop #{@browser_type}"
         DRIVER_NOT_NAVIGATE = "driver cannot navigate to "
         DRIVER_NOT_SET_TITLE = "driver not set title"
+        DRIVER_NOT_KILL = "driver not kill"
       end
 
-      attr_reader :pids # pid browser
+      # attr_reader :pids # pid browser
 
       def browser_type
         @browser_type
@@ -31,30 +32,25 @@ module Browsers
         begin
           exec_command("kill");
         rescue Exception => e
-          @@logger.an_event.debug e
           @@logger.an_event.warn "driver #{@browser_type} is not close"
+          @@logger.an_event.debug e
           raise DriverSahiException::DRIVER_NOT_CLOSE
         end
       end
 
-      def get_pid(browser_id)
-        f = IO.popen("tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{browser_id}*\"")
-        f.readlines("\n").each { |l|
-          CSV.parse(l) do |row|
-            @pids = @pids.nil? ? [row[1]] : @pids + row[1]
-          end
-        }
-        @@logger.an_event.error "driver #{@browser_type} pid not found #{@pids}" if @pids.nil?
-        @@logger.an_event.info "driver #{@browser_type} pid #{@pids} is opened" unless @pids.nil?
-      end
 
-      def kill
-        raise DriverSahiException::DRIVER_NOT_CLOSE if @pids.nil?
+      def kill(pids)
+        raise DriverSahiException::DRIVER_NOT_CLOSE if pids.nil?
         begin
-          @pids.each { |pid|
-            f = IO.popen("TASKKILL /PID #{pid} /T /F")
-            @@logger.an_event.info f.read
-            @@logger.an_event.info "browser #{@browser_type} pid #{pid} is killed"
+          pids.each { |pid|
+            #TODO faire la version linux
+            cmd = "TASKKILL /PID #{pid} /T"  # /F")  force le kill de tous les sous process
+            res = IO.popen(cmd).read
+            @@logger.an_event.debug "kill command : #{cmd}"
+            @@logger.an_event.debug "result : #{res}"
+            raise DRIVER_NOT_KILL if res.include?("Erreur")
+            #TODO identifier si le kill a fonctionné et remonté une erreur
+            @@logger.an_event.info "driver #{@browser_type} pid #{pid} is killed"
           }
         rescue Exception => e
           @@logger.an_event.debug e
@@ -82,8 +78,12 @@ module Browsers
           @@logger.an_event.error e.message
           raise DriverSahiException::DRIVER_NOT_STARTED
         end
-        set_title(browser_id)
-        get_pid(browser_id)
+        begin
+          set_title(browser_id)
+        rescue Exception => e
+          @@logger.an_event.error "id browser not found in title" unless t.include?(browser_id)
+        end
+
       end
 
       #def open_start_page(window_parameters)
@@ -136,8 +136,15 @@ module Browsers
       end
 
       def set_title(title)
-        res = fetch("_sahi.set_title(\"#{title}\")")
-        raise DriverSahiException::DRIVER_NOT_SET_TITLE unless res.empty?
+        title_update = ""
+        i = 0
+        while title_update != title and i < 5
+          title_update = fetch("_sahi.set_title(\"#{title}\")")
+          @@logger.an_event.info "title update : #{title_update}, title : #{title}"
+          i+= 1
+        end
+        @@logger.an_event.error "title update != title " if  title_update != title
+        raise DriverSahiException::DRIVER_NOT_SET_TITLE if  title_update != title
       end
 
     end

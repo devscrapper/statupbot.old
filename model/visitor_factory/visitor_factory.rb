@@ -55,7 +55,7 @@ module VisitorFactory
     end
 
     def receive_object(filename_visit)
-      @@logger.an_event.debug "receive visit filename #{filename_visit}"
+      @@logger.an_event.info "receive visit filename #{filename_visit}"
       port_proxy = listening_port_proxy
       port_visitor_bot = listening_port_visitor_bot
       @@count_visit +=1
@@ -115,6 +115,7 @@ module VisitorFactory
 
     def receive_object(filename_visit)
       close_connection
+      @@logger.an_event.info "get visit #{filename_visit}"
       visitor_id = nil
       @@sem_free_visitors.synchronize {
         if @@free_visitors.empty?
@@ -202,8 +203,8 @@ module VisitorFactory
             browser_exe = "chrome.exe" if visit_details[:visitor][:browser][:name] == "Chrome"
             browser_exe = "iexplore.exe" if visit_details[:visitor][:browser][:name] == "Internet Explorer"
             browser_exe = "firefox.exe" if visit_details[:visitor][:browser][:name] == "Firefox"
-            pid = Process.spawn("taskkill /F /IM #{browser_exe}")
-            Process.wait2(pid, 0)
+           # pid = Process.spawn("taskkill /F /IM #{browser_exe}")
+           # Process.wait2(pid, 0)
             @@logger.an_event.info "Visitor_Factory close all browser #{browser_exe}"
             FileUtils.rm_r(Pathname(File.join(DIR_VISITORS, visit_details[:visitor][:id])).realpath) if Dir.exists?(File.join(DIR_VISITORS, visit_details[:visitor][:id]))
             @@logger.an_event.info "delete #{Pathname(File.join(DIR_VISITORS, visit_details[:visitor][:id]))}" if Dir.exists?(File.join(DIR_VISITORS, visit_details[:visitor][:id]))

@@ -1,13 +1,14 @@
+require 'pathname'
 module Browsers
   module SahiCoIn
     class Proxy
       class ProxyException < StandardError
-        PROXY_NOT_STARTED = "Sahi proxy is not started"
-        PROXY_FAIL_TO_STOP ="Stop of Sahi proxy failed"
-        PROXY_FAIL_TO_CLEAN_PROPERTIES = "proxy cannot clean file completly"
+        CUSTOMIZATION_FAILED = "customization Sahi proxy failed"
+        NOT_STARTED = "Sahi proxy is not started"
+        FAIL_TO_STOP ="Stop of Sahi proxy failed"
       end
 
-      DIR_SAHI = File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co')
+      DIR_SAHI = Pathname(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co')).realpath
       #CLASSPATH PROXY OPEN SOURCE
       #CLASS_PATH = File.join(DIR_SAHI, 'lib', 'sahi.jar') + ';' +
       #    File.join(DIR_SAHI, 'extlib', 'rhino', 'js.jar') + ';' +
@@ -31,8 +32,8 @@ module Browsers
               File.join(DIR_SAHI, 'extlib', 'c3p0', 'c3p0-0.9.5-pre5.jar') + ';' +
               File.join(DIR_SAHI, 'extlib', 'c3p0', 'mchange-commons-java-0.2.6.2'))
 
-
-      BIN_JAVA_PATH = File.join('C:','Program Files','Java', 'jre6', 'bin', 'java')
+      #TODO automasiter ou parameter la localisation du runtime java
+      BIN_JAVA_PATH = File.join('C:', 'Program Files', 'Java', 'jre6', 'bin', 'java')
 
       attr :pid, #pid du process java -classpath %class_path% net.sf.sahi.Proxy "%home%" "%user_home%"
            :listening_port_proxy, #port d'écoute de Sahi_proxy
@@ -54,67 +55,29 @@ module Browsers
         @home = File.join(@visitor_dir, 'proxy')
         @user_home = File.join(@visitor_dir, 'proxy', 'userdata')
         @log_properties = File.join(@user_home, 'config', 'log.properties')
-        copy_config
-        customize_properties
-      end
-
-      def start
         begin
-
-          #@pid = spawn("java -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" ") #lanceur proxy open source
-          @pid = Process.spawn("java -Djava.util.logging.config.file=#{@log_properties} -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" ")
-          @@logger.an_event.info "Sahi proxy is started with pid #{@pid}"
+          copy_config
+          customize_properties
         rescue Exception => e
-          @@logger.an_event.error "Sahi proxy is not started"
           @@logger.an_event.debug e
-          raise ProxyException::PROXY_NOT_STARTED
+          delete_config
+          raise ProxyException::CUSTOMIZATION_FAILED
         end
       end
 
-      def stop
-        begin
-          Process.kill("KILL", @pid)
-          @@logger.an_event.info "Sahi proxy pid #{@pid} is stop"
-        rescue SignalException => e
-          @@logger.an_event.error "java Sahi proxy #{@pid} failed to stop"
-          @@logger.an_event.debug e
-          raise ProxyException::PROXY_FAIL_TO_STOP
-        end
-
-        begin
-
-          Process.waitall
-          @@logger.an_event.debug "java Sahi proxy is stopped"
-        rescue Exception => e
-          @@logger.an_event.error "java Sahi proxy is not stopped"
-          @@logger.an_event.error e
-          raise ProxyException::PROXY_FAIL_TO_STOP
-        end
-
-        begin
-          FileUtils.rm_r(Pathname(File.join(@visitor_dir, 'proxy')), :force => true)
-          @@logger.an_event.info "all customize files of proxy Sahi are deleted"
-        rescue Exception => e
-          @@logger.an_event.warn "all customize files of proxy Sahi are not completly deleted"
-          @@logger.an_event.debug e
-          raise ProxyException::PROXY_FAIL_TO_CLEAN_PROPERTIES
-        end
-      end
 
       def copy_config
         # statupbot\lib\sahi.in.co\userdata\config to #id_visitor\proxy\userdata\config\userdata\config
         # statupbot\lib\sahi.in.co\config to #id_visitor\proxy\config
         # statupbot\lib\sahi.in.co\htdocs to #id_visitor\proxy\htdocs
         # statupbot\lib\sahi.in.co\tools to #id_visitor\proxy\tools
-        FileUtils.mkdir_p(File.join(@visitor_dir, 'proxy', 'userdata', 'config'))
-
-
-        FileUtils.cp_r(File.join(DIR_SAHI, 'userdata', 'config'), File.join(@visitor_dir, 'proxy', 'userdata'))
-        FileUtils.cp_r(File.join(DIR_SAHI, 'userdata', 'certgen'), File.join(@visitor_dir, 'proxy', 'userdata'))
-        FileUtils.cp_r(File.join(DIR_SAHI, 'certgen'), File.join(@visitor_dir, 'proxy'))
-        FileUtils.cp_r(File.join(DIR_SAHI, 'config'), File.join(@visitor_dir, 'proxy'))
-        FileUtils.cp_r(File.join(DIR_SAHI, 'htdocs'), File.join(@visitor_dir, 'proxy'))
-        FileUtils.cp_r(File.join(DIR_SAHI, 'tools'), File.join(@visitor_dir, 'proxy'))
+        FileUtils.mkdir_p(File.join(@user_home, 'config'))
+        FileUtils.cp_r(File.join(DIR_SAHI, 'userdata', 'config'), @user_home)
+        FileUtils.cp_r(File.join(DIR_SAHI, 'userdata', 'certgen'), @user_home)
+        FileUtils.cp_r(File.join(DIR_SAHI, 'certgen'), @home)
+        FileUtils.cp_r(File.join(DIR_SAHI, 'config'), @home)
+        FileUtils.cp_r(File.join(DIR_SAHI, 'htdocs'), @home)
+        FileUtils.cp_r(File.join(DIR_SAHI, 'tools'), @home)
       end
 
       def customize_properties
@@ -122,7 +85,7 @@ module Browsers
         # le port d'ecoute du proxy
         # #id_visitor\proxy\userdata\config\userdata\config\userdata.properties avec  :
         # ip:port@user:pwd du proxy de geolocation (ou NTLM)
-        file_name = File.join(@visitor_dir, 'proxy', 'config', 'sahi.properties')
+        file_name = File.join(@home, 'config', 'sahi.properties')
         file_custom = File.read(file_name)
         file_custom.gsub!(/ip_geo_proxy/, @ip_geo_proxy) unless @ip_geo_proxy.nil?
         file_custom.gsub!(/port_geo_proxy/, @port_geo_proxy.to_s) unless @port_geo_proxy.nil?
@@ -132,7 +95,46 @@ module Browsers
         File.write(file_name, file_custom)
       end
 
+      def delete_config
+        begin
+          FileUtils.rm_r(@home, :force => true) if File.exist?(@home)
+          @@logger.an_event.debug "all customize files of proxy Sahi are deleted in #{@home}"
+        rescue Exception => e
+          @@logger.an_event.warn "all customize files of proxy Sahi are not completly deleted"
+          @@logger.an_event.debug e
+        end
+      end
 
+      def start
+        begin
+          #@pid = spawn("java -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" ") #lanceur proxy open source
+          cmd = "java -Djava.util.logging.config.file=#{@log_properties} -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" "
+          @@logger.an_event.debug "command execution proxy : #{cmd}"
+          @pid = Process.spawn(cmd)
+          @@logger.an_event.debug "Sahi proxy is started with pid #{@pid}"
+        rescue Exception => e
+          @@logger.an_event.error "Sahi proxy is not started"
+          @@logger.an_event.debug e
+          delete_config
+          raise ProxyException::NOT_STARTED
+        end
+      end
+
+      def stop
+        begin
+          Process.kill("KILL", @pid)
+          Process.waitall
+          delete_config
+          @@logger.an_event.debug "Sahi proxy pid #{@pid} is stopped"
+        rescue SignalException => e
+          @@logger.an_event.error "Sahi proxy #{@pid} failed to stop"
+          @@logger.an_event.debug e
+          delete_config
+          raise ProxyException::FAIL_TO_STOP
+        end
+
+
+      end
     end
   end
 end

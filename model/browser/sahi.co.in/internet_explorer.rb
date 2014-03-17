@@ -67,7 +67,25 @@ module Browsers
         @driver.navigate_to "https://www.sfr.fr"
         @@logger.an_event.info "display start page with parameters : #{window_parameters}"
       end
-
+      def get_pid
+        super
+        if @pids == [nil]
+          f = IO.popen("tasklist /FO CSV /NH /V /FI \"IMAGENAME eq  iexplore.exe\" /FI \"CPUTIME lt 0:00:01\"")
+          @@logger.an_event.info "tasklist /FO CSV /NH /V /FI \"IMAGENAME eq  iexplore.exe\" /FI \"CPUTIME lt 0:00:01\""
+          @pids=nil
+          f.readlines("\n").each { |l|
+            @@logger.an_event.info "l : #{l}"
+            CSV.parse(l) do |row|
+              @@logger.an_event.info "row : #{row}"
+              @@logger.an_event.info "row[1] : #{row[1]}"
+              @pids = @pids.nil? ? [row[1]] : @pids + [row[1]]
+              @@logger.an_event.info "pids : #{@pids}"
+            end
+          }
+        end
+        @@logger.an_event.error "browser #{@id} pid not found #{@pids}" if @pids == [nil]
+        @@logger.an_event.info "browser #{@id} pid #{@pids} is opened" unless @pids == [nil]
+      end
       #----------------------------------------------------------------------------------------------------------------
       # links
       #----------------------------------------------------------------------------------------------------------------
@@ -81,15 +99,6 @@ module Browsers
         super
       end
 
-      def quit
-        begin
-          @driver.kill
-        rescue Exception => e
-          @@logger.an_event.debug e
-          @@logger.an_event.error "browser #{name} #{@id} is not killed"
-          raise BrowserException::BROWSER_NOT_CLOSE
-        end
-      end
 
     end
 

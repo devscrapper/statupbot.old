@@ -31,6 +31,7 @@ module Browsers
       attr_reader :id,
                   :height,
                   :width,
+                  :pids,
                   :start_page #TODO supprimer variable start_page
 
       #TODO meo le monitoring de l'activité du browser
@@ -55,7 +56,6 @@ module Browsers
       # operatingSystem:  "Windows", "Linux", "Macintosh"
       #----------------------------------------------------------------------------------------------------------------
       def self.build(visitor_dir, browser_details)
-        #TODO mettre en oevre opera & safari
         #Les navigateurs disponibles sont definis dans le fichier d:\sahi\userdata\config\browser_types.xml
         case browser_details[:name]
           when "Firefox"
@@ -65,8 +65,10 @@ module Browsers
           when "Chrome"
             return Chrome.new(visitor_dir, browser_details)
           #when "Safari"
+          #TODO mettre en oeuvre Safari
           #  return Safari.new(visitor_dir, browser_details)
           #when "Opera"
+          #TODO mettre en oeuvre Opera
           #  return Opera.new(visitor_dir, browser_details)
           else
             @@logger.an_event.debug "browser <#{browser_details[:name]}> unknown"
@@ -182,6 +184,22 @@ module Browsers
         @driver.find_element(:id, "errorShortDescText").text
       end
 
+      def get_pid
+        f = IO.popen("tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{@id}*\"")
+        @@logger.an_event.info "tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{@id}*\""
+        @pids=nil
+        f.readlines("\n").each { |l|
+          @@logger.an_event.info "l : #{l}"
+          CSV.parse(l) do |row|
+            @@logger.an_event.info "row : #{row}"
+            @@logger.an_event.info "row[1] : #{row[1]}"
+            @pids = @pids.nil? ? [row[1]] : @pids + [row[1]]
+            @@logger.an_event.info "pids : #{@pids}"
+          end
+        }
+
+        @@logger.an_event.info "browser #{@id} pid #{@pids} is opened"
+      end
 
       def get_window_handle(url)
         current_window_handle = @driver.window_handle
@@ -245,7 +263,7 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       # open
       #----------------------------------------------------------------------------------------------------------------
-      # open un webdriver
+      # open un sahi driver
       #----------------------------------------------------------------------------------------------------------------
       # input :
       #----------------------------------------------------------------------------------------------------------------
@@ -256,21 +274,21 @@ module Browsers
         while !fin
           begin
             @driver.open(@id)
+            get_pid
             fin = true
             @@logger.an_event.debug "browser #{name} #{@id} is opened"
           rescue Exception => e
-            @@logger.an_event.debug e
             @@logger.an_event.warn "browser #{name} #{@id} cannot be opened, try #{count_try}"
+            @@logger.an_event.debug e
             count_try += 1
             fin = count_try > max_count_try
           end
 
         end
         if  count_try > max_count_try
-          @@logger.an_event.error BrowserException::BROWSER_NOT_STARTED
+          @@logger.an_event.error "browser #{name} #{@id} cannot be opened"
           raise BrowserException::BROWSER_NOT_STARTED
         end
-
       end
 
       #----------------------------------------------------------------------------------------------------------------
@@ -283,12 +301,11 @@ module Browsers
       def quit
         begin
           @driver.close
-
         rescue Exception => e
           @@logger.an_event.debug e
           @@logger.an_event.warn "browser #{name} #{@id} is not closed"
           begin
-            @driver.kill
+            @driver.kill(@pids)
           rescue Exception => e
             @@logger.an_event.debug e
             @@logger.an_event.error "browser #{name} #{@id} is not killed"
