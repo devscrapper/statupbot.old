@@ -74,10 +74,12 @@ module Browsers
         FileUtils.mkdir_p(File.join(@user_home, 'config'))
         FileUtils.cp_r(File.join(DIR_SAHI, 'userdata', 'config'), @user_home)
         FileUtils.cp_r(File.join(DIR_SAHI, 'userdata', 'certgen'), @user_home)
+        FileUtils.cp_r(File.join(DIR_SAHI, 'userdata', 'logs'), @user_home)
         FileUtils.cp_r(File.join(DIR_SAHI, 'certgen'), @home)
         FileUtils.cp_r(File.join(DIR_SAHI, 'config'), @home)
         FileUtils.cp_r(File.join(DIR_SAHI, 'htdocs'), @home)
         FileUtils.cp_r(File.join(DIR_SAHI, 'tools'), @home)
+        @@logger.an_event.debug "copy config sahi #{DIR_SAHI} to #{@home}"
       end
 
       def customize_properties
@@ -93,11 +95,12 @@ module Browsers
         file_custom.gsub!(/pwd_geo_proxy/, @pwd_geo_proxy) unless @pwd_geo_proxy.nil?
         file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
         File.write(file_name, file_custom)
+        @@logger.an_event.debug "customize properties in #{file_name} with #{file_custom}"
       end
 
       def delete_config
         begin
-          FileUtils.rm_r(@home, :force => true) if File.exist?(@home)
+       #   FileUtils.rm_r(@home, :force => true) if File.exist?(@home)
           @@logger.an_event.debug "all customize files of proxy Sahi are deleted in #{@home}"
         rescue Exception => e
           @@logger.an_event.warn "all customize files of proxy Sahi are not completly deleted"
@@ -110,7 +113,12 @@ module Browsers
           #@pid = spawn("java -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" ") #lanceur proxy open source
           cmd = "java -Djava.util.logging.config.file=#{@log_properties} -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" "
           @@logger.an_event.debug "command execution proxy : #{cmd}"
-          @pid = Process.spawn(cmd)
+          sahi_proxy_log_file = File.join(@user_home,'logs','sahi_proxy_log.txt')
+          @@logger.an_event.debug  "sahi proxy log file #{sahi_proxy_log_file}"
+          p "je dors 5s"
+          sleep(5)
+          p "c'est parti...."
+          @pid = Process.spawn(cmd, [:out,:err]=>[sahi_proxy_log_file, "w"])
           @@logger.an_event.debug "Sahi proxy is started with pid #{@pid}"
         rescue Exception => e
           @@logger.an_event.error "Sahi proxy is not started"

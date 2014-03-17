@@ -67,7 +67,7 @@ EventMachine.run {
 
   logger.a_log.info "visitor factory server is starting"
   EventMachine.start_server "127.0.0.1", VisitorFactory.assign_new_visitor_listening_port, VisitorFactory::AssignNewVisitorConnection,  logger, opts
-  EventMachine.start_server "127.0.0.1", VisitorFactory.assign_return_visitor_listening_port, VisitorFactory::AssignReturnVisitorConnection,  logger, opts
+
 }
 logger.a_log.info "visitor factory server stopped"
 

@@ -76,7 +76,7 @@ class VisitException < StandardError
 
 end
 
-DIR_VISITORS = File.join(File.dirname(__FILE__), '..', '..', 'visitors')
+
 VISITOR_NOT_LOADED_VISIT_FILE = 1
 VISITOR_NOT_BUILT_VISIT = 2
 VISITOR_IS_NOT_BORN = 10
