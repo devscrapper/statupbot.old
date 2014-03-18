@@ -33,7 +33,7 @@ module Browsers
               File.join(DIR_SAHI, 'extlib', 'c3p0', 'mchange-commons-java-0.2.6.2'))
 
       #TODO automasiter ou parameter la localisation du runtime java
-      BIN_JAVA_PATH = File.join('C:', 'Program Files', 'Java', 'jre6', 'bin', 'java')
+      BIN_JAVA_PATH = "\"C:/Program Files (x86)/Java/jre6/bin/java\""
 
       attr :pid, #pid du process java -classpath %class_path% net.sf.sahi.Proxy "%home%" "%user_home%"
            :listening_port_proxy, #port d'écoute de Sahi_proxy
@@ -111,13 +111,11 @@ module Browsers
       def start
         begin
           #@pid = spawn("java -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" ") #lanceur proxy open source
-          cmd = "java -Djava.util.logging.config.file=#{@log_properties} -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" "
+          cmd = "#{BIN_JAVA_PATH} -Djava.util.logging.config.file=#{@log_properties} -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" "
+
           @@logger.an_event.debug "command execution proxy : #{cmd}"
           sahi_proxy_log_file = File.join(@user_home,'logs','sahi_proxy_log.txt')
           @@logger.an_event.debug  "sahi proxy log file #{sahi_proxy_log_file}"
-          p "je dors 5s"
-          sleep(5)
-          p "c'est parti...."
           @pid = Process.spawn(cmd, [:out,:err]=>[sahi_proxy_log_file, "w"])
           @@logger.an_event.debug "Sahi proxy is started with pid #{@pid}"
         rescue Exception => e
