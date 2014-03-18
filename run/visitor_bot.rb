@@ -263,7 +263,7 @@ def visitor_close_browser(visitor)
     @@logger.an_event.info "visitor #{visitor.id} close his browser"
     OK
   rescue Exception => e
-    #TODO faire le nettoyage (kill process, supp rep,...)
+
     @@logger.an_event.debug e
     @@logger.an_event.error "visitor #{visitor.id} not close his browser"
     VISITOR_NOT_CLOSE_BROWSER
@@ -276,7 +276,7 @@ def visitor_die(visitor)
     @@logger.an_event.info "visitor #{visitor.id} is dead"
     OK
   rescue Exception => e
-    #TODO faire le nettoyage (kill process, supp rep,...)
+
     @@logger.an_event.debug e
     @@logger.an_event.error "visitor #{visitor.id} is not dead"
     VISITOR_NOT_DIE
@@ -310,87 +310,6 @@ def visitor_is_no_slave(opts)
   end
 
   return cr
-end
-
-def visitor_is_no_slave_old(opts)
-  visitor = nil
-  begin
-    visit_file = File.open(opts[:visit_file_name], "r:BOM|UTF-8:-")
-    visit_details = YAML::load(visit_file.read)
-    visit_file.close
-    visitor_details = visit_details[:visitor]
-    visit = build_visit(visit_details)
-    context = ["#{visit_details[:website][:label]}:#{visit.id}"]
-    @@logger.ndc context
-    if  visit_details[:advert][:advertising] != :none
-      visitor = build_visitor(visitor_details,
-                              visit_details[:advert][:advertising] != :none)
-    else
-      #pas de pub dans la visit
-      visitor = build_visitor(visitor_details,
-                              visit_details[:advert][:advertising] != :none,
-                              opts[:listening_port_sahi_proxy],
-                              opts[:proxy_ip],
-                              opts[:proxy_port],
-                              opts[:proxy_user],
-                              opts[:proxy_pwd])
-    end
-    visitor.open_browser
-    visitor.execute(visit)
-    visitor.close_browser
-    visitor.die
-    return 0
-  rescue Exception => e
-    case e.message
-      when Visitors::Visitor::VisitorException::CANNOT_DIE
-        return 1
-      when Visitors::Visitor::VisitorException::CANNOT_CLOSE_BROWSER
-        begin
-          visitor.die unless visitor.nil?
-        rescue Exception => e
-          STDERR << "visitor_bot : cannot die visitor after cannot close browser : #{e.message}"
-          return 1
-        end
-        return 2
-      when Visitors::Visitor::VisitorException::CANNOT_CONTINUE_SURF
-        begin
-          visitor.close_browser unless visitor.nil?
-        rescue Exception => e
-          STDERR << "visitor_bot : cannot close browser  after cannot continue surf : #{e.message}"
-        end
-        begin
-          visitor.die unless visitor.nil?
-        rescue Exception => e
-          STDERR << "visitor_bot : cannot die visitor after cannot continue surf : #{e.message}"
-        end
-        return 3
-      when Visitors::Visitor::VisitorException::DIE_DIRTY
-        return 4
-      when Visitors::Visitor::VisitorException::CANNOT_OPEN_BROWSER
-        begin
-          visitor.die unless visitor.nil?
-        rescue Exception => e
-          STDERR << "visitor_bot : cannot die visitor after cannot open browser : #{e.message}"
-        end
-        return 5
-      when Visitors::Visitor::VisitorException::NOT_FOUND_LANDING_PAGE
-        begin
-          visitor.close_browser unless visitor.nil?
-        rescue Exception => e
-          STDERR << "visitor_bot : cannot close browser  after not found landing page : #{e.message}"
-        end
-        begin
-          visitor.die unless visitor.nil?
-        rescue Exception => e
-          STDERR << "visitor_bot : cannot die visitor after not found landing pag : #{e.message}"
-        end
-        return 6
-    end
-    visitor.close_browser unless visitor.nil?
-    visitor.die unless visitor.nil?
-    STDERR << "visitor_bot : failed : #{e.message}"
-    return -1
-  end
 end
 
 PARAMETERS = File.dirname(__FILE__) + "/../parameter/visitor_bot.yml"
