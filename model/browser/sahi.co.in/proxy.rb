@@ -89,8 +89,16 @@ module Browsers
         # ip:port@user:pwd du proxy de geolocation (ou NTLM)
         file_name = File.join(@home, 'config', 'sahi.properties')
         file_custom = File.read(file_name)
+        file_custom.gsub!(/is_proxy_enable/, "false") if @ip_geo_proxy.nil?
+        file_custom.gsub!(/ip_geo_proxy/, "") if @ip_geo_proxy.nil?
+        file_custom.gsub!(/port_geo_proxy/, "".to_s) if @port_geo_proxy.nil?
+        file_custom.gsub!(/is_auth_enable/, "false") if @user_geo_proxy.nil?
+        file_custom.gsub!(/user_geo_proxy/, "") if @user_geo_proxy.nil?
+        file_custom.gsub!(/pwd_geo_proxy/, "") if @pwd_geo_proxy.nil?
+        file_custom.gsub!(/is_proxy_enable/, "true") unless @ip_geo_proxy.nil?
         file_custom.gsub!(/ip_geo_proxy/, @ip_geo_proxy) unless @ip_geo_proxy.nil?
         file_custom.gsub!(/port_geo_proxy/, @port_geo_proxy.to_s) unless @port_geo_proxy.nil?
+        file_custom.gsub!(/is_auth_enable/, "true") unless @user_geo_proxy.nil?
         file_custom.gsub!(/user_geo_proxy/, @user_geo_proxy) unless @user_geo_proxy.nil?
         file_custom.gsub!(/pwd_geo_proxy/, @pwd_geo_proxy) unless @pwd_geo_proxy.nil?
         file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
