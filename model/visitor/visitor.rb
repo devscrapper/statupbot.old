@@ -8,7 +8,7 @@ require 'pathname'
 
 #require_relative 'customize_queries_connection'
 #require_relative 'custom_gif_request/custom_gif_request'
-
+#TODO reviser globalement la gestion des erreurs et des exceptions
 module Visitors
   include Geolocations
   include Nationalities
@@ -116,6 +116,7 @@ module Visitors
 
     def browse(referrer)
       begin
+        #TODO reviser le start page pour prend en compte le hide referer et le resize window
         @browser.display_start_page
         case referrer
           when Direct
@@ -126,11 +127,36 @@ module Visitors
             read(referral_page)
             return @browser.click_on(referral_page.link_by_url(referrer.landing_url))
           when Search
+            #TODO reviser le search
             landing_link_found, landing_link = search(referrer.keywords,
                                                       referrer.engine_search,
                                                       referrer.durations,
                                                       referrer.landing_url) if referrer.keywords.is_a?(String)
             landing_link_found, landing_link = many_search(referrer) if referrer.keywords.is_a?(Array)
+            return @browser.click_on(landing_link) if landing_link_found
+            raise VisitorException, "keyword : #{referrer.keywords}" unless landing_link_found
+        end
+      rescue VisitorException => e
+        @@logger.an_event.error "visitor #{@id} not found landing page #{referrer.landing_url}"
+        @@logger.an_event.debug e
+        raise VisitorException::NOT_FOUND_LANDING_PAGE
+      end
+    end
+
+    def browse_new(referrer)
+      begin
+        @browser.display_start_page
+        case referrer
+          when Direct
+            return @browser.display(referrer.landing_url)
+          when Referral
+            referral_page = @browser.display(referrer.page_url)
+            referral_page.duration = referrer.duration
+            read(referral_page)
+            return @browser.click_on(referral_page.link_by_url(referrer.landing_url))
+          when Search
+            referrer.keywords = [referrer.keywords] if referrer.keywords.is_a?(String)
+            landing_link_found, landing_link = many_search(referrer)
             return @browser.click_on(landing_link) if landing_link_found
             raise VisitorException, "keyword : #{referrer.keywords}" unless landing_link_found
         end
@@ -154,6 +180,8 @@ module Visitors
     end
 
     def die
+      #TODO ne pas supprimer le context d'execution du visitor lorsque y il y a eu une erreur technique
+      #TODO supprimer la log du visitor dans \log quand tout est OK
       begin
         @proxy.stop
         FileUtils.rm_r(@home, :force => true) if File.exist?(@home)
