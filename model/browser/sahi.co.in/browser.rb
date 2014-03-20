@@ -126,7 +126,7 @@ module Browsers
           #@@logger.an_event.debug "cookies GA : #{cookies_ga}"
           start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
           page_details = current_page_details
-          page = Page.new(page_details["url"],page_details["referrer"],page_details["title"], nil, page_details["links"], Time.now - start_time)
+          page = Page.new(page_details["url"],page_details["referrer"],page_details["title"], nil, page_details["links"],  page_details["cookies"],Time.now - start_time)
         rescue Exception => e
           @@logger.an_event.debug e
           @@logger.an_event.error "browser #{name} #{@id} cannot try to click on url #{link.url.to_s}"
@@ -153,12 +153,8 @@ module Browsers
             @driver.navigate_to url.to_s
             @@logger.an_event.info "browser #{name} #{@id} display url #{url.to_s}"
             start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-            #lnks = links
-            #@@logger.an_event.debug "links of url #{url.to_s} : "
-            #@@logger.an_event.debug lnks
-           # page = Page.new(@driver.current_url, nil, lnks, Time.now - start_time)
             page_details = current_page_details
-            page = Page.new(page_details["url"],page_details["referrer"],page_details["title"], nil, page_details["links"], Time.now - start_time)
+            page = Page.new(page_details["url"],page_details["referrer"],page_details["title"], nil, page_details["links"],page_details["cookies"], Time.now - start_time)
             stop = true
           rescue TimeoutError => e
             stop = false
@@ -327,12 +323,8 @@ module Browsers
           @driver.submit(engine_search.label_search_button).click
           @@logger.an_event.debug "browser #{name} #{@id} open url #{engine_search.page_url.to_s} in a new window"
           start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-          #lnks = links
-          #@@logger.an_event.debug "links of url #{engine_search.page_url.to_s} : "
-          #@@logger.an_event.debug lnks
-          #page = Page.new(@driver.current_url, nil, lnks, Time.now - start_time)
           page_details = current_page_details
-          page = Page.new(page_details["url"],page_details["referrer"],page_details["title"], nil, page_details["links"], Time.now - start_time)
+          page = Page.new(page_details["url"],page_details["referrer"],page_details["title"], nil, page_details["links"],page_details["cookies"], Time.now - start_time)
         rescue Exception => e
           @@logger.an_event.debug e
           @@logger.an_event.error "browser #{name} #{@id} cannot search #{keywords} with engine #{engine_search.class}"

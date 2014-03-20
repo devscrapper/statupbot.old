@@ -62,14 +62,10 @@ module Browsers
         #@driver.open_start_page("width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0")
         #TODO variabiliser le num de port
         window_parameters = "width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0"
-#        @driver.fetch("_sahi.open_start_page_ie(\"https://sahi.example.com/_s_/dyn/Driver_initialized\",\"#{window_parameters}\")")
          @@logger.an_event.info "display start page with parameters : #{window_parameters}"
         @driver.fetch("_sahi.open_start_page_ie(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}\",\"#{window_parameters}\")")
-        #@@logger.an_event.info "browser #{name} #{@id} : referrer <#{@driver.referrer}> of #{@driver.current_url}"
-        #lnks = links
-        #start_page = Page.new(@driver.current_url, nil, lnks, 0)
         page_details = current_page_details
-        start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"])
+        start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"],)
         start_page
       end
 
