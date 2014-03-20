@@ -114,7 +114,7 @@ module Visitors
       end
     end
 
-    def browse(referrer)
+    def browse_old(referrer)
       begin
         #TODO reviser le start page pour prend en compte le hide referer et le resize window
         @browser.display_start_page
@@ -143,19 +143,24 @@ module Visitors
       end
     end
 
-    def browse_new(referrer)
+    def browse(referrer)
       begin
-        @browser.display_start_page
+
         case referrer
           when Direct
-            return @browser.display(referrer.landing_url)
+            start_page = @browser.display_start_page(referrer.landing_url)
+            return @browser.click_on(start_page.link_by_url(referrer.landing_url))
           when Referral
-            referral_page = @browser.display(referrer.page_url)
+            #TODO valider referral
+            start_page = @browser.display_start_page(referrer.page_url)
+            referral_page = @browser.click_on(start_page.link_by_url(referrer.page_url))
             referral_page.duration = referrer.duration
             read(referral_page)
             return @browser.click_on(referral_page.link_by_url(referrer.landing_url))
           when Search
             referrer.keywords = [referrer.keywords] if referrer.keywords.is_a?(String)
+            start_page = @browser.display_start_page(referrer.engine_search.page_url)
+            @browser.click_on(start_page.link_by_url(referrer.engine_search.page_url))
             landing_link_found, landing_link = many_search(referrer)
             return @browser.click_on(landing_link) if landing_link_found
             raise VisitorException, "keyword : #{referrer.keywords}" unless landing_link_found
@@ -196,6 +201,7 @@ module Visitors
     def execute(visit)
       begin
         landing_page = browse(visit.referrer)
+        @@logger.an_event.info "referrer #{@browser.driver.referrer}"
         page = surf(visit.durations, landing_page, visit.around)
         if !visit.advertising.is_a?(NoAdvertising)
           advertiser = visit.advertising.advertiser

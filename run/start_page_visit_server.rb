@@ -3,7 +3,7 @@ require 'webrick/https'
 require 'openssl'
 require 'yaml'
 require_relative '../lib/logging'
-
+#TODO declarer le server comme un service windows
 class StartPageVisitServer
   attr :server
 
@@ -11,17 +11,45 @@ class StartPageVisitServer
     cert = OpenSSL::X509::Certificate.new File.read File.join(File.dirname(__FILE__), '..', 'certificat', 'start_page_visit_server.cert')
     pkey = OpenSSL::PKey::RSA.new File.read File.join(File.dirname(__FILE__), '..', 'certificat', 'start_page_visit_server.key')
 
-    @server = WEBrick::HTTPServer.new(:Port => 443,
-                                      :SSLEnable => true,
-                                      :SSLCertificate => cert,
-                                      :SSLPrivateKey => pkey)
+    #@server = WEBrick::HTTPServer.new(:Port => 443,
+    #                                      :SSLEnable => true,
+    #                                      :SSLCertificate => cert,
+    #                                      :SSLPrivateKey => pkey)
+    #TODO externliser le port d'ecoute et l'usage de https
+    @server = WEBrick::HTTPServer.new(:Port => 8080,
+                                      :SSLEnable => false,
+                                      :SSLCertificate => nil,
+                                      :SSLPrivateKey => nil)
     trap 'INT' do
       @server.shutdown
     end
 
-    server.mount_proc '/' do |req, res|
-      res.body = "<html><head> </head><body>#{req}</body></html>"
-      res['Content-Type'] = 'text/html'
+    server.mount_proc '/start_link' do |req, res|
+      param = req.query
+
+      case param["method"]
+        when "noreferrer"
+          res.body =<<-_end_of_html_
+            <HTML>
+             <HEAD>
+              <BODY>
+                <A href=\"#{param["url"]}\" rel=\"noreferrer\">#{param["url"]}</A><BR>
+                <H3>Query String</H3>
+                  #{req.query_string}
+                <H3>Header Variables</H3>
+                  #{req.header}
+                <H3>Cookies</H3>
+                  #{req.cookies}
+              <BODY
+            </HEAD>
+            </HTML>
+          _end_of_html_
+          #res.body = "<html><head> </head><body><a href=\"#{param["url"]}\" rel=\"noreferrer\">#{param["url"]}</a></body></html>"
+        when "datauri"
+          res.body = "<html><head> </head><body>no defined</body></html>"
+      end
+
+      res['Content-Type'] = 'text/html; charset=iso-8859-1'
       res.status = 200
     end
 

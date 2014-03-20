@@ -2,7 +2,7 @@ module Browsers
   module SahiCoIn
     class Driver < Sahi::Browser
       class DriverSahiException < StandardError
-        INSTANCE_FF_ALREADY_RUNNING = "an instance of firefox is already running"
+
         DRIVER_NOT_STARTED = "driver sahi cannot start #{@browser_type}"
         DRIVER_NOT_CLOSE = "driver sahi cannot stop #{@browser_type}"
         DRIVER_NOT_NAVIGATE = "driver cannot navigate to "
@@ -45,7 +45,8 @@ module Browsers
           pids.each { |pid|
             #TODO faire la version linux
             cmd = "TASKKILL /PID #{pid} /T"  # /F")  force le kill de tous les sous process
-            res = IO.popen(cmd).read
+            res = IO.popen(cmd).read#TODO prendre en compte l'UTF8
+
             @@logger.an_event.debug "kill command : #{cmd}"
             @@logger.an_event.debug "result : #{res}"
             raise DRIVER_NOT_KILL if res.include?("Erreur")
@@ -85,20 +86,6 @@ module Browsers
         end
 
       end
-
-      #def open_start_page(window_parameters)
-      #  # pour maitriser le referer on passe par un site local en https qui permet de ne pas affecter le referer
-      #  # incontournable sinon Google analityc enregistre la page de lancement de Sahi initializer
-      #  # pour IE
-      #  # fetch("_sahi.open_start_page(\"https://sahi.example.com/_s_/dyn/Driver_initialized\",\"#{window_parameters}\")")
-      #  # pour CHrome & FF
-      #  fetch("_sahi.open_start_page(\"https://localhost\",\"#{window_parameters}\")")
-      ## pour IE
-      # # @popup_name = "defaultSahiPopup"    etait utiliser quand on ouvrait une nouvelle window pour lzncer https://localhost, supprimer pour r"duire le nombre de fentre à l'ecran car les ressources du PC explose"
-      #  # pour Chrome Firefox
-      #  @popup_name = "defaultSahiPopup"
-      #  @@logger.an_event.info "open start page with parameters : #{window_parameters}"
-      #end
 
       #recupere le referrer de la page affichée dans le navigateur
       def referrer

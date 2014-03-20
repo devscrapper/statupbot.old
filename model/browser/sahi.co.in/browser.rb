@@ -23,7 +23,8 @@ module Browsers
       end
       VISITORS_DIR = File.dirname(__FILE__) + "/../../visitors"
       LOG_DIR = File.dirname(__FILE__) + "/../../log"
-
+      NO_REFERER = "noreferrer"
+      DATA_URI = "datauri"
       attr_accessor :driver,
                     :listening_port_proxy
 
@@ -32,9 +33,11 @@ module Browsers
                   :height,
                   :width,
                   :pids,
+                  :method_start_page,
                   :start_page #TODO supprimer variable start_page
 
       #TODO meo le monitoring de l'activité du browser
+      #TODO suivre les cookies du browser : s'assurer qu'il sont vide et alimenté quand il faut hahahahaha
       include Pages
       #----------------------------------------------------------------------------------------------------------------
       # class methods
@@ -107,9 +110,9 @@ module Browsers
         page = nil
         begin
           link.click
-          sleep(5)
           #raise BrowserException::URL_NOT_FOUND if error?
           @@logger.an_event.info "browser #{name} #{@id} click on url #{link.url.to_s} in window #{link.window_tab}"
+          @@logger.an_event.info "browser #{name} #{@id} : referrer <#{@driver.referrer}> of #{@driver.current_url}"
           #@@logger.an_event.debug "cookies GA : #{cookies_ga}"
           start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
           lnks = links
@@ -184,21 +187,33 @@ module Browsers
         @driver.find_element(:id, "errorShortDescText").text
       end
 
-      def get_pid
+      def get_pid(process_exe)
+        #TODO determiner pouquoi chrome on recupere pas le pid
         f = IO.popen("tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{@id}*\"")
         @@logger.an_event.info "tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{@id}*\""
         @pids=nil
+        #TODO prendre en compte l'UTF8
         f.readlines("\n").each { |l|
-          @@logger.an_event.info "l : #{l}"
           CSV.parse(l) do |row|
             @@logger.an_event.info "row : #{row}"
-            @@logger.an_event.info "row[1] : #{row[1]}"
             @pids = @pids.nil? ? [row[1]] : @pids + [row[1]]
-            @@logger.an_event.info "pids : #{@pids}"
           end
         }
-
-        @@logger.an_event.info "browser #{@id} pid #{@pids} is opened"
+        @@logger.an_event.warn "browser #{@id} pid not found #{@pids}" if @pids == [nil]
+        if @pids == [nil]
+          f = IO.popen("tasklist /FO CSV /NH /V /FI \"IMAGENAME eq  #{process_exe}\" /FI \"CPUTIME lt 0:00:01\"")
+          @@logger.an_event.info "tasklist /FO CSV /NH /V /FI \"IMAGENAME eq  #{process_exe}\" /FI \"CPUTIME lt 0:00:01\""
+          @pids=nil
+          f.readlines("\n").each { |l| #TODO gerer l'utf8
+            @@logger.an_event.info "l : #{l}"
+            CSV.parse(l) do |row|
+              @@logger.an_event.info "row : #{row}"
+              @pids = @pids.nil? ? [row[1]] : @pids + [row[1]]
+            end
+          }
+        end
+        @@logger.an_event.error "browser #{process_exe} pid not found #{@pids}" if @pids == [nil]
+        @@logger.an_event.info "browser #{process_exe} has pid #{@pids}" unless @pids == [nil]
       end
 
       def get_window_handle(url)
@@ -328,19 +343,11 @@ module Browsers
         end
       end
 
-
-      #@browser.navigate_to("http://www.google.com")
-      #@browser.textbox("q").value = "sahi forums"
-      #@browser.submit("Google Search").click
-      #@browser.link("Forums - Sahi - Web Automation and Test Tool").click
-      #@browser.link("Login").click
-      #assert @browser.textbox("req_username").exists?
-
       def search(keywords, engine_search)
         #TODO ATTENTION google.fr capte le referer même avce https car google est un https pou un site destination en http cela fonctionne
         page = nil
         begin
-          display(engine_search.page_url)
+          #display(engine_search.page_url)
           @driver.textbox(engine_search.id_search).value = keywords
           @driver.submit(engine_search.label_search_button).click
           @@logger.an_event.debug "browser #{name} #{@id} open url #{engine_search.page_url.to_s} in a new window"
