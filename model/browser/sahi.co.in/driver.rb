@@ -8,6 +8,7 @@ module Browsers
         DRIVER_NOT_NAVIGATE = "driver cannot navigate to "
         DRIVER_NOT_SET_TITLE = "driver not set title"
         DRIVER_NOT_KILL = "driver not kill"
+        CANNOT_GET_DETAILS_PAGE = "cannot get details page"
       end
 
       # attr_reader :pids # pid browser
@@ -44,13 +45,13 @@ module Browsers
         begin
           pids.each { |pid|
             #TODO faire la version linux
-            cmd = "TASKKILL /PID #{pid} /T"  # /F")  force le kill de tous les sous process
-            res = IO.popen(cmd).read#TODO prendre en compte l'UTF8
+            cmd = "TASKKILL /PID #{pid} /T" # /F")  force le kill de tous les sous process
+            res = IO.popen(cmd).read #TODO prendre en compte l'UTF8
 
             @@logger.an_event.debug "kill command : #{cmd}"
             @@logger.an_event.debug "result : #{res}"
             raise DRIVER_NOT_KILL if res.include?("Erreur")
-            #TODO identifier si le kill a fonctionné et remonté une erreur
+                                            #TODO identifier si le kill a fonctionné et remonté une erreur
             @@logger.an_event.info "driver #{@browser_type} pid #{pid} is killed"
           }
         rescue Exception => e
@@ -119,6 +120,16 @@ module Browsers
           @@logger.an_event.error e.message
           raise DriverSahiException::DRIVER_NOT_NAVIGATE
 
+        end
+      end
+
+      def current_page_details
+        begin
+          JSON.parse(fetch("_sahi.current_page_details()"))
+        rescue Exception => e
+          @@logger.an_event.error e.message
+          @@logger.an_event.debug e
+          raise DriverSahiException::CANNOT_GET_DETAILS_PAGE
         end
       end
 

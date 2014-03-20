@@ -10,7 +10,9 @@ module Pages
     attr_reader :url,
                 :window_tab, # cette données n'est pas utilisée avec Sahi
                 :links,
-                :duration_search_link
+                :duration_search_link,
+                :referrer,
+                :title
 
 
     def sleeping_time
@@ -19,13 +21,21 @@ module Pages
       @duration
     end
 
-    def initialize(url, window_tab, links, duration_search_link=0)
+    def initialize(url, referrer, title, window_tab, links, duration_search_link=0)
       #duration est initialisé avec le temps passé à chercher les liens dans la page
       begin
         @url = url.is_a?(URI) ? url : URI.parse(url)
+        @referrer = referrer
+        @title = title
         @window_tab = window_tab
         @links= links
         @duration_search_link = duration_search_link.to_i
+        @@logger.an_event.info "page url #{@url}"
+        @@logger.an_event.info "page referrer #{@referrer}"
+        @@logger.an_event.info "page title #{@title}"
+        @@logger.an_event.info "page links #{@links}"
+        @@logger.an_event.info "page window_tab #{@window_tab}"
+        @@logger.an_event.info "page duration search link #{@duration_search_link}"
       rescue Exception => e
         raise PageException::PARAM_MALFORMED
       end

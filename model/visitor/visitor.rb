@@ -116,7 +116,6 @@ module Visitors
 
     def browse_old(referrer)
       begin
-        #TODO reviser le start page pour prend en compte le hide referer et le resize window
         @browser.display_start_page
         case referrer
           when Direct
@@ -127,7 +126,6 @@ module Visitors
             read(referral_page)
             return @browser.click_on(referral_page.link_by_url(referrer.landing_url))
           when Search
-            #TODO reviser le search
             landing_link_found, landing_link = search(referrer.keywords,
                                                       referrer.engine_search,
                                                       referrer.durations,
@@ -152,7 +150,6 @@ module Visitors
             #return @browser.click_on(start_page.link_by_url(referrer.landing_url))
             return @browser.display_start_page(referrer.landing_url)
           when Referral
-            #TODO valider referral
             referral_page = @browser.display_start_page(referrer.page_url)
             #start_page = @browser.display_start_page(referrer.page_url)
             #referral_page = @browser.click_on(start_page.link_by_url(referrer.page_url))
@@ -204,7 +201,6 @@ module Visitors
     def execute(visit)
       begin
         landing_page = browse(visit.referrer)
-        @@logger.an_event.info "referrer #{@browser.driver.referrer}"
         page = surf(visit.durations, landing_page, visit.around)
         if !visit.advertising.is_a?(NoAdvertising)
           advertiser = visit.advertising.advertiser

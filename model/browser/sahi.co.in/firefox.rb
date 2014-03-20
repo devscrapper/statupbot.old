@@ -94,9 +94,11 @@ module Browsers
         #@driver.fetch("_sahi._closeWindow()") marche pas pour fermer la première fenetre
         #@driver.popup_name = "defaultSahiPopup"
         @@logger.an_event.info "display start page with parameters : #{window_parameters}"
-        @@logger.an_event.info "browser #{name} #{@id} : referrer <#{@driver.referrer}> of #{@driver.current_url}"
-        lnks = links
-        start_page = Page.new(@driver.current_url, nil, lnks, 0)
+        #@@logger.an_event.info "browser #{name} #{@id} : referrer <#{@driver.referrer}> of #{@driver.current_url}"
+        #lnks = links
+        #start_page = Page.new(@driver.current_url, nil, lnks, 0)
+        page_details = current_page_details
+        start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"])
         start_page
       end
 

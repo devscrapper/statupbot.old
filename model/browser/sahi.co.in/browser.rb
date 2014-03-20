@@ -104,7 +104,18 @@ module Browsers
       # output : Object Page
       # exception : URL_NOT_FOUND, CLICK_ON_FAILED
       #----------------------------------------------------------------------------------------------------------------
-
+      def current_page_details
+        page_details = @driver.current_page_details
+        page_details["links"].map! { |link|
+          if ["", "_top", "_self", "_parent"].include?(link["target"])
+            Link.new(URI.parse(link["href"]), @driver.link(link["href"]), page_details["title"], link["text"], nil)
+          else
+            @@logger.an_event.debug "link, href <#{link["href"]}> has bad target <#{link["target"]}>, so it is rejected"
+            nil
+          end
+        }.compact
+        page_details
+      end
 
       def click_on(link)
         page = nil
@@ -112,21 +123,10 @@ module Browsers
           link.click
           #raise BrowserException::URL_NOT_FOUND if error?
           @@logger.an_event.info "browser #{name} #{@id} click on url #{link.url.to_s} in window #{link.window_tab}"
-          @@logger.an_event.info "browser #{name} #{@id} : referrer <#{@driver.referrer}> of #{@driver.current_url}"
           #@@logger.an_event.debug "cookies GA : #{cookies_ga}"
           start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-          lnks = links
-          page = Page.new(@driver.current_url, nil, lnks, Time.now - start_time)
-        rescue TimeoutError => e
-          @@logger.an_event.warn "Timeout on browser #{name} #{@id} on click link #{link.url.to_s}"
-          refresh
-          start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-          lnks = links
-          page = Page.new(@driver.current_url, nil, lnks, Time.now - start_time)
-        rescue RuntimeError => e
-          @@logger.an_event.debug e
-          @@logger.an_event.error "browser #{name} #{@id} not found url #{link.url.to_s}"
-          raise e
+          page_details = current_page_details
+          page = Page.new(page_details["url"],page_details["referrer"],page_details["title"], nil, page_details["links"], Time.now - start_time)
         rescue Exception => e
           @@logger.an_event.debug e
           @@logger.an_event.error "browser #{name} #{@id} cannot try to click on url #{link.url.to_s}"
@@ -151,13 +151,14 @@ module Browsers
         while !stop
           begin
             @driver.navigate_to url.to_s
-            @@logger.an_event.info "browser #{name} #{@id} : referrer <#{@driver.referrer}> of #{@driver.current_url}"
             @@logger.an_event.info "browser #{name} #{@id} display url #{url.to_s}"
             start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-            lnks = links
-            @@logger.an_event.debug "links of url #{url.to_s} : "
-            @@logger.an_event.debug lnks
-            page = Page.new(@driver.current_url, nil, lnks, Time.now - start_time)
+            #lnks = links
+            #@@logger.an_event.debug "links of url #{url.to_s} : "
+            #@@logger.an_event.debug lnks
+           # page = Page.new(@driver.current_url, nil, lnks, Time.now - start_time)
+            page_details = current_page_details
+            page = Page.new(page_details["url"],page_details["referrer"],page_details["title"], nil, page_details["links"], Time.now - start_time)
             stop = true
           rescue TimeoutError => e
             stop = false
@@ -188,7 +189,6 @@ module Browsers
       end
 
       def get_pid(process_exe)
-        #TODO determiner pouquoi chrome on recupere pas le pid
         f = IO.popen("tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{@id}*\"")
         @@logger.an_event.info "tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{@id}*\""
         @pids=nil
@@ -215,18 +215,6 @@ module Browsers
         @@logger.an_event.error "browser #{process_exe} pid not found #{@pids}" if @pids == [nil]
         @@logger.an_event.info "browser #{process_exe} has pid #{@pids}" unless @pids == [nil]
       end
-
-      def get_window_handle(url)
-        current_window_handle = @driver.window_handle
-        @driver.window_handles.each { |h|
-          @driver.switch_to.window(h)
-          if @driver.current_url == url
-            @driver.switch_to.window(current_window_handle)
-            return h
-          end
-        }
-      end
-
 
       #----------------------------------------------------------------------------------------------------------------
       # links
@@ -330,32 +318,21 @@ module Browsers
         @@logger.an_event.debug "browser #{name} #{@id} is closed"
       end
 
-      def refresh
-        display = false
-        while !display
-          begin
-            @@logger.an_event.warn "browser #{name} #{@id} refresh url #{@driver.current_url}"
-            @driver.navigate.refresh
-            display = true
-          rescue TimeoutError => e
 
-          end
-        end
-      end
 
       def search(keywords, engine_search)
-        #TODO ATTENTION google.fr capte le referer même avce https car google est un https pou un site destination en http cela fonctionne
         page = nil
         begin
-          #display(engine_search.page_url)
           @driver.textbox(engine_search.id_search).value = keywords
           @driver.submit(engine_search.label_search_button).click
           @@logger.an_event.debug "browser #{name} #{@id} open url #{engine_search.page_url.to_s} in a new window"
           start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-          lnks = links
-          @@logger.an_event.debug "links of url #{engine_search.page_url.to_s} : "
-          @@logger.an_event.debug lnks
-          page = Page.new(@driver.current_url, nil, lnks, Time.now - start_time)
+          #lnks = links
+          #@@logger.an_event.debug "links of url #{engine_search.page_url.to_s} : "
+          #@@logger.an_event.debug lnks
+          #page = Page.new(@driver.current_url, nil, lnks, Time.now - start_time)
+          page_details = current_page_details
+          page = Page.new(page_details["url"],page_details["referrer"],page_details["title"], nil, page_details["links"], Time.now - start_time)
         rescue Exception => e
           @@logger.an_event.debug e
           @@logger.an_event.error "browser #{name} #{@id} cannot search #{keywords} with engine #{engine_search.class}"
