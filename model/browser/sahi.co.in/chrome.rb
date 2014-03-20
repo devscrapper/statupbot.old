@@ -1,3 +1,5 @@
+require_relative '../../page/link'
+require_relative '../../page/page'
 module Browsers
   module SahiCoIn
     class Chrome < Browser
@@ -19,6 +21,7 @@ module Browsers
         @driver = Browsers::SahiCoIn::Driver.new("chrome", @listening_port_proxy)
         #TODO supprimer @start_page
         @start_page = "http://www.google.fr/?nord=1"
+        @method_start_page = NO_REFERER
         customize_properties(visitor_dir)
       end
 
@@ -70,7 +73,7 @@ module Browsers
       # output : RAS
       # exception : RAS
       #----------------------------------------------------------------------------------------------------------------
-      def display_start_page
+      def display_start_page(start_url)
         #@driver.navigate_to "http://jenn.kyrnin.com/about/showreferer.html"
         #fullscreen=yes|no|1|0 	Whether or not to display the browser in full-screen mode. Default is no. A window in full-screen mode must also be in theater mode. IE only
         #height=pixels 	The height of the window. Min. value is 100
@@ -80,16 +83,26 @@ module Browsers
         #titlebar=yes|no|1|0 	Whether or not to display the title bar. Ignored unless the calling application is an HTML Application or a trusted dialog box
         #top=pixels 	The top position of the window. Negative values not allowed
         #width=pixels 	The width of the window. Min. value is 100
-
         #@driver.open_start_page("width=#{@width},height=#{@height},fullscreen=0,left=0,menubar=1,status=1,titlebar=1,top=0")
-
         # pour maitriser le referer on passe par un site local en https qui permet de ne pas affecter le referer
         # incontournable sinon Google analityc enregistre la page de lancement de Sahi initializer
+
         window_parameters = "width=#{@width},height=#{@height},fullscreen=0,left=0,menubar=1,status=1,titlebar=1,top=0"
-        @driver.fetch("_sahi.open_start_page_ch(\"https://127.0.0.1\",\"#{window_parameters}\")")
+        #TODO variabiliser le port 8080 dans le paramter file yml de visitor_bot
+        #TODO prendre en compte les window parameter pour chrome
+        @driver.fetch("_sahi.open_start_page_ch(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}\",\"#{window_parameters}\")")
        # @driver.popup_name = "defaultSahiPopup"
         @@logger.an_event.info "display start page with parameters : #{window_parameters}"
+        @@logger.an_event.info "browser #{name} #{@id} : referrer <#{@driver.referrer}> of #{@driver.current_url}"
+        lnks = links
+        page = Page.new(@driver.current_url, nil, lnks, 0)
+        page
       end
+
+      def get_pid
+        super("chrome.exe")
+      end
+
     end
   end
 end
