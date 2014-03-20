@@ -95,7 +95,8 @@ module Browsers
         @@logger.an_event.info "display start page with parameters : #{window_parameters}"
         @@logger.an_event.info "browser #{name} #{@id} : referrer <#{@driver.referrer}> of #{@driver.current_url}"
         lnks = links
-        page = Page.new(@driver.current_url, nil, lnks, 0)
+        start_page = Page.new(@driver.current_url, nil, lnks, 0)
+        page = click_on(start_page.link_by_url(start_url))
         page
       end
 

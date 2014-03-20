@@ -34,7 +34,7 @@ module Browsers
       # output : RAS
       # exception : RAS
       #----------------------------------------------------------------------------------------------------------------
-      def display_start_page
+      def display_start_page(start_url)
         #@driver.navigate_to "http://jenn.kyrnin.com/about/showreferer.html"
         #fullscreen=yes|no|1|0 	Whether or not to display the browser in full-screen mode. Default is no. A window in full-screen mode must also be in theater mode. IE only
         #height=pixels 	The height of the window. Min. value is 100
@@ -44,9 +44,24 @@ module Browsers
         #titlebar=yes|no|1|0 	Whether or not to display the title bar. Ignored unless the calling application is an HTML Application or a trusted dialog box
         #top=pixels 	The top position of the window. Negative values not allowed
         #width=pixels 	The width of the window. Min. value is 100
-        #TODO controler le lancement  : voir le comportement comme IE ou FF ou CH
-        @driver.open_start_page("width=#{@width},height=#{@height},fullscreen=0,left=0,menubar=1,status=1,titlebar=1,top=0")
+        #TODO valider le format de l'interface safari au lancment
+        #TODO valider l'absence de referer avec safari
+        #TODO variabiliser le num de port
+        window_parameters = "width=#{@width},height=#{@height},fullscreen=0,left=0,menubar=1,status=1,titlebar=1,top=0"
+        @driver.fetch("_sahi.open_start_page_ch(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}\",\"#{window_parameters}\")")
+         @@logger.an_event.info "display start page with parameters : #{window_parameters}"
+         @@logger.an_event.info "browser #{name} #{@id} : referrer <#{@driver.referrer}> of #{@driver.current_url}"
+         lnks = links
+         start_page = Page.new(@driver.current_url, nil, lnks, 0)
+         page = click_on(start_page.link_by_url(start_url))
+         page
       end
+
+      def get_pid
+        #TODO valider get pid pour safari
+        super("safari.exe")
+      end
+
     end
   end
 end

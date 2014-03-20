@@ -18,6 +18,7 @@ module Browsers
         super(browser_details)
         @driver = Browsers::SahiCoIn::Driver.new("firefox", @listening_port_proxy)
         @start_page = "http://www.mozilla.org/fr/"
+        @method_start_page = DATA_URI
         customize_properties (visitor_dir)
       end
 
@@ -72,7 +73,7 @@ module Browsers
       # output : RAS
       # exception : RAS
       #----------------------------------------------------------------------------------------------------------------
-      def display_start_page
+      def display_start_page(start_url)
         #@driver.navigate_to "http://jenn.kyrnin.com/about/showreferer.html"
         #fullscreen=yes|no|1|0 	Whether or not to display the browser in full-screen mode. Default is no. A window in full-screen mode must also be in theater mode. IE only
         #height=pixels 	The height of the window. Min. value is 100
@@ -85,17 +86,24 @@ module Browsers
         #top=pixels 	The top position of the window. Negative values not allowed
         #width=pixels 	The width of the window. Min. value is 100
         #@driver.open_start_page("width=#{@width},height=#{@height},fullscreen=no,left=0,menubar=yes,scrollbars=yes,status=yes,titlebar=yes,toolbar=yes,top=0")
-        #TODO etudeir pour les windows parameter ne sont pas pris en compte lros de l' window.open => tous browser cela merde.
         window_parameters = "width=#{@width},height=#{@height},fullscreen=no,left=0,menubar=yes,scrollbars=yes,status=yes,titlebar=yes,toolbar=yes,top=0"
-         # pour maitriser le referer on passe par un site local en https qui permet de ne pas affecter le referer
+        # pour maitriser le referer on passe par un site local en https qui permet de ne pas affecter le referer
         # incontournable sinon Google analityc enregistre la page de lancement de Sahi initializer
-        @driver.fetch("_sahi.open_start_page_ff(\"https://localhost\",\"#{window_parameters}\")")
+        # @driver.fetch("_sahi.open_start_page_ff(\"https://localhost\",\"#{window_parameters}\")")
+        @driver.fetch("_sahi.open_start_page_ff(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}\",\"#{window_parameters}\")")
         #@driver.fetch("_sahi._closeWindow()") marche pas pour fermer la première fenetre
-
         #@driver.popup_name = "defaultSahiPopup"
-
         @@logger.an_event.info "display start page with parameters : #{window_parameters}"
+        @@logger.an_event.info "browser #{name} #{@id} : referrer <#{@driver.referrer}> of #{@driver.current_url}"
+        lnks = links
+        start_page = Page.new(@driver.current_url, nil, lnks, 0)
+        start_page
       end
+
+      def get_pid
+        super("firefox.exe")
+      end
+
     end
   end
 end

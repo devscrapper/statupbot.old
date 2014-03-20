@@ -19,7 +19,9 @@ module Browsers
       def initialize(visitor_dir, browser_details)
         super(browser_details)
         @driver = Browsers::SahiCoIn::Driver.new("ie", @listening_port_proxy)
+        #TODO supprimer @start_page
         @start_page = "http://www.bing.fr"
+        @method_start_page = DATA_URI
         customize_properties(visitor_dir)
       end
 
@@ -43,7 +45,7 @@ module Browsers
       # output : RAS
       # exception : RAS
       #----------------------------------------------------------------------------------------------------------------
-      def display_start_page
+      def display_start_page (start_url)
         #@driver.navigate_to "http://jenn.kyrnin.com/about/showreferer.html"
         #channelmode=yes|no|1|0 	Whether or not to display the window in theater mode. Default is no. IE only
         #fullscreen=yes|no|1|0 	Whether or not to display the browser in full-screen mode. Default is no. A window in full-screen mode must also be in theater mode. IE only
@@ -58,34 +60,21 @@ module Browsers
         #top=pixels 	The top position of the window. Negative values not allowed
         #width=pixels 	The width of the window. Min. value is 100
         #@driver.open_start_page("width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0")
-
-        # pour maitriser le referer on passe par un site local en https qui permet de ne pas affecter le referer
-        # incontournable sinon Google analityc enregistre la page de lancement de Sahi initializer
+        #TODO variabiliser le num de port
         window_parameters = "width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0"
-        @driver.fetch("_sahi.open_start_page_ie(\"https://sahi.example.com/_s_/dyn/Driver_initialized\",\"#{window_parameters}\")")
-        #TODO comment google fait pour recuperer le referrer sur un https ?
-        @driver.navigate_to "https://www.sfr.fr"
-        @@logger.an_event.info "display start page with parameters : #{window_parameters}"
+#        @driver.fetch("_sahi.open_start_page_ie(\"https://sahi.example.com/_s_/dyn/Driver_initialized\",\"#{window_parameters}\")")
+         @@logger.an_event.info "display start page with parameters : #{window_parameters}"
+        @driver.fetch("_sahi.open_start_page_ie(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}\",\"#{window_parameters}\")")
+        @@logger.an_event.info "browser #{name} #{@id} : referrer <#{@driver.referrer}> of #{@driver.current_url}"
+        lnks = links
+        start_page = Page.new(@driver.current_url, nil, lnks, 0)
+        start_page
       end
+
       def get_pid
-        super
-        if @pids == [nil]
-          f = IO.popen("tasklist /FO CSV /NH /V /FI \"IMAGENAME eq  iexplore.exe\" /FI \"CPUTIME lt 0:00:01\"")
-          @@logger.an_event.info "tasklist /FO CSV /NH /V /FI \"IMAGENAME eq  iexplore.exe\" /FI \"CPUTIME lt 0:00:01\""
-          @pids=nil
-          f.readlines("\n").each { |l|
-            @@logger.an_event.info "l : #{l}"
-            CSV.parse(l) do |row|
-              @@logger.an_event.info "row : #{row}"
-              @@logger.an_event.info "row[1] : #{row[1]}"
-              @pids = @pids.nil? ? [row[1]] : @pids + [row[1]]
-              @@logger.an_event.info "pids : #{@pids}"
-            end
-          }
-        end
-        @@logger.an_event.error "browser #{@id} pid not found #{@pids}" if @pids == [nil]
-        @@logger.an_event.info "browser #{@id} pid #{@pids} is opened" unless @pids == [nil]
+        super("iexplore.exe")
       end
+
       #----------------------------------------------------------------------------------------------------------------
       # links
       #----------------------------------------------------------------------------------------------------------------

@@ -148,19 +148,22 @@ module Visitors
 
         case referrer
           when Direct
-            start_page = @browser.display_start_page(referrer.landing_url)
-            return @browser.click_on(start_page.link_by_url(referrer.landing_url))
+            #start_page = @browser.display_start_page(referrer.landing_url)
+            #return @browser.click_on(start_page.link_by_url(referrer.landing_url))
+            return @browser.display_start_page(referrer.landing_url)
           when Referral
             #TODO valider referral
-            start_page = @browser.display_start_page(referrer.page_url)
-            referral_page = @browser.click_on(start_page.link_by_url(referrer.page_url))
+            referral_page = @browser.display_start_page(referrer.page_url)
+            #start_page = @browser.display_start_page(referrer.page_url)
+            #referral_page = @browser.click_on(start_page.link_by_url(referrer.page_url))
             referral_page.duration = referrer.duration
             read(referral_page)
             return @browser.click_on(referral_page.link_by_url(referrer.landing_url))
           when Search
             referrer.keywords = [referrer.keywords] if referrer.keywords.is_a?(String)
-            start_page = @browser.display_start_page(referrer.engine_search.page_url)
-            @browser.click_on(start_page.link_by_url(referrer.engine_search.page_url))
+           # start_page = @browser.display_start_page(referrer.engine_search.page_url)
+           # @browser.click_on(start_page.link_by_url(referrer.engine_search.page_url))
+            @browser.display_start_page(referrer.engine_search.page_url)
             landing_link_found, landing_link = many_search(referrer)
             return @browser.click_on(landing_link) if landing_link_found
             raise VisitorException, "keyword : #{referrer.keywords}" unless landing_link_found

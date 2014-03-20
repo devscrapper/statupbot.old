@@ -44,9 +44,25 @@ class StartPageVisitServer
             </HEAD>
             </HTML>
           _end_of_html_
-          #res.body = "<html><head> </head><body><a href=\"#{param["url"]}\" rel=\"noreferrer\">#{param["url"]}</a></body></html>"
+        #res.body = "<html><head> </head><body><a href=\"#{param["url"]}\" rel=\"noreferrer\">#{param["url"]}</a></body></html>"
         when "datauri"
-          res.body = "<html><head> </head><body>no defined</body></html>"
+
+          res.body =<<-_end_of_html_
+            <HTML>
+             <HEAD>
+              <BODY>
+                <A href=\"#{param["url"]}\" style=\"color:blue\">#{param["url"]}</A><meta http-equiv=refresh content=\"0;url=#{param["url"]}\"><BR>
+                <H3>Query String</H3>
+                  #{req.query_string}
+                <H3>Header Variables</H3>
+                  #{req.header}
+                <H3>Cookies</H3>
+                  #{req.cookies}
+              <BODY
+            </HEAD>
+            </HTML>
+          _end_of_html_
+        #res.body = "<html><head> </head><body>no defined</body></html>"
       end
 
       res['Content-Type'] = 'text/html; charset=iso-8859-1'
@@ -56,7 +72,7 @@ class StartPageVisitServer
   end
 
   def start
-     @server.start
+    @server.start
     @@logger.a_log.info "start page visit server is starting"
   end
 end
@@ -65,7 +81,7 @@ end
 #--------------------------------------------------------------------------------------------------------------------
 # INIT
 #--------------------------------------------------------------------------------------------------------------------
-ENVIRONMENT= File.join(File.dirname(__FILE__) ,'..', 'parameter/environment.yml')
+ENVIRONMENT= File.join(File.dirname(__FILE__), '..', 'parameter/environment.yml')
 $staging = "production"
 $debugging = false
 #--------------------------------------------------------------------------------------------------------------------
