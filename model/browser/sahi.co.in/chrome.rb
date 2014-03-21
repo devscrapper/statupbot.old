@@ -1,4 +1,3 @@
-require_relative '../../page/link'
 require_relative '../../page/page'
 module Browsers
   module SahiCoIn
@@ -6,6 +5,7 @@ module Browsers
       class ChromeException < StandardError
 
       end
+      include Pages
       #----------------------------------------------------------------------------------------------------------------
       # class methods
       #----------------------------------------------------------------------------------------------------------------
@@ -19,8 +19,8 @@ module Browsers
       def initialize(visitor_dir, browser_details)
         super(browser_details)
         @driver = Browsers::SahiCoIn::Driver.new("chrome", @listening_port_proxy)
-        #TODO supprimer @start_page
-        @start_page = "http://www.google.fr/?nord=1"
+
+
         @method_start_page = NO_REFERER
         customize_properties(visitor_dir)
       end
@@ -95,7 +95,7 @@ module Browsers
         @@logger.an_event.info "display start page with parameters : #{window_parameters}"
         page_details = current_page_details
 
-        start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"],page_details["cookies"],)
+        start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"],page_details["cookies"])
         page = click_on(start_page.link_by_url(start_url))
         page
       end

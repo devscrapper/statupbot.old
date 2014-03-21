@@ -1,9 +1,11 @@
+require_relative '../../page/page'
 module Browsers
   module SahiCoIn
     class Opera < Browser
       class OperaException < StandardError
 
       end
+      include Pages
       #----------------------------------------------------------------------------------------------------------------
       # class methods
       #----------------------------------------------------------------------------------------------------------------
@@ -17,7 +19,7 @@ module Browsers
       def initialize(visitor_dir, browser_details)
         super(browser_details)
         @driver = Browsers::SahiCoIn::Driver.new("opera", @listening_port_proxy)
-        @start_page = "http://www.opera.com/fr"
+
         customize_properties(visitor_dir)
       end
 

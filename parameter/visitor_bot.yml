@@ -1,5 +1,7 @@
 development:
   firefox_path: 'D:/FirefoxPortable/App/Firefox/Firefox.exe'
+  java_runtime_path: '"C:/Program Files (x86)/Java/jre6/bin/java"'
+  java_key_tool_path: 'C:\\Program Files\\Java\\jre6\\bin\\keytool.exe'
   home: false
   debug_outbound_queries: false
   debugging:  true

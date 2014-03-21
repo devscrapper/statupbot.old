@@ -212,40 +212,6 @@ module Browsers
         @@logger.an_event.info "browser #{process_exe} has pid #{@pids}" unless @pids == [nil]
       end
 
-      #----------------------------------------------------------------------------------------------------------------
-      # links
-      #----------------------------------------------------------------------------------------------------------------
-      # dans la page courante, liste tous les href issue des tag : <a>, <map>.
-      #----------------------------------------------------------------------------------------------------------------
-      # input : RAS
-      # output : Array de Link
-      #----------------------------------------------------------------------------------------------------------------
-      def links
-        begin
-          #TODO à supprimer si mass test et qu'aucune erreur nest affichée ne reproduit pas l'ouverture de tab dans IE
-          start_time = Time.now
-          arr = JSON.parse(@driver.fetch("_sahi.links()"))
-          if arr.is_a?(String)
-            @@logger.an_event.debug "error from extension.js : #{arr}"
-            raise BrowserException::LINKS_LIST_FAILED
-          end
-
-          arr.map! { |link|
-            if ["", "_top", "_self", "_parent"].include?(link["target"])
-              Link.new(URI.parse(link["href"]), @driver.link(link["href"]), @driver.title, link["text"], nil)
-            else
-              @@logger.an_event.debug "link, href <#{link["href"]}> has bad target <#{link["target"]}>, so it is rejected"
-              nil
-            end
-          }.compact
-          #p "delay #{Time.now - start_time}"
-          arr
-        rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.debug "browser #{name} #{@id} cannot retrieve links in window : #{@driver.title}"
-          raise BrowserException::LINKS_LIST_FAILED
-        end
-      end
 
       #----------------------------------------------------------------------------------------------------------------
       # name

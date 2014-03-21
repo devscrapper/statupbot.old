@@ -1,10 +1,11 @@
+require_relative '../../page/page'
 module Browsers
   module SahiCoIn
     class InternetExplorer < Browser
       class InternetExplorerException < StandardError
 
       end
-
+      include Pages
       #TODO la size du browser nest pas gerer car window.open dans le self
       #----------------------------------------------------------------------------------------------------------------
       # class methods
@@ -20,7 +21,7 @@ module Browsers
         super(browser_details)
         @driver = Browsers::SahiCoIn::Driver.new("ie", @listening_port_proxy)
         #TODO supprimer @start_page
-        @start_page = "http://www.bing.fr"
+
         @method_start_page = DATA_URI
         customize_properties(visitor_dir)
       end
@@ -30,8 +31,7 @@ module Browsers
         # le port d'ecoute du proxy pour internet explorer
         file_name = File.join(visitor_dir, 'proxy', 'tools', 'proxy.properties')
         file_custom = File.read(file_name)
-        #TODO remplacer par un gsub!
-        3.times { file_custom.sub!(/listening_port_proxy/, @listening_port_proxy.to_s) }
+        file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
         File.write(file_name, file_custom)
       end
 

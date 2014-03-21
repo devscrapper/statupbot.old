@@ -1,9 +1,11 @@
+require_relative '../../page/page'
 module Browsers
   module SahiCoIn
     class Firefox < Browser
       class FirefoxException < StandardError
 
       end
+      include Pages
       #----------------------------------------------------------------------------------------------------------------
       # class methods
       #----------------------------------------------------------------------------------------------------------------
@@ -17,7 +19,7 @@ module Browsers
       def initialize(visitor_dir, browser_details)
         super(browser_details)
         @driver = Browsers::SahiCoIn::Driver.new("firefox", @listening_port_proxy)
-        @start_page = "http://www.mozilla.org/fr/"
+
         @method_start_page = DATA_URI
         customize_properties (visitor_dir)
       end

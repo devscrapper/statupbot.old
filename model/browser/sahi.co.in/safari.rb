@@ -1,9 +1,11 @@
+require_relative '../../page/page'
 module Browsers
   module SahiCoIn
     class Safari < Browser
       class SafariException < StandardError
 
       end
+      include Pages
       #----------------------------------------------------------------------------------------------------------------
       # class methods
       #----------------------------------------------------------------------------------------------------------------
@@ -17,7 +19,6 @@ module Browsers
       def initialize(visitor_dir, browser_details)
         super(browser_details)
         @driver = Browsers::SahiCoIn::Driver.new("safari", @listening_port_proxy)
-        @start_page = "http://www.apple.com/fr/itunes/"
         customize_properties(visitor_dir)
       end
 
