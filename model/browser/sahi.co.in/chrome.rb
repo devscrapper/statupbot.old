@@ -18,9 +18,8 @@ module Browsers
       #["operating_system_version", "7"]
       def initialize(visitor_dir, browser_details)
         super(browser_details)
-        @driver = Browsers::SahiCoIn::Driver.new("chrome", @listening_port_proxy)
-
-
+        @driver = Browsers::SahiCoIn::Driver.new("#{browser_details[:name]}_#{browser_details[:version]}",
+                                                 @listening_port_proxy)
         @method_start_page = NO_REFERER
         customize_properties(visitor_dir)
       end
@@ -100,8 +99,8 @@ module Browsers
         page
       end
 
-      def get_pid
-        super("chrome.exe")
+      def process_exe
+        "chrome.exe"
       end
 
     end

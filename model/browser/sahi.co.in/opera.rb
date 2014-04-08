@@ -18,8 +18,8 @@ module Browsers
       #["operating_system_version", "7"]
       def initialize(visitor_dir, browser_details)
         super(browser_details)
-        @driver = Browsers::SahiCoIn::Driver.new("opera", @listening_port_proxy)
-
+        @driver = Browsers::SahiCoIn::Driver.new("#{browser_details[:name]}_#{browser_details[:version]}",
+                                                 @listening_port_proxy)
         customize_properties(visitor_dir)
       end
 
@@ -74,9 +74,9 @@ module Browsers
         start_page
       end
 
-      def get_pid
+      def process_exe
         #TODO valider getpid pour opera
-        super("opera.exe")
+      "opera.exe"
       end
 
     end

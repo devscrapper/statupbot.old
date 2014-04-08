@@ -17,31 +17,89 @@ module Browsers
         @browser_type
       end
 
-      def initialize(browser_type, listening_port_sahi)
-        #TODO controler que le browset_type existe dans le fichier browser_type dans lib/sahicoin/config/browser_type.xml
-        @proxy_host = "localhost" #browser_type est utilisé à la place.
-        @proxy_port = listening_port_sahi #est utilisé par check_proxy(), pour le reste browser_type est utilisé
-        @browser_type = browser_type
-        @popup_name = nil
-        @domain_name = nil
-        @sahisid = nil
-        @print_steps = false
+
+      # controle que le browser type existe dans au moins l'un des fichiers : win32, w64 mac linux.xml
+      # attention : controle que le browser type est présent dans au moins fichier, pas dans celui utilisé pour l'OS COURANT
+      def browser_type_exist?
+        exist = false
+        require 'rexml/document'
+        include REXML
+        begin
+          ["win32.xml", "win64.xml", "mac.xml", "linux.xml"].each { |file_name|
+            path_name = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co', 'config', "browser_types", file_name)).realpath
+            if File.exist?(path_name)
+              browser_type_file = File.new(path_name)
+              exist ||= REXML::XPath.match(REXML::Document.new(browser_type_file), "browserTypes/browserType/name").map { |e| e.to_a[0] }.include?(@browser_type)
+            else
+              @@logger.an_event.warn "config file #{file_name} not exist"
+            end
+
+          }
+        rescue Exception => e
+          @@logger.an_event.fatal e.message
+          raise TechnicalError, "access to browser type files failed"
+        ensure
+
+        end
+        raise FunctionalError, "browser_type #{@browser_type} not found in win32/64, mac, linux files" unless exist
       end
 
       # closes the browser
       def close
+        @@logger.an_event.debug "begin close driver"
         begin
           exec_command("kill");
+        rescue Timeout::Error => e
+          @@logger.an_event.debug "driver #{@browser_type} cannot close : #{e.message}"
+          raise TechnicalError, "sahi cannot close browser #{@browser_type}"
         rescue Exception => e
-          @@logger.an_event.warn "driver #{@browser_type} is not close"
-          @@logger.an_event.debug e
-          raise DriverSahiException::DRIVER_NOT_CLOSE
+          @@logger.an_event.error "driver #{@browser_type} cannot close : #{e.message}"
+          raise TechnicalError, "sahi cannot close browser #{@browser_type}"
+        ensure
+          @@logger.an_event.debug "end close driver"
+        end
+      end
+
+      def current_page_details
+        @@logger.an_event.debug "begin current_page_details"
+        begin
+          JSON.parse(fetch("_sahi.current_page_details()"))
+        rescue Exception => e
+          @@logger.an_event.fatal e
+          raise TechnicalError, "driver cannot get current page details"
+        ensure
+          @@logger.an_event.debug "begin current_page_details"
+        end
+      end
+
+      def initialize(browser_type, listening_port_sahi)
+        @@logger.an_event.debug "begin initialize driver"
+        raise FunctionalError, "listening port sahi proxy is not defined" if listening_port_sahi.nil?
+        raise FunctionalError, "browser type is not defined" if browser_type.nil?
+
+
+        @proxy_host = "localhost" #browser_type est utilisé à la place.
+        @proxy_port = listening_port_sahi #est utilisé par check_proxy(), pour le reste browser_type est utilisé
+        @popup_name = nil
+        @domain_name = nil
+        @sahisid = nil
+        @print_steps = false
+        @browser_type = browser_type.gsub(" ", "_")
+        begin
+          browser_type_exist?
+        rescue FunctionalError, TechnicalError => e
+          @@logger.an_event.error e.message
+          raise FunctionalError, "browser type of driver not exist in config sahi files"
+        ensure
+          @@logger.an_event.debug "driver #{self.inspect}"
+          @@logger.an_event.debug "end initialize driver"
         end
       end
 
 
       def kill(pids)
-        raise DriverSahiException::DRIVER_NOT_CLOSE if pids.nil?
+        @@logger.an_event.debug "begin kill browser"
+        raise FunctionalError, "driver has no pid" if pids.nil? or pids==[nil]
         begin
           pids.each { |pid|
             #TODO faire la version linux
@@ -50,55 +108,48 @@ module Browsers
 
             @@logger.an_event.debug "kill command : #{cmd}"
             @@logger.an_event.debug "result : #{res}"
-            raise DRIVER_NOT_KILL if res.include?("Erreur")
+            raise "driver not kill" if res.include?("Erreur")
                                             #TODO identifier si le kill a fonctionné et remonté une erreur
-            @@logger.an_event.info "driver #{@browser_type} pid #{pid} is killed"
+            @@logger.an_event.debug "driver #{@browser_type} pid #{pid} is killed"
           }
         rescue Exception => e
-          @@logger.an_event.debug e
-          @@logger.an_event.error "driver  #{@browser_type} cannot be killed"
-          raise DriverSahiException::DRIVER_NOT_CLOSE
+          @@logger.an_event.fatal e
+          raise TechnicalError, "driver  #{@browser_type} cannot be killed"
+        ensure
+          @@logger.an_event.debug "end kill browser"
         end
       end
 
-      #opens the browser
-      def open(browser_id)
+
+      def get_pids(id_browser, process_exe)
+        @@logger.an_event.debug "begin get_pids"
+        raise FunctionalError, "id_browser is not define" if id_browser.nil? or id_browser == ""
+        raise FunctionalError, "process_exe is not define" if process_exe.nil?
+        pids=nil
         begin
-          check_proxy
-          @sahisid = Time.now.to_f
-          start_url = "http://sahi.example.com/_s_/dyn/Driver_initialized"
-          exec_command("launchPreconfiguredBrowser", {"browserType" => @browser_type, "startUrl" => start_url})
-          i = 0
-          while (i < 500)
-            i+=1
-            break if is_ready?
-            sleep(0.1)
-          end
-          @@logger.an_event.debug "open preconfigure browser #{@browser_type}"
-        rescue RuntimeError => e
-          @@logger.an_event.debug e
-          @@logger.an_event.error e.message
-          raise DriverSahiException::DRIVER_NOT_STARTED
-        end
-        begin
-          set_title(browser_id)
+          f = IO.popen("tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{id_browser}*\"")
+          @@logger.an_event.debug "tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{id_browser}*\""
+
+          #TODO prendre en compte l'UTF8
+          f.readlines("\n").each { |l|
+            CSV.parse(l) do |row|
+              @@logger.an_event.debug "row : #{row}"
+              pids = pids.nil? ? [row[1]] : pids + [row[1]]
+            end
+          }
+          @@logger.an_event.debug "browser #{process_exe} has pid #{pids}"
+          pids
         rescue Exception => e
-          @@logger.an_event.error "id browser not found in title" unless t.include?(browser_id)
+          @@logger.an_event.fatal e
+          raise TechnicalError, "drier cannot get pids of browser #{id_browser}/#{process_exe}"
+        ensure
+          @@logger.an_event.debug "end get_pids"
         end
-
-      end
-
-      #recupere le referrer de la page affichée dans le navigateur
-      def referrer
-        fetch("_sahi.referrer()")
-      end
-
-      #recupere l'url de la page affichée dans le navigateur
-      def current_url
-        fetch("_sahi.current_url()")
       end
 
       def navigate_to(url, force_reload=false)
+        @@logger.an_event.debug "begin navigate_to"
+        raise FunctionalError, "url is not define" if url.nil?
         begin
           super(url, true)
           if !/Sahi - [0-9]{3} Error/.match(title).nil?
@@ -116,34 +167,61 @@ module Browsers
             end
           end
         rescue Exception => e
-          @@logger.an_event.debug e
-          @@logger.an_event.error e.message
-          raise DriverSahiException::DRIVER_NOT_NAVIGATE
-
+          @@logger.an_event.fatal e
+          raise TechnicalError, "driver cannot navigate to #{url}"
+        ensure
+          @@logger.an_event.debug "begin navigate_to"
         end
       end
 
-      def current_page_details
+      #opens the browser
+      def open(browser_id)
+        @@logger.an_event.debug "begin open driver"
+        raise FunctionalError, "browser_id is not define" if browser_id.nil?
+        raise FunctionalError, "browser type is not define" if @browser_type.nil?
         begin
-          JSON.parse(fetch("_sahi.current_page_details()"))
-        rescue Exception => e
-          @@logger.an_event.error e.message
-          @@logger.an_event.debug e
-          raise DriverSahiException::CANNOT_GET_DETAILS_PAGE
+          check_proxy
+          @sahisid = Time.now.to_f
+          start_url = "http://sahi.example.com/_s_/dyn/Driver_initialized"
+          exec_command("launchPreconfiguredBrowser", {"browserType" => @browser_type, "startUrl" => start_url})
+          i = 0
+          while (i < 500)
+            i+=1
+            break if is_ready?
+            sleep(0.1)
+          end
+          @@logger.an_event.debug "open browser #{@browser_type}"
+
+        rescue RuntimeError => e
+          @@logger.an_event.fatal e.message
+          raise TechnicalError, "driver #{@browser_type} cannot start"
+        ensure
+          @@logger.an_event.debug "end open driver"
         end
       end
+
+      #recupere le referrer de la page affichée dans le navigateur
+      #def referrer
+      #  fetch("_sahi.referrer()")
+      #end
+
 
       def set_title(title)
+        @@logger.an_event.debug "begin set_title"
+        raise FunctionalError, "title is not define" if title.nil?
         title_update = ""
-        i = 0
-        while title_update != title and i < 5
+        begin
           title_update = fetch("_sahi.set_title(\"#{title}\")")
-          @@logger.an_event.info "title update : #{title_update}, title : #{title}"
-          i+= 1
+          @@logger.an_event.debug "title update : #{title_update}, title : #{title}"
+        rescue Exception => e
+          @@logger.an_event.fatal e.message
+          raise TechnicalError, "driver not set title #{title}"
+        ensure
+          @@logger.an_event.debug "end set_title"
+          title_update
         end
-        @@logger.an_event.error "title update != title " if  title_update != title
-        raise DriverSahiException::DRIVER_NOT_SET_TITLE if  title_update != title
       end
+
 
     end
   end

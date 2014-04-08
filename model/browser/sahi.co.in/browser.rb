@@ -1,15 +1,30 @@
 require 'uuid'
 require 'uri'
-require_relative '../../page/link'
-require_relative '../../page/page'
 require 'sahi'
-require_relative 'driver'
-require_relative 'proxy'
 require 'json'
 require 'csv'
+require 'pathname'
+require_relative '../../page/link'
+require_relative '../../page/page'
+require_relative 'driver'
+require_relative 'proxy'
+
 module Browsers
+  class FunctionalError < StandardError
+
+  end
+  class TechnicalError < StandardError
+
+  end
   module SahiCoIn
     class Browser
+      class FunctionalException < StandardError
+
+      end
+      class TechnicalException < StandardError
+
+      end
+
       class BrowserException < StandardError
         URL_NOT_FOUND = "url not found"
         DISPLAY_FAILED = "an exception raise during browser display an url"
@@ -21,8 +36,8 @@ module Browsers
         BROWSER_NOT_CLOSE = "browser #{name} #{@id} cannot be closed"
         BROWSER_NOT_NAVIGATE = "browser  cannot navigate to "
       end
-      VISITORS_DIR = File.dirname(__FILE__) + "/../../visitors"
-      LOG_DIR = File.dirname(__FILE__) + "/../../log"
+      VISITORS_DIR = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'visitors')).realpath
+      LOG_DIR = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'log')).realpath
       NO_REFERER = "noreferrer"
       DATA_URI = "datauri"
       attr_accessor :driver,
@@ -34,7 +49,7 @@ module Browsers
                   :width,
                   :pids,
                   :method_start_page,
-                  :start_page #TODO supprimer variable start_page
+                  :version
 
       #TODO meo le monitoring de l'activité du browser
       #TODO suivre les cookies du browser : s'assurer qu'il sont vide et alimenté quand il faut hahahahaha
@@ -74,8 +89,8 @@ module Browsers
           #TODO mettre en oeuvre Opera
           #  return Opera.new(visitor_dir, browser_details)
           else
-            @@logger.an_event.debug "browser <#{browser_details[:name]}> unknown"
-            raise BrowserException, "browser <#{browser_details[:name]}> unknown"
+            @@logger.an_event.warn "browser <#{browser_details[:name]}> unknown"
+            raise FunctionalError, "browser <#{browser_details[:name]}> unknown"
         end
       end
 
@@ -90,9 +105,17 @@ module Browsers
       #["screen_resolution", "1366x768"]
 
       def initialize(browser_details)
-        @id = UUID.generate
-        @listening_port_proxy = browser_details[:listening_port_proxy]
-        @width, @height = browser_details[:screen_resolution].split(/x/)
+        raise FunctionalException, "listening port sahi proxy is not defined" if browser_details[:listening_port_proxy].nil?
+        raise FunctionalException, "screen resoluton is not defined" if browser_details[:screen_resolution].nil?
+        begin
+          @id = UUID.generate
+          @listening_port_proxy = browser_details[:listening_port_proxy]
+          @width, @height = browser_details[:screen_resolution].split(/x/)
+
+        rescue Exception => e
+          @@logger.an_event.debug e
+          raise Browsers::SahiCoIn::Browser::TechnicalException, e.message
+        end
       end
 
       #----------------------------------------------------------------------------------------------------------------
@@ -105,28 +128,33 @@ module Browsers
       # exception : URL_NOT_FOUND, CLICK_ON_FAILED
       #----------------------------------------------------------------------------------------------------------------
       def current_page_details
-        page_details = @driver.current_page_details
-        page_details["links"].map! { |link|
-          if ["", "_top", "_self", "_parent"].include?(link["target"])
-            Link.new(URI.parse(link["href"]), @driver.link(link["href"]), page_details["title"], link["text"], nil)
-          else
-            @@logger.an_event.debug "link, href <#{link["href"]}> has bad target <#{link["target"]}>, so it is rejected"
-            nil
-          end
-        }.compact
-        page_details
+        begin
+          page_details = @driver.current_page_details
+          page_details["links"].map! { |link|
+            if ["", "_top", "_self", "_parent"].include?(link["target"])
+              Link.new(URI.parse(link["href"]), @driver.link(link["href"]), page_details["title"], link["text"], nil)
+            else
+              @@logger.an_event.debug "link, href <#{link["href"]}> has bad target <#{link["target"]}>, so it is rejected"
+              nil
+            end
+          }.compact
+          raise FunctionalException, "current page has no link" if page_details.size == 0
+          page_details
+        rescue Exception => e
+          @@logger.an_event.debug e
+          raise Browsers::SahiCoIn::Browser::TechnicalException, e.message
+        end
       end
 
       def click_on(link)
         page = nil
         begin
           link.click
-          #raise BrowserException::URL_NOT_FOUND if error?
           @@logger.an_event.info "browser #{name} #{@id} click on url #{link.url.to_s} in window #{link.window_tab}"
-          #@@logger.an_event.debug "cookies GA : #{cookies_ga}"
+
           start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
           page_details = current_page_details
-          page = Page.new(page_details["url"],page_details["referrer"],page_details["title"], nil, page_details["links"],  page_details["cookies"],Time.now - start_time)
+          page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"], Time.now - start_time)
         rescue Exception => e
           @@logger.an_event.debug e
           @@logger.an_event.error "browser #{name} #{@id} cannot try to click on url #{link.url.to_s}"
@@ -154,7 +182,7 @@ module Browsers
             @@logger.an_event.info "browser #{name} #{@id} display url #{url.to_s}"
             start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
             page_details = current_page_details
-            page = Page.new(page_details["url"],page_details["referrer"],page_details["title"], nil, page_details["links"],page_details["cookies"], Time.now - start_time)
+            page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"], Time.now - start_time)
             stop = true
           rescue TimeoutError => e
             stop = false
@@ -233,27 +261,26 @@ module Browsers
       # input :
       #----------------------------------------------------------------------------------------------------------------
       def open
+        @@logger.an_event.debug "begin open browser"
         count_try = 1
         max_count_try = 3
         fin = false
-        while !fin
+        while !fin   #TODO remplacer la boucle par un retry
           begin
             @driver.open(@id)
-            get_pid
+            #TODO à supprimer définitivement si getpid lors du close fonctionne mieux
+            #get_pid
             fin = true
             @@logger.an_event.debug "browser #{name} #{@id} is opened"
-          rescue Exception => e
+          rescue TechnicalError => e
             @@logger.an_event.warn "browser #{name} #{@id} cannot be opened, try #{count_try}"
             @@logger.an_event.debug e
             count_try += 1
             fin = count_try > max_count_try
           end
+        end
 
-        end
-        if  count_try > max_count_try
-          @@logger.an_event.error "browser #{name} #{@id} cannot be opened"
-          raise BrowserException::BROWSER_NOT_STARTED
-        end
+        raise TechnicalError, "browser #{name} #{@id} cannot be opened" if  count_try > max_count_try
       end
 
       #----------------------------------------------------------------------------------------------------------------
@@ -264,22 +291,57 @@ module Browsers
       # input :
       #----------------------------------------------------------------------------------------------------------------
       def quit
+        @@logger.an_event.debug "begin browser quit"
         begin
           @driver.close
-        rescue Exception => e
-          @@logger.an_event.debug e
-          @@logger.an_event.warn "browser #{name} #{@id} is not closed"
+          @@logger.an_event.debug "browser #{name} is closed"
+        rescue TechnicalError => e
+          @@logger.an_event.debug e.message
+          #----------------------------------------------------------------------------------------------------
+          #
+          # affecte l'id du browser dans le title de la fenetre
+          #
+          #-----------------------------------------------------------------------------------------------------
+          begin
+            title_updt = @driver.set_title(@id)
+            @@logger.an_event.debug "browser #{name} has set title #{title_updt}"
+          rescue TechnicalError => e
+            @@logger.an_event.error e.message
+            raise TechnicalError, "browser #{name} cannot close"
+          ensure
+            @@logger.an_event.debug "end browser quit"
+          end
+          #----------------------------------------------------------------------------------------------------
+          #
+          # recupere le PID du browser en fonction de l'id du browser dans le titre de la fenetre du browser
+          #
+          #-----------------------------------------------------------------------------------------------------
+          begin
+            #get_pid
+            @pids = @driver.get_pids(@id, process_exe)
+            @@logger.an_event.debug "browser #{name} pid is retrieve"
+          rescue TechnicalError => e
+            @@logger.an_event.error e.message
+            raise TechnicalError, "browser #{name} cannot get pid"
+          ensure
+            @@logger.an_event.debug "end browser quit"
+          end
+           #----------------------------------------------------------------------------------------------------
+          #
+          # kill le browser en fonction de ses Pids
+          #
+          #-----------------------------------------------------------------------------------------------------
           begin
             @driver.kill(@pids)
-          rescue Exception => e
-            @@logger.an_event.debug e
-            @@logger.an_event.error "browser #{name} #{@id} is not killed"
-            raise BrowserException::BROWSER_NOT_CLOSE
+            @@logger.an_event.debug "browser #{name} is killed"
+          rescue TechnicalError => e
+            @@logger.an_event.error e.message
+            raise TechnicalError, "browser #{name} #{@id} is not killed"
+          ensure
+            @@logger.an_event.debug "end browser quit"
           end
         end
-        @@logger.an_event.debug "browser #{name} #{@id} is closed"
       end
-
 
 
       def search(keywords, engine_search)
@@ -290,7 +352,7 @@ module Browsers
           @@logger.an_event.debug "browser #{name} #{@id} open url #{engine_search.page_url.to_s} in a new window"
           start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
           page_details = current_page_details
-          page = Page.new(page_details["url"],page_details["referrer"],page_details["title"], nil, page_details["links"],page_details["cookies"], Time.now - start_time)
+          page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"], Time.now - start_time)
         rescue Exception => e
           @@logger.an_event.debug e
           @@logger.an_event.error "browser #{name} #{@id} cannot search #{keywords} with engine #{engine_search.class}"

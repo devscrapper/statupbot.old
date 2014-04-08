@@ -18,8 +18,8 @@ module Browsers
       #["operating_system_version", "7"]
       def initialize(visitor_dir, browser_details)
         super(browser_details)
-        @driver = Browsers::SahiCoIn::Driver.new("firefox", @listening_port_proxy)
-
+        @driver = Browsers::SahiCoIn::Driver.new("#{browser_details[:name]}_#{browser_details[:version]}",
+                                                 @listening_port_proxy)
         @method_start_page = DATA_URI
         customize_properties (visitor_dir)
       end
@@ -101,8 +101,8 @@ module Browsers
         start_page
       end
 
-      def get_pid
-        super("firefox.exe")
+      def process_exe
+        "firefox.exe"
       end
 
     end

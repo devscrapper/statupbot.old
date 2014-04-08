@@ -1,11 +1,14 @@
 require_relative '../../page/page'
+require_relative 'driver'
 module Browsers
   module SahiCoIn
     class InternetExplorer < Browser
+
       class InternetExplorerException < StandardError
 
       end
       include Pages
+
       #TODO la size du browser nest pas gerer car window.open dans le self
       #----------------------------------------------------------------------------------------------------------------
       # class methods
@@ -18,21 +21,67 @@ module Browsers
       #["operating_system", "Windows"]
       #["operating_system_version", "7"]
       def initialize(visitor_dir, browser_details)
+        @@logger.an_event.debug "begin initialize internet explorer"
         super(browser_details)
-        @driver = Browsers::SahiCoIn::Driver.new("ie", @listening_port_proxy)
-        #TODO supprimer @start_page
-
         @method_start_page = DATA_URI
-        customize_properties(visitor_dir)
+
+        begin
+
+          if browser_details[:sandbox] == true and browser_details[:multi_instance_proxy_compatible] == true
+            browser_type ="#{browser_details[:name]}_#{browser_details[:version]}_#{@listening_port_proxy}"
+          else
+            browser_type = "#{browser_details[:name]}_#{browser_details[:version]}"
+          end
+          @driver = Driver.new(browser_type,
+                               @listening_port_proxy)
+        rescue FunctionalError => e
+          @@logger.an_event.error e.message
+          raise FunctionalError, "configuration of Internet Explorer #{@id} is mistaken"
+        ensure
+          @@logger.an_event.debug "end initialize internet explorer"
+        end
+
+
+        begin
+          customize_properties(visitor_dir)
+        rescue Exception => e
+          @@logger.an_event.error e.message
+          raise FunctionalError, "customisation of configuration of Internet Explorer #{@id} failed"
+        ensure
+          @@logger.an_event.debug "end initialize internet explorer"
+        end
       end
 
       def customize_properties(visitor_dir)
-        # id_visitor\proxy\tools\proxy.properties :
-        # le port d'ecoute du proxy pour internet explorer
-        file_name = File.join(visitor_dir, 'proxy', 'tools', 'proxy.properties')
-        file_custom = File.read(file_name)
-        file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
-        File.write(file_name, file_custom)
+        begin
+          # id_visitor\proxy\tools\proxy.properties :
+          # le port d'ecoute du proxy pour internet explorer
+          file_name = File.join(visitor_dir, 'proxy', 'tools', 'proxy.properties')
+          file_custom = File.read(file_name)
+          file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
+          File.write(file_name, file_custom)
+
+
+          # id_visitor\proxy\config\browser_types\win64.xml :
+          # le port d'ecoute du proxy pour internet explorer
+          file_name = File.join(visitor_dir, 'proxy', 'config', 'browser_types', 'win64.xml')
+          file_custom = File.read(file_name)
+          file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
+          file_custom.gsub!(/tool_sandboxing_browser_runtime_path/, Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co', 'tools', 'sandboxing_browser.rb')).realpath.to_s)
+          File.write(file_name, file_custom)
+
+          # id_visitor\proxy\config\browser_types\win32.xml :
+          # le port d'ecoute du proxy pour internet explorer
+          file_name = File.join(visitor_dir, 'proxy', 'config', 'browser_types', 'win32.xml')
+          file_custom = File.read(file_name)
+          file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
+          file_custom.gsub!(/tool_sandboxing_browser_runtime_path/, Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co', 'tools', 'sandboxing_browser.rb')).realpath.to_s)
+          File.write(file_name, file_custom)
+        rescue Exception => e
+          @@logger.an_event.error e.message
+          raise TechnicalError, e.message
+        end
+
       end
 
       #----------------------------------------------------------------------------------------------------------------
@@ -62,15 +111,15 @@ module Browsers
         #@driver.open_start_page("width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0")
         #TODO variabiliser le num de port
         window_parameters = "width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0"
-         @@logger.an_event.info "display start page with parameters : #{window_parameters}"
+        @@logger.an_event.info "display start page with parameters : #{window_parameters}"
         @driver.fetch("_sahi.open_start_page_ie(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}\",\"#{window_parameters}\")")
         page_details = current_page_details
         start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"],)
         start_page
       end
 
-      def get_pid
-        super("iexplore.exe")
+      def process_exe
+        "iexplore.exe"
       end
 
       #----------------------------------------------------------------------------------------------------------------
@@ -85,7 +134,6 @@ module Browsers
         sleep(3.5)
         super
       end
-
 
     end
 

@@ -2,11 +2,6 @@ require 'pathname'
 module Browsers
   module SahiCoIn
     class Proxy
-      class TechnicalException < StandardError
-      end
-
-      class FunctionalException < StandardError
-      end
 
       DIR_SAHI = Pathname(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co')).realpath
       #CLASSPATH PROXY OPEN SOURCE
@@ -46,6 +41,9 @@ module Browsers
            :visitor_dir
 
       def initialize(visitor_dir, listening_port_proxy, ip_geo_proxy, port_geo_proxy, user_geo_proxy, pwd_geo_proxy)
+        @@logger.an_event.debug "begin initialize proxy"
+        raise FunctionalError, "listening port proxy sahi is not define" if listening_port_proxy.nil?
+        raise FunctionalError, "visitor runtime directory is not define" if visitor_dir.nil?
         @ip_geo_proxy = ip_geo_proxy
         @port_geo_proxy = port_geo_proxy
         @user_geo_proxy = user_geo_proxy
@@ -95,33 +93,37 @@ module Browsers
           file_custom.gsub!(/user_geo_proxy/, @user_geo_proxy) unless @user_geo_proxy.nil?
           file_custom.gsub!(/pwd_geo_proxy/, @pwd_geo_proxy) unless @pwd_geo_proxy.nil?
           file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
+          #TODO valider l'externalisation du paramètre $java_key_tool_path sous wista xp w8 en raison des \\
           file_custom.gsub!(/java_key_tool_path/, $java_key_tool_path)
 
           File.write(file_name, file_custom)
           @@logger.an_event.debug "customize properties in #{file_name} with #{file_custom}"
 
         rescue Exception => e
-          @@logger.an_event.debug "config files proxy Sahi are not initialized"
-          @@logger.an_event.debug e
-          raise TechnicalException, e.message
+          @@logger.an_event.error e.message
+          raise TechnicalError, "config files proxy Sahi are not initialized"
         ensure
-
+          @@logger.an_event.debug "proxy #{self.inspect}"
+          @@logger.an_event.debug "end initialize proxy"
         end
       end
 
 
       def delete_config
+        @@logger.an_event.debug "begin delete_config"
         begin
           FileUtils.rm_r(@home, :force => true) if File.exist?(@home)
           @@logger.an_event.debug "config files proxy Sahi are deleted in #{@home}"
         rescue Exception => e
-          @@logger.an_event.warn "config files proxy Sahi are not completly deleted"
-          @@logger.an_event.debug e
-          raise TechnicalException, e.message
+          @@logger.an_event.warn e.message
+          raise TechnicalError, "config files proxy Sahi are not completly deleted"
+        ensure
+          @@logger.an_event.debug "end delete_config"
         end
       end
 
       def start
+        @@logger.an_event.debug "begin start proxy"
         begin
           #@pid = spawn("java -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" ") #lanceur proxy open source
           #cmd = "#{BIN_JAVA_PATH} -Djava.util.logging.config.file=#{@log_properties} -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" "
@@ -134,26 +136,27 @@ module Browsers
           @pid = Process.spawn(cmd, [:out, :err] => [sahi_proxy_log_file, "w"])
           @@logger.an_event.debug "proxy Sahi is started with pid #{@pid}"
         rescue Exception => e
-          @@logger.an_event.error "proxy Sahi is not started"
-          @@logger.an_event.debug e
-          raise TechnicalException, e.message
+          @@logger.an_event.error e.message
+          raise TechnicalError, "proxy Sahi is not started"
         ensure
           # on ne delete pas les fichier s de config pour aider au debugging
+          @@logger.an_event.debug "end start proxy"
         end
       end
 
       def stop
+        @@logger.an_event.debug "begin stop proxy"
         begin
           Process.kill("KILL", @pid)
           Process.waitall
           delete_config
           @@logger.an_event.debug "proxy Sahi #{@pid} is stopped"
         rescue SignalException => e
-          @@logger.an_event.error "proxy Sahi #{@pid} is not stopped"
-          @@logger.an_event.debug e
-          raise TechnicalException, e.message
+          @@logger.an_event.error e.message
+          raise TechnicalError, "proxy Sahi #{@pid} is not stopped"
         ensure
           # on ne delete pas les fichier s de config pour aider au debugging
+          @@logger.an_event.debug "end stop proxy"
         end
 
 

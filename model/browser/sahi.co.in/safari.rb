@@ -18,7 +18,14 @@ module Browsers
       #["operating_system_version", "7"]
       def initialize(visitor_dir, browser_details)
         super(browser_details)
-        @driver = Browsers::SahiCoIn::Driver.new("safari", @listening_port_proxy)
+
+        if browser_details[:sandbox] == true and browser_details[:multi_instance_proxy_compatible] == true
+          @driver = Browsers::SahiCoIn::Driver.new("#{browser_details[:name]}_#{browser_details[:version]}_#{@listening_port_proxy}",
+                                                   @listening_port_proxy)
+        else
+          @driver = Browsers::SahiCoIn::Driver.new("#{browser_details[:name]}_#{browser_details[:version]}",
+                                                   @listening_port_proxy)
+        end
         customize_properties(visitor_dir)
       end
 
@@ -50,7 +57,7 @@ module Browsers
         #TODO variabiliser le num de port
         window_parameters = "width=#{@width},height=#{@height},fullscreen=0,left=0,menubar=1,status=1,titlebar=1,top=0"
         @driver.fetch("_sahi.open_start_page_sa(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}\",\"#{window_parameters}\")")
-         @@logger.an_event.info "display start page with parameters : #{window_parameters}"
+        @@logger.an_event.info "display start page with parameters : #{window_parameters}"
         page_details = current_page_details
 
         start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"],)
@@ -58,9 +65,9 @@ module Browsers
         page
       end
 
-      def get_pid
+      def process_exe
         #TODO valider get pid pour safari
-        super("safari.exe")
+        "safari.exe"
       end
 
     end
