@@ -27,10 +27,10 @@ module Browsers
 
         begin
 
-          if browser_details[:sandbox] == true and browser_details[:multi_instance_proxy_compatible] == true
-            browser_type ="#{browser_details[:name]}_#{browser_details[:version]}_#{@listening_port_proxy}"
-          else
+          if @proxy_system
             browser_type = "#{browser_details[:name]}_#{browser_details[:version]}"
+          else
+            browser_type ="#{browser_details[:name]}_#{browser_details[:version]}_#{@listening_port_proxy}"
           end
           @driver = Driver.new(browser_type,
                                @listening_port_proxy)
@@ -120,6 +120,81 @@ module Browsers
 
       def process_exe
         "iexplore.exe"
+      end
+
+      def quit
+
+        if @proxy_system
+          @@logger.an_event.debug "begin quit internet explorer with proxy system"
+          # qd il y a plusieurs instance de iexplorer.exe, le kill de sahi ne fonctionne pas.
+          # on est alors obliger de killer manuellement le internet explorer.
+          # il faut donc recuperer le pid d'internet explorer, 2 cas :
+          # - Si internet explorer utilise le proxy system de windows alors il faut récuperer le pid avant de demander à
+          # sahi de killer le process, car sahi supprime de la base de registre les info du proxy system. Alors il n'est plus
+          # possible d'utiliser la methode d'identification du process iexplorer en utilisant le titre de la fenetre
+          # d'internet explorer.
+          # - Si internet explorer n'utilise pas le  proxy system qd il est sandboxé (parametrage du proxy IE local au sandbox)
+          # alors on peut demander à sahi de killer Internet Explorer et si cela ne marche pas utiliser la methode d'identification
+          # au moyen du titre de la fenetre => on se retrouve dans la procédure classique d'arret d'un browser
+          # on utilise alors la super methode définit dans Browser.
+          #----------------------------------------------------------------------------------------------------
+          #
+          # affecte l'id du browser dans le title de la fenetre
+          #
+          #-----------------------------------------------------------------------------------------------------
+          begin
+            title_updt = @driver.set_title(@id)
+            @@logger.an_event.debug "browser #{name} has set title #{title_updt}"
+          rescue TechnicalError => e
+            @@logger.an_event.error e.message
+            raise TechnicalError, "browser #{name} cannot close"
+            @@logger.an_event.debug "end quit internet explorer with proxy system"
+          ensure
+
+          end
+          #----------------------------------------------------------------------------------------------------
+          #
+          # recupere le PID du browser en fonction de l'id du browser dans le titre de la fenetre du browser
+          #
+          #-----------------------------------------------------------------------------------------------------
+          begin
+            @pids = @driver.get_pids(@id)
+            @@logger.an_event.debug "browser #{name} pid #{@pids} is retrieve"
+          rescue TechnicalError => e
+            @@logger.an_event.error e.message
+            raise TechnicalError, "browser #{name} cannot get pid"
+            @@logger.an_event.debug "end quit internet explorer with proxy system"
+          ensure
+
+          end
+
+          begin
+            @driver.close
+            @@logger.an_event.debug "browser #{name} is closed"
+          rescue TechnicalError => e
+            @@logger.an_event.debug e.message
+            #----------------------------------------------------------------------------------------------------
+            #
+            # kill le browser en fonction de ses Pids
+            #
+            #-----------------------------------------------------------------------------------------------------
+            begin
+              @driver.kill(@pids)
+              @@logger.an_event.debug "browser #{name} is killed"
+            rescue TechnicalError => e
+              @@logger.an_event.error e.message
+              raise TechnicalError, "browser #{name} #{@id} is not killed"
+            ensure
+              @@logger.an_event.debug "end quit internet explorer with proxy system"
+            end
+          ensure
+            @@logger.an_event.debug "end quit internet explorer with proxy system"
+          end
+
+        else
+          # internet explorer n'utilise pas le proxy system car il est sandboxé
+          super
+        end
       end
 
       #----------------------------------------------------------------------------------------------------------------

@@ -2,10 +2,13 @@
 # encoding: UTF-8
 require 'yaml'
 require 'trollop'
+require 'pathname'
 require_relative '../lib/logging'
 require_relative '../model/visitor_factory/public'
 require_relative '../model/visitor_factory/visitor_factory'
+require_relative '../model/visitor_factory/browser_type'
 
+#TODO declarer le server comme un service windows
 include VisitorFactory
 
 
@@ -54,6 +57,12 @@ logger.a_log.info "staging : #{$staging}"
 #--------------------------------------------------------------------------------------------------------------------
 # MAIN
 #--------------------------------------------------------------------------------------------------------------------
+logger.a_log.info "load browser type repository file : browser_type.csv"
+bt = VisitorFactory::BrowserTypes.new(Pathname.new(File.join(File.dirname(__FILE__),'..', 'model','visitor_factory', 'browser_type.csv')).realpath)
+logger.a_log.info "generation of win32.xml browser type file"
+bt.to_win32(Pathname.new(File.join(File.dirname(__FILE__),'..', 'lib', 'sahi.in.co' ,'config', 'browser_types', 'win32.xml')).realpath)
+logger.a_log.info "generation of win64.xml browser type file"
+bt.to_win64(Pathname.new(File.join(File.dirname(__FILE__),'..', 'lib', 'sahi.in.co' ,'config', 'browser_types', 'win64.xml')).realpath)
 
 EventMachine.run {
   #timer = EventMachine::PeriodicTimer.new(60) do
@@ -66,7 +75,7 @@ EventMachine.run {
   EventMachine.add_periodic_timer( 5*60 ) { VisitorFactory.garbage_free_visitors }
 
   logger.a_log.info "visitor factory server is starting"
-  EventMachine.start_server "127.0.0.1", VisitorFactory.assign_new_visitor_listening_port, VisitorFactory::AssignNewVisitorConnection,  logger, opts
+  EventMachine.start_server "127.0.0.1", VisitorFactory.assign_new_visitor_listening_port, VisitorFactory::AssignNewVisitorConnection, bt, logger, opts
 
 }
 logger.a_log.info "visitor factory server stopped"

@@ -13,10 +13,9 @@ module VisitorFactory
     BROWSER = 3
     BROWSER_VERSION = 4
     RUNTIME_PATH = 5
-    SANDBOX = 6
-    MULTI_INSTANCE_PROXY_COMPATIBLE = 7
-    START_LISTENING_PORT_PROXY = 8
-    COUNT_PROXY = 9
+    PROXY_SYSTEM = 6
+    START_LISTENING_PORT_PROXY = 7
+    COUNT_PROXY = 8
 
     attr :hash
     #staging;os;os_version;browser;browser_version;runtime_path;sandbox;multi_instance_proxy_compatible;start_listening_port_proxy;count_proxy
@@ -35,8 +34,7 @@ module VisitorFactory
           browser_version = elt_arr[BROWSER_VERSION]
           data = {
               "runtime_path" => elt_arr[RUNTIME_PATH],
-              "sandbox" => elt_arr[SANDBOX],
-              "multi_instance_proxy_compatible" => elt_arr[MULTI_INSTANCE_PROXY_COMPATIBLE],
+              "proxy_system" => elt_arr[PROXY_SYSTEM],
               "listening_port_proxy" => Array.new(elt_arr[COUNT_PROXY].to_i) { |index| -1 * (index - elt_arr[START_LISTENING_PORT_PROXY].to_i) }
           }
 
@@ -49,18 +47,9 @@ module VisitorFactory
       }
     end
 
-    def sandbox(os, os_version, browser, browser_version)
+    def proxy_system?(os, os_version, browser, browser_version)
       begin
-        @hash[os][os_version][browser][browser_version]["sandbox"]=="true"
-      rescue Exception => e
-        raise FunctionalError, "#{os} #{os_version} #{browser} #{browser_version} not define in browser type"
-      ensure
-      end
-    end
-
-    def multi_instance_proxy_compatible(os, os_version, browser, browser_version)
-      begin
-        @hash[os][os_version][browser][browser_version]["multi_instance_proxy_compatible"]=="true"
+        @hash[os][os_version][browser][browser_version]["proxy_system"]=="true"
       rescue Exception => e
         raise FunctionalError, "#{os} #{os_version} #{browser} #{browser_version} not define in browser type"
       ensure
@@ -115,17 +104,18 @@ module VisitorFactory
         details["listening_port_proxy"].each { |port|
           name =""
           use_system_proxy = ""
-          if details["sandbox"] == "false" and details["multi_instance_proxy_compatible"] == "false"
+          if details["proxy_system"] == "true"
             name = "Internet_Explorer_#{version}"
             use_system_proxy = "true"
+          else
+            name = "Internet_Explorer_#{version}_#{port}"
+            use_system_proxy = "false"
           end
           if details["sandbox"] == "true" and (details["multi_instance_proxy_compatible"] == "true" or details["multi_instance_proxy_compatible"] == "false")
             name = "Internet_Explorer_#{version}_#{port}"
             use_system_proxy = "false"
           end
-          if details["sandbox"] == "false" and details["multi_instance_proxy_compatible"] == "true"
-            raise FunctionalError, "To have multi instance proxy, Internet Explorer must be sandboxied"
-          end
+
           display_name = "IE #{version}"
           icon = "ie.png"
           path = details["runtime_path"]
@@ -215,7 +205,6 @@ module VisitorFactory
  #{browsers(@hash["Windows"]["7"])}
 </browserTypes>
       _end_of_xml_
-      p data
       f = File.new(out_filename, "w+")
       f.write(data)
       f.close

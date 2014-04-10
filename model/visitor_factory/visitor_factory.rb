@@ -36,6 +36,7 @@ module VisitorFactory
   @@visitor_not_found_landing_page = 0
   @@visitor_not_close_visitor_and_not_die = 0
 
+
   #--------------------------------------------------------------------------------------------------------------------
   # CONNECTION
   #--------------------------------------------------------------------------------------------------------------------
@@ -47,12 +48,14 @@ module VisitorFactory
          :default_port_geo,
          :default_user_geo,
          :default_pwd_geo,
-         :default_type_geo
+         :default_type_geo,
+         :browser_type_repository
 
 
-    def initialize(logger, geolocation)
+    def initialize(browser_type_repository, logger, geolocation)
       @@logger = logger
       @default_type_geo = geolocation[:proxy_type]
+      @browser_type_repository = browser_type_repository
       if @default_type_geo != "none"
         @default_ip_geo = geolocation[:proxy_ip]
         @default_port_geo = geolocation[:proxy_port]
@@ -63,32 +66,50 @@ module VisitorFactory
 
 
     def receive_object(filename_visit)
+      @@logger.an_event.debug "receive visit filename #{filename_visit}"
       filename_visit = Pathname(filename_visit).realpath
-      @@logger.an_event.info "receive visit filename #{filename_visit}"
-      port_proxy = listening_port_proxy
+      @@logger.an_event.debug "receive visit filename #{filename_visit}"
+      #port_proxy = listening_port_proxy
       port_visitor_bot = listening_port_visitor_bot
-      @@count_visit +=1
-      execute_visit(filename_visit, port_proxy, port_visitor_bot)
-      @@sem_busy_visitors.synchronize {
-        @@busy_visitors[port_proxy] = port_visitor_bot
-        @@logger.an_event.info "add visitor listening port visitor #{port_visitor_bot} to busy visitors"
-      }
+      visit_file = File.open(filename_visit, "r:BOM|UTF-8:-")
+      visit_details = YAML::load(visit_file.read)
+      os = visit_details[:visitor][:browser][:operating_system]
+      os_version = visit_details[:visitor][:browser][:operating_system_version]
+      browser = visit_details[:visitor][:browser][:name]
+      browser_version = visit_details[:visitor][:browser][:version]
+      begin
+        proxy_system = @browser_type_repository.proxy_system?(os, os_version, browser, browser_version) == true ? "yes" : "no"
+        port_proxy = @browser_type_repository.listening_port_proxy(os, os_version, browser, browser_version)[0]
 
-      @@logger.an_event.debug @@busy_visitors
-      close_connection
+        @@count_visit +=1
+        execute_visit(filename_visit, port_proxy, port_visitor_bot, proxy_system)
+        @@sem_busy_visitors.synchronize {
+          @@busy_visitors[port_proxy] = port_visitor_bot
+          @@logger.an_event.info "add visitor listening port visitor #{port_visitor_bot} to busy visitors"
+        }
+
+      rescue Exception => e
+        @@logger.an_event.error e.message
+      ensure
+        @@logger.an_event.debug @@busy_visitors
+        close_connection
+      end
+
     end
   end
 
 
-  def execute_visit(file_name, listening_port_sahi, listening_port_visitor_bot)
+  def execute_visit(file_name, listening_port_sahi, listening_port_visitor_bot, proxy_system)
+    #TODO intégrer browser_type
     #TODO meo asservissement en passant par parametre le listening_port_visitor_bot
+
     visitor_bot = Pathname(File.join(File.dirname(__FILE__), "..", "..", "run", "visitor_bot.rb")).realpath
     geolocation = "" if @default_type_geo == "none"
-    geolocation = "-p #{@default_type_geo} -r #{@default_ip_geo} -o #{@default_port_geo} -x #{@default_user_geo} -y #{@default_pwd_geo}" unless @default_type_geo == "none"
+    geolocation = "-r #{@default_type_geo} -o #{@default_ip_geo} -x #{@default_port_geo} -y #{@default_user_geo} -w #{@default_pwd_geo}" unless @default_type_geo == "none"
     #TODO déterminer la localisation du runtime ruby par parametrage ou automatiquement
     ruby = File.join("d:", "ruby193", "bin", "ruby.exe")
     begin
-      cmd = "#{ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  #{visitor_bot} -v #{file_name} -t #{listening_port_sahi} #{geolocation}"
+      cmd = "#{ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  #{visitor_bot} -v #{file_name} -t #{listening_port_sahi} -p #{proxy_system} #{geolocation}"
       sleep(2)
       status = 0
       pid = Process.spawn(cmd)
@@ -99,15 +120,15 @@ module VisitorFactory
           when 0
             @@visitor_succ += 1
           when VISITOR_NOT_LOADED_VISIT_FILE
-             @@visitor_not_loaded_visit_file +=1
+            @@visitor_not_loaded_visit_file +=1
           when VISITOR_NOT_BUILT_VISIT
-             @@visitor_not_built_visit +=1
+            @@visitor_not_built_visit +=1
           when VISITOR_IS_NOT_BORN
-             @@visitor_is_not_born +=1
+            @@visitor_is_not_born +=1
           when VISITOR_NOT_OPEN_BROWSER
             @@visitor_cannot_open_browser +=1
           when VISITOR_NOT_EXECUTE_VISIT
-             @@visitor_not_execute_visit +=1
+            @@visitor_not_execute_visit +=1
           when VISITOR_NOT_FOUND_LANDING_PAGE
             @@visitor_not_found_landing_page +=1
           when VISITOR_NOT_SURF_COMPLETLY
@@ -163,10 +184,10 @@ module VisitorFactory
 
   end
 
-  def listening_port_proxy
-    #TODO calculer le listening port du proxy webdriver ou sahi
-    @@listening_port_proxy-=1
-  end
+  #def listening_port_proxy
+  #  #TODO calculer le listening port du proxy webdriver ou sahi
+  #  @@listening_port_proxy-=1
+  #end
 
   def listening_port_visitor_bot
     #TODO calculer le listening port de visitor bot pour l"asservissemnt"
@@ -179,7 +200,7 @@ module VisitorFactory
 
   module_function :execute_visit
   module_function :garbage_free_visitors
-  module_function :listening_port_proxy #le port d'écoute du proxy sahi ou webdriver
+  #  module_function :listening_port_proxy #le port d'écoute du proxy sahi ou webdriver
   module_function :listening_port_visitor_bot #le port d'écoute du visitor_bot qd il est asservi pour gérer les returnVisitor
   module_function :logger
 

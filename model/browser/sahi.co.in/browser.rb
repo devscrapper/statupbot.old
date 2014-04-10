@@ -49,7 +49,8 @@ module Browsers
                   :width,
                   :pids,
                   :method_start_page,
-                  :version
+                  :version,
+                  :proxy_system # le browser utilise le proxy de windows
 
       #TODO meo le monitoring de l'activité du browser
       #TODO suivre les cookies du browser : s'assurer qu'il sont vide et alimenté quand il faut hahahahaha
@@ -78,10 +79,13 @@ module Browsers
         case browser_details[:name]
           when "Firefox"
             return Firefox.new(visitor_dir, browser_details)
+
           when "Internet Explorer"
             return InternetExplorer.new(visitor_dir, browser_details)
+
           when "Chrome"
             return Chrome.new(visitor_dir, browser_details)
+
           #when "Safari"
           #TODO mettre en oeuvre Safari
           #  return Safari.new(visitor_dir, browser_details)
@@ -111,7 +115,7 @@ module Browsers
           @id = UUID.generate
           @listening_port_proxy = browser_details[:listening_port_proxy]
           @width, @height = browser_details[:screen_resolution].split(/x/)
-
+          @proxy_system =  browser_details[:proxy_system]
         rescue Exception => e
           @@logger.an_event.debug e
           raise Browsers::SahiCoIn::Browser::TechnicalException, e.message
@@ -200,46 +204,6 @@ module Browsers
         return page
       end
 
-      #def error?
-      #  begin
-      #    @driver.find_element(:id, "errorShortDescText").enabled? and @driver.find_element(:id, "errorShortDescText").displayed?
-      #  rescue Selenium::WebDriver::Error::NoSuchElementError => e
-      #    false
-      #  end
-      #end
-
-      def error_label
-        @driver.find_element(:id, "errorShortDescText").text
-      end
-
-      def get_pid(process_exe)
-        f = IO.popen("tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{@id}*\"")
-        @@logger.an_event.info "tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{@id}*\""
-        @pids=nil
-        #TODO prendre en compte l'UTF8
-        f.readlines("\n").each { |l|
-          CSV.parse(l) do |row|
-            @@logger.an_event.info "row : #{row}"
-            @pids = @pids.nil? ? [row[1]] : @pids + [row[1]]
-          end
-        }
-        @@logger.an_event.warn "browser #{@id} pid not found #{@pids}" if @pids == [nil]
-        if @pids == [nil]
-          f = IO.popen("tasklist /FO CSV /NH /V /FI \"IMAGENAME eq  #{process_exe}\" /FI \"CPUTIME lt 0:00:01\"")
-          @@logger.an_event.info "tasklist /FO CSV /NH /V /FI \"IMAGENAME eq  #{process_exe}\" /FI \"CPUTIME lt 0:00:01\""
-          @pids=nil
-          f.readlines("\n").each { |l| #TODO gerer l'utf8
-            @@logger.an_event.info "l : #{l}"
-            CSV.parse(l) do |row|
-              @@logger.an_event.info "row : #{row}"
-              @pids = @pids.nil? ? [row[1]] : @pids + [row[1]]
-            end
-          }
-        end
-        @@logger.an_event.error "browser #{process_exe} pid not found #{@pids}" if @pids == [nil]
-        @@logger.an_event.info "browser #{process_exe} has pid #{@pids}" unless @pids == [nil]
-      end
-
 
       #----------------------------------------------------------------------------------------------------------------
       # name
@@ -260,16 +224,14 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       # input :
       #----------------------------------------------------------------------------------------------------------------
-      def open
+      def open_old
         @@logger.an_event.debug "begin open browser"
         count_try = 1
         max_count_try = 3
         fin = false
-        while !fin   #TODO remplacer la boucle par un retry
+        while !fin #TODO remplacer la boucle par un retry
           begin
             @driver.open(@id)
-            #TODO à supprimer définitivement si getpid lors du close fonctionne mieux
-            #get_pid
             fin = true
             @@logger.an_event.debug "browser #{name} #{@id} is opened"
           rescue TechnicalError => e
@@ -282,6 +244,26 @@ module Browsers
 
         raise TechnicalError, "browser #{name} #{@id} cannot be opened" if  count_try > max_count_try
       end
+
+      def open
+        @@logger.an_event.debug "begin open browser"
+        count_try = 1
+        max_count_try = 3
+
+        begin
+          @driver.open
+          @@logger.an_event.debug "browser #{name} #{@id} is opened"
+        rescue TechnicalError => e
+          @@logger.an_event.warn "browser #{name} #{@id} cannot be opened, try #{count_try}"
+          @@logger.an_event.debug e
+          count_try += 1
+          retry if count_try < max_count_try
+        ensure
+          @@logger.an_event.debug "end open browser"
+          raise TechnicalError, "browser #{name} #{@id} cannot be opened" if  count_try > max_count_try
+        end
+      end
+
 
       #----------------------------------------------------------------------------------------------------------------
       # quit
@@ -297,36 +279,39 @@ module Browsers
           @@logger.an_event.debug "browser #{name} is closed"
         rescue TechnicalError => e
           @@logger.an_event.debug e.message
+           # recuperation des pid du browser au cas ou le kill de sahi ne fonctionne pas qd il y a plusieurs instance du
+        # du même process lancé.
+        # on est obliger de la faire maintenant car lors du kill fait par sahi, sahi supprimer les infos de proxy dans la base de registre
+        # il devient alors impossible d'atteindre le browser pour lui affecter un title pour recuperer son pid
+        #----------------------------------------------------------------------------------------------------
+        #
+        # affecte l'id du browser dans le title de la fenetre
+        #
+        #-----------------------------------------------------------------------------------------------------
+        begin
+          title_updt = @driver.set_title(@id)
+          @@logger.an_event.debug "browser #{name} has set title #{title_updt}"
+        rescue TechnicalError => e
+          @@logger.an_event.error e.message
+          raise TechnicalError, "browser #{name} cannot close"
+        ensure
+          @@logger.an_event.debug "end browser quit"
+        end
+        #----------------------------------------------------------------------------------------------------
+        #
+        # recupere le PID du browser en fonction de l'id du browser dans le titre de la fenetre du browser
+        #
+        #-----------------------------------------------------------------------------------------------------
+        begin
+          @pids = @driver.get_pids(@id)
+          @@logger.an_event.debug "browser #{name} pid is retrieve"
+        rescue TechnicalError => e
+          @@logger.an_event.error e.message
+          raise TechnicalError, "browser #{name} cannot get pid"
+        ensure
+          @@logger.an_event.debug "end browser quit"
+        end
           #----------------------------------------------------------------------------------------------------
-          #
-          # affecte l'id du browser dans le title de la fenetre
-          #
-          #-----------------------------------------------------------------------------------------------------
-          begin
-            title_updt = @driver.set_title(@id)
-            @@logger.an_event.debug "browser #{name} has set title #{title_updt}"
-          rescue TechnicalError => e
-            @@logger.an_event.error e.message
-            raise TechnicalError, "browser #{name} cannot close"
-          ensure
-            @@logger.an_event.debug "end browser quit"
-          end
-          #----------------------------------------------------------------------------------------------------
-          #
-          # recupere le PID du browser en fonction de l'id du browser dans le titre de la fenetre du browser
-          #
-          #-----------------------------------------------------------------------------------------------------
-          begin
-            #get_pid
-            @pids = @driver.get_pids(@id, process_exe)
-            @@logger.an_event.debug "browser #{name} pid is retrieve"
-          rescue TechnicalError => e
-            @@logger.an_event.error e.message
-            raise TechnicalError, "browser #{name} cannot get pid"
-          ensure
-            @@logger.an_event.debug "end browser quit"
-          end
-           #----------------------------------------------------------------------------------------------------
           #
           # kill le browser en fonction de ses Pids
           #
@@ -358,15 +343,6 @@ module Browsers
           @@logger.an_event.error "browser #{name} #{@id} cannot search #{keywords} with engine #{engine_search.class}"
         end
         page
-      end
-
-      def switch_to_frame(path_frame)
-        begin
-          @driver.switch_to.default_content
-          path_frame.each { |frame| @driver.switch_to.frame(frame) }
-        rescue Exception => e
-          raise BrowserException, e.message
-        end
       end
 
       def wait_on(page)

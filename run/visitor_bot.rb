@@ -12,40 +12,40 @@ include Visitors
 #       visitor_bot [options]
 #where [options] are:
 #--visit-file-name, -v <s>:   Path and name of visit file to browse
-#          --slave, -s <s>:   Visitor
-#                             is slave
-#                             of
-#                             Visitor
-#                             Factory
-#                             (yes/no)
-#                             (default:
-#                             no)
-#        --sandbox, -a <s>:   browser is sandboxed (yes/no) (default: no)
-#--multi-instance-proxy-compatible, -m <s>:   browser
-#                             is multi
-#                             instance
-#                             compatible
-#                             (yes/no)
-#                             (default:
-#                             no)
+#            --slave, -s <s>:   Visitor
+#                               is slave
+#                               of
+#                               Visitor
+#                               Factory
+#                               (yes/no)
+#                               (default:
+#                               no)
+#     --proxy-system, -p <s>:   browser
+#                               use
+#                               proxy
+#                               system
+#                               of
+#                               windows
+#                               (yes/no)
+#                               (default:
+#                               no)
 #--listening-port-visitor-factory, -l <i>:   Listening port of Visitor Factory (default: 9220)
-# --listening-port, -i <i>:   Listening port of Visitor Bot (default: 9800)
+#   --listening-port, -i <i>:   Listening port of Visitor Bot (default: 9800)
 #--listening-port-sahi-proxy, -t <i>:   Listening port of Sahi proxy (default: 9999)
-#     --proxy-type, -p <s>:   Type of geolocation
-#                             proxy use
-#                             (none|http|https|socks)
-#                             (default:
-#                             none)
-#       --proxy-ip, -r <s>:   @ip of geolocation proxy
-#     --proxy-port, -o <i>:   Port of geolocation proxy
-#     --proxy-user, -x <s>:   Identified user of geolocation proxy
-#      --proxy-pwd, -y <s>:   Authentified pwd of geolocation proxy
+#       --proxy-type, -r <s>:   Type of geolocation
+#                               proxy use
+#                               (none|http|https|socks)
+#                               (default:
+#                               none)
+#         --proxy-ip, -o <s>:   @ip of geolocation proxy
+#       --proxy-port, -x <i>:   Port of geolocation proxy
+#       --proxy-user, -y <s>:   Identified user of geolocation proxy
+#        --proxy-pwd, -w <s>:   Authentified pwd of geolocation proxy
 #--[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]], -[:
 #--[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]], -[:
 #--[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]], -[:
-#            --version, -e:   Print version and exit
-#               --help, -h:   Show this message
-#--help, -h:   Show this message
+#              --version, -e:   Print version and exit
+#                 --help, -h:   Show this message
 # sample :
 # Visitor_bot is no slave without geolocation : visitor_bot -v d:\toto\visit.yaml -t 9998
 # Visitor_bot is slave : visitor_bot -v d:\toto\visit.yaml -s yes -l 9220 -i 9800
@@ -61,8 +61,7 @@ where [options] are:
   EOS
   opt :visit_file_name, "Path and name of visit file to browse", :type => :string
   opt :slave, "Visitor is slave of Visitor Factory (yes/no)", :type => :string, :default => "no"
-  opt :sandbox, "browser is sandboxed (yes/no)", :type => :string, :default => "no"
-  opt :multi_instance_proxy_compatible, "browser is multi instance compatible (yes/no)", :type => :string, :default => "no"
+  opt :proxy_system, "browser use proxy system of windows (yes/no)", :type => :string, :default => "no"
   opt :listening_port_visitor_factory, "Listening port of Visitor Factory", :type => :integer, :default => 9220
   opt :listening_port, "Listening port of Visitor Bot", :type => :integer, :default => 9800
   opt :listening_port_sahi_proxy, "Listening port of Sahi proxy", :type => :integer, :default => 9999
@@ -218,6 +217,7 @@ def visitor_born(visitor_details,
     exist_pub_in_visit,
     listening_port_sahi_proxy = nil, proxy_ip=nil, proxy_port=nil, proxy_user=nil, proxy_pwd=nil)
   visitor = nil
+  @@logger.an_event.debug "listening_port_sahi_proxy #{listening_port_sahi_proxy}"
   begin
     visitor = Visitor.build(visitor_details, exist_pub_in_visit,
                             listening_port_sahi_proxy, proxy_ip, proxy_port, proxy_user, proxy_pwd)
@@ -306,8 +306,7 @@ def visitor_is_no_slave(opts)
   cr, visit = visitor_build_visit(visit_details)
   return cr unless cr==OK
 
-  visit_details[:visitor][:browser][:sandbox] = opts[:sandbox] == "yes"
-  visit_details[:visitor][:browser][:multi_instance_proxy_compatible] = opts[:multi_instance_proxy_compatible] == "yes"
+  visit_details[:visitor][:browser][:proxy_system] = opts[:proxy_system] == "yes"
   cr, visitor = visitor_born(visit_details[:visitor],
                              visit_details[:advert][:advertising] != :none,
                              opts[:listening_port_sahi_proxy],
@@ -323,7 +322,9 @@ def visitor_is_no_slave(opts)
   #TODO temporaire
   #cr = visitor_execute_visit(visitor, visit)
   cr1 = visitor_close_browser(visitor)
+  return cr1 unless cr1==OK
   cr2 = visitor_die(visitor)
+  return cr2 unless cr2==OK
 
 
   #if cr != VISITOR_NOT_EXECUTE_VISIT

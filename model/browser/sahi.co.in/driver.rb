@@ -1,25 +1,22 @@
 module Browsers
   module SahiCoIn
     class Driver < Sahi::Browser
-      class DriverSahiException < StandardError
-
-        DRIVER_NOT_STARTED = "driver sahi cannot start #{@browser_type}"
-        DRIVER_NOT_CLOSE = "driver sahi cannot stop #{@browser_type}"
-        DRIVER_NOT_NAVIGATE = "driver cannot navigate to "
-        DRIVER_NOT_SET_TITLE = "driver not set title"
-        DRIVER_NOT_KILL = "driver not kill"
-        CANNOT_GET_DETAILS_PAGE = "cannot get details page"
-      end
-
-      # attr_reader :pids # pid browser
 
       def browser_type
         @browser_type
       end
 
-
-      # controle que le browser type existe dans au moins l'un des fichiers : win32, w64 mac linux.xml
-      # attention : controle que le browser type est présent dans au moins fichier, pas dans celui utilisé pour l'OS COURANT
+      #-----------------------------------------------------------------------------------------------------------------
+      # browser_type_exist?
+      #-----------------------------------------------------------------------------------------------------------------
+      # input : none
+      # output :
+      #   true : le browser type existe dans au moins un des fichiers lib/sahi.in.co/config/browser_type/win32/64, mac, linux.xml
+      # exception :
+      #   TechnicalError : prb d'accès technique aux fichiers.
+      #-----------------------------------------------------------------------------------------------------------------
+      # ATTENTION : controle que le browser type est présent dans au moins fichier, pas dans celui utilisé pour l'OS COURANT
+      #-----------------------------------------------------------------------------------------------------------------
       def browser_type_exist?
         exist = false
         require 'rexml/document'
@@ -44,14 +41,26 @@ module Browsers
         raise FunctionalError, "browser_type #{@browser_type} not found in win32/64, mac, linux files" unless exist
       end
 
-      # closes the browser
+      #-----------------------------------------------------------------------------------------------------------------
+      # close
+      #-----------------------------------------------------------------------------------------------------------------
+      # input : none
+      # output : none
+      # exception :
+      # TechnicalError :
+      #     - sahi ne peut arreter le navigateur car plusieurs occurences du navigateur s'exécute
+      #     - tout autre erreur
+      #-----------------------------------------------------------------------------------------------------------------
+      #
+      #-----------------------------------------------------------------------------------------------------------------
+
       def close
         @@logger.an_event.debug "begin close driver"
         begin
           exec_command("kill");
         rescue Timeout::Error => e
           @@logger.an_event.debug "driver #{@browser_type} cannot close : #{e.message}"
-          raise TechnicalError, "sahi cannot close browser #{@browser_type}"
+          raise TechnicalError, "sahi cannot close browser #{@browser_type}, time out"
         rescue Exception => e
           @@logger.an_event.error "driver #{@browser_type} cannot close : #{e.message}"
           raise TechnicalError, "sahi cannot close browser #{@browser_type}"
@@ -60,6 +69,23 @@ module Browsers
         end
       end
 
+      #-----------------------------------------------------------------------------------------------------------------
+      # current_page_details
+      #-----------------------------------------------------------------------------------------------------------------
+      # input : none
+      # output : les informations contenu dans la page :
+      #   - liste des liens
+      #   - url de la page courante
+      #   - referrer de la page courante
+      #   - title de la page
+      #   - cookies de la page
+      # exception :
+      # TechnicalError :
+      #     - une erreur est survenue lors de l'exécution de la fonction Sahi.prototype.current_page_details contenu
+      #     dans le fichier lib/sahi.in.co/htdocs/spr/extensions.js
+      #-----------------------------------------------------------------------------------------------------------------
+      #
+      #-----------------------------------------------------------------------------------------------------------------
       def current_page_details
         @@logger.an_event.debug "begin current_page_details"
         begin
@@ -72,6 +98,86 @@ module Browsers
         end
       end
 
+      #-----------------------------------------------------------------------------------------------------------------
+      # get_pids
+      #-----------------------------------------------------------------------------------------------------------------
+      # input : id_browser  : id du browser
+      # output : les pids associés du process qui exécute l'id_browser
+      # exception :
+      # TechnicalError :
+      #     - une erreur est survenue lors de l'exécution de la fonction windows tasklist
+      # FunctionalError :
+      #     - id_browser n'est pas défini ou absent
+      #-----------------------------------------------------------------------------------------------------------------
+      #
+      #-----------------------------------------------------------------------------------------------------------------
+      #TODO prendre en compte l'UTF8
+      #TODO ne fonctionne que sur un os en francais
+      def tasklist(id_browser)
+        @@logger.an_event.debug "begin tasklist"
+        @@logger.an_event.debug "tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{id_browser}*\""
+
+        begin
+          pids = nil
+          f = IO.popen("tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{id_browser}*\"")
+          f.readlines("\n").each { |l|
+              @@logger.an_event.debug "row : #{l}"
+              raise if l == "Information\xFF: aucune t\x83che en service ne correspond aux crit\x8Ares sp\x82cifi\x82s."
+              pid = CSV.parse_line(l)[1]
+              pids = pids.nil? ? [pid] : pids + [pid]
+
+          }
+        rescue Exception => e
+          pids = nil
+        ensure
+
+        end
+        pids
+      end
+
+      def get_pids(id_browser)
+        @@logger.an_event.debug "begin get_pids"
+        raise FunctionalError, "id_browser is not define" if id_browser.nil? or id_browser == ""
+
+        pids=nil
+        try_count = 0
+        try_count_max = 3
+        begin
+          @@logger.an_event.debug "try_count_max #{try_count_max}, try_count #{try_count}, pids #{pids}"
+          while try_count < try_count_max and pids.nil?
+            pids = tasklist(id_browser)
+            try_count += 1
+            @@logger.an_event.debug "try_count_max #{try_count_max}, try_count #{try_count}, pids #{pids}"
+          end
+          raise TechnicalError, "max try join " if try_count == try_count_max and pids.nil?
+        rescue Exception => e
+          @@logger.an_event.fatal e
+          pids = nil
+          raise TechnicalError, "driver cannot get pids of browser #{id_browser}}"
+        ensure
+
+        end
+        @@logger.an_event.debug "end get_pids"
+        pids
+      end
+
+      #-----------------------------------------------------------------------------------------------------------------
+      # get_initialize
+      #-----------------------------------------------------------------------------------------------------------------
+      # input :
+      #    id_browser_type : type du browser qu'il faut créer, présent dans les fichiers  lib/sahi.in.co/config/browser_type/win32/64, mac, linux.xml
+      #    listening_port_sahi : le port d'écoute du proxy Sahi
+      # output : un objet browser
+      # exception :
+      # TechnicalError :
+      #     - une erreur est survenue lors de l'exécution de la fonction windows tasklist
+      # FunctionalError :
+      #     - id_browser n'est pas défini ou absent
+      #     - listening_port_sahi n'est pas défini ou absent
+      #     - id_browser est absent des fichiers lib/sahi.in.co/config/browser_type/win32/64, mac, linux.xml
+      #-----------------------------------------------------------------------------------------------------------------
+      #
+      #-----------------------------------------------------------------------------------------------------------------
       def initialize(browser_type, listening_port_sahi)
         @@logger.an_event.debug "begin initialize driver"
         raise FunctionalError, "listening port sahi proxy is not defined" if listening_port_sahi.nil?
@@ -96,14 +202,27 @@ module Browsers
         end
       end
 
-
+      #-----------------------------------------------------------------------------------------------------------------
+      # kill
+      #-----------------------------------------------------------------------------------------------------------------
+      # input :
+      #    pids : la liste des pids associés au browser
+      # output : none
+      # exception :
+      # TechnicalError :
+      #     - une erreur est survenue lors de l'exécution de la fonction windows taskkill
+      # FunctionalError :
+      #     - pids n'est pas défini ou absent
+      #-----------------------------------------------------------------------------------------------------------------
+      #
+      #-----------------------------------------------------------------------------------------------------------------
       def kill(pids)
         @@logger.an_event.debug "begin kill browser"
         raise FunctionalError, "driver has no pid" if pids.nil? or pids==[nil]
         begin
           pids.each { |pid|
             #TODO faire la version linux
-            cmd = "TASKKILL /PID #{pid} /T" # /F")  force le kill de tous les sous process
+            cmd = "TASKKILL /PID #{pid} /T /F"#  force le kill de tous les sous process
             res = IO.popen(cmd).read #TODO prendre en compte l'UTF8
 
             @@logger.an_event.debug "kill command : #{cmd}"
@@ -120,32 +239,6 @@ module Browsers
         end
       end
 
-
-      def get_pids(id_browser, process_exe)
-        @@logger.an_event.debug "begin get_pids"
-        raise FunctionalError, "id_browser is not define" if id_browser.nil? or id_browser == ""
-        raise FunctionalError, "process_exe is not define" if process_exe.nil?
-        pids=nil
-        begin
-          f = IO.popen("tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{id_browser}*\"")
-          @@logger.an_event.debug "tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{id_browser}*\""
-
-          #TODO prendre en compte l'UTF8
-          f.readlines("\n").each { |l|
-            CSV.parse(l) do |row|
-              @@logger.an_event.debug "row : #{row}"
-              pids = pids.nil? ? [row[1]] : pids + [row[1]]
-            end
-          }
-          @@logger.an_event.debug "browser #{process_exe} has pid #{pids}"
-          pids
-        rescue Exception => e
-          @@logger.an_event.fatal e
-          raise TechnicalError, "drier cannot get pids of browser #{id_browser}/#{process_exe}"
-        ensure
-          @@logger.an_event.debug "end get_pids"
-        end
-      end
 
       def navigate_to(url, force_reload=false)
         @@logger.an_event.debug "begin navigate_to"
@@ -174,10 +267,21 @@ module Browsers
         end
       end
 
-      #opens the browser
-      def open(browser_id)
+      #-----------------------------------------------------------------------------------------------------------------
+      # open
+      #-----------------------------------------------------------------------------------------------------------------
+      # input : none
+      # output : none
+      # exception :
+      # TechnicalError :
+      #     - une erreur est survenue lors de demande de lancement du browser auprès de Sahi.
+      # FunctionalError :
+      #     - browser_type n'est pas défini ou absent
+      #-----------------------------------------------------------------------------------------------------------------
+      #
+      #-----------------------------------------------------------------------------------------------------------------
+      def open
         @@logger.an_event.debug "begin open driver"
-        raise FunctionalError, "browser_id is not define" if browser_id.nil?
         raise FunctionalError, "browser type is not define" if @browser_type.nil?
         begin
           check_proxy
@@ -205,7 +309,20 @@ module Browsers
       #  fetch("_sahi.referrer()")
       #end
 
-
+      #-----------------------------------------------------------------------------------------------------------------
+      # set_title
+      #-----------------------------------------------------------------------------------------------------------------
+      # input : title de la fenetre du browser
+      # output : title de la fenetre mis a jour
+      # exception :
+      # TechnicalError :
+      #     - une erreur est survenue lors de l'exécution de la fonction Sahi.prototype.set_title contenu
+      #     dans le fichier lib/sahi.in.co/htdocs/spr/extensions.js
+      # FunctionalError :
+      #     - title n'est pas défini ou absent
+      #-----------------------------------------------------------------------------------------------------------------
+      #
+      #-----------------------------------------------------------------------------------------------------------------
       def set_title(title)
         @@logger.an_event.debug "begin set_title"
         raise FunctionalError, "title is not define" if title.nil?

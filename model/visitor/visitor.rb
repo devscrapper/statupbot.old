@@ -54,6 +54,9 @@ module Visitors
         listening_port_sahi_proxy = nil, proxy_ip=nil, proxy_port=nil, proxy_user=nil, proxy_pwd=nil)
       #exist_pub_in_visit = true si il existe une pub dans la visit alors on utilise un browser de type webdriver
       #sinon un browser de type sahi
+      @@logger.an_event.debug "begin build visitor"
+      @@logger.an_event.debug "visitor detail #{visitor_details}"
+      @@logger.an_event.debug "listening_port_sahi_proxy #{listening_port_sahi_proxy}"
       begin
         return Visitor.new(visitor_details,
                            (exist_pub_in_visit == true) ? :webdriver : :sahi,
@@ -68,6 +71,7 @@ module Visitors
         raise e
       end
       @@logger.an_event.info "visitor #{visitor_details[:id]} is born"
+      @@logger.an_event.debug "end build visitor"
     end
 
 #----------------------------------------------------------------------------------------------------------------
