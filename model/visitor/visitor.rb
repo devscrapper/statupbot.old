@@ -37,7 +37,6 @@ module Visitors
     end
 
     DIR_VISITORS = Pathname(File.join(File.dirname(__FILE__), '..', '..', 'visitors')).realpath
-
     attr_accessor :id,
                   :browser,
                   :home, #repertoire d'execution du visitor
@@ -222,13 +221,11 @@ module Visitors
       end
     end
 
+
     def die
-      #TODO ne pas supprimer le context d'execution du visitor lorsque y il y a eu une erreur technique
-      #TODO supprimer la log du visitor dans \log quand tout est OK
       @@logger.an_event.debug "begin visitor die"
       begin
         @proxy.stop
-        FileUtils.rm_r(@home, :force => true) if File.exist?(@home)
         @@logger.an_event.info "visitor #{@id} is dead"
       rescue TechnicalError => e
         @@logger.an_event.error e.message
@@ -237,6 +234,7 @@ module Visitors
         @@logger.an_event.debug "end visitor die"
       end
     end
+
 
     def execute(visit)
       begin
@@ -260,10 +258,29 @@ module Visitors
       end
     end
 
+    def inhume()
+      @@logger.an_event.debug "begin visitor inhume"
+      try_count = 0
+      max_try_count = 3
+      begin
+        @proxy.delete_config
+        FileUtils.rm_r(@home) if File.exist?(@home)
+        @@logger.an_event.info "visitor #{@id} is inhume"
+      rescue Exception => e
+        @@logger.an_event.debug "visitor #{@id} is not inhume, try #{try_count}"
+        sleep (1)
+        try_count +=1
+        retry if try_count < max_try_count
+        @@logger.an_event.debug e.message
+        raise TechnicalError, "visitor #{@id} is not inhume"
+      ensure
+        @@logger.an_event.debug "end visitor inhume"
+      end
+    end
 
-    #permet de realiser plusieurs recherche avec à chaque fois une list de mot clé différent
-    # cette liste de mot clé sera calculé par scraperbot en fonction d'un paramètage de statupweb
-    # cela permetra par exemple de realisé des recherches qui échouent
+#permet de realiser plusieurs recherche avec à chaque fois une list de mot clé différent
+# cette liste de mot clé sera calculé par scraperbot en fonction d'un paramètage de statupweb
+# cela permetra par exemple de realisé des recherches qui échouent
     def many_search(referrer)
       #TODO meo plusieurs methodes pour saiir les mots clés et les choisir aléatoirement :
       #TODO afficher la page google.fr, comme c'est le cas actuellement

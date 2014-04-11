@@ -98,7 +98,8 @@ VISITOR_NOT_FOUND_LANDING_PAGE = 31
 VISITOR_NOT_SURF_COMPLETLY = 32
 VISITOR_NOT_CLOSE_BROWSER = 40
 VISITOR_NOT_DIE = 50
-VISITOR_NOT_CLOSE_BROWSER_AND_NOT_DIE = 60
+VISITOR_NOT_INHUME = 60
+VISITOR_NOT_CLOSE_BROWSER_AND_NOT_DIE = 70
 OK = 0
 class Connection < EventMachine::Connection
   include EM::Protocols::ObjectProtocol
@@ -296,6 +297,18 @@ def visitor_die(visitor)
   end
 end
 
+def visitor_inhume(visitor)
+  begin
+    visitor.inhume
+    OK
+  rescue Exception => e
+
+    @@logger.an_event.debug e
+    @@logger.an_event.error "visitor #{visitor.id} is not inhume"
+    VISITOR_NOT_INHUME
+  end
+end
+
 def visitor_is_no_slave(opts)
   cr, visit_details = visitor_load_visit_file(opts[:visit_file_name])
   return cr unless cr==OK
@@ -325,6 +338,8 @@ def visitor_is_no_slave(opts)
   return cr1 unless cr1==OK
   cr2 = visitor_die(visitor)
   return cr2 unless cr2==OK
+  cr3 = visitor_inhume(visitor)
+  return cr3 unless cr3==OK
 
 
   #if cr != VISITOR_NOT_EXECUTE_VISIT

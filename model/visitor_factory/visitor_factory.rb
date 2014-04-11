@@ -77,12 +77,13 @@ module VisitorFactory
       os_version = visit_details[:visitor][:browser][:operating_system_version]
       browser = visit_details[:visitor][:browser][:name]
       browser_version = visit_details[:visitor][:browser][:version]
+      id_visitor = visit_details[:visitor][:id]
       begin
         proxy_system = @browser_type_repository.proxy_system?(os, os_version, browser, browser_version) == true ? "yes" : "no"
         port_proxy = @browser_type_repository.listening_port_proxy(os, os_version, browser, browser_version)[0]
 
         @@count_visit +=1
-        execute_visit(filename_visit, port_proxy, port_visitor_bot, proxy_system)
+        execute_visit(filename_visit, port_proxy, port_visitor_bot, proxy_system, id_visitor)
         @@sem_busy_visitors.synchronize {
           @@busy_visitors[port_proxy] = port_visitor_bot
           @@logger.an_event.info "add visitor listening port visitor #{port_visitor_bot} to busy visitors"
@@ -99,7 +100,7 @@ module VisitorFactory
   end
 
 
-  def execute_visit(file_name, listening_port_sahi, listening_port_visitor_bot, proxy_system)
+  def execute_visit(file_name, listening_port_sahi, listening_port_visitor_bot, proxy_system, id_visitor)
     #TODO intégrer browser_type
     #TODO meo asservissement en passant par parametre le listening_port_visitor_bot
 
@@ -119,6 +120,11 @@ module VisitorFactory
         case status.exitstatus
           when 0
             @@visitor_succ += 1
+            dir =  Pathname(File.join(File.dirname(__FILE__), "..",'..', "log")).realpath
+            files = File.join(dir,"visitor_bot_#{id_visitor}.{*}")
+            FileUtils.rm_r(Dir.glob(files), :force => true)
+
+
           when VISITOR_NOT_LOADED_VISIT_FILE
             @@visitor_not_loaded_visit_file +=1
           when VISITOR_NOT_BUILT_VISIT

@@ -115,7 +115,7 @@ module Browsers
           @id = UUID.generate
           @listening_port_proxy = browser_details[:listening_port_proxy]
           @width, @height = browser_details[:screen_resolution].split(/x/)
-          @proxy_system =  browser_details[:proxy_system]
+          @proxy_system = browser_details[:proxy_system]
         rescue Exception => e
           @@logger.an_event.debug e
           raise Browsers::SahiCoIn::Browser::TechnicalException, e.message
@@ -228,27 +228,6 @@ module Browsers
         @@logger.an_event.debug "begin open browser"
         count_try = 1
         max_count_try = 3
-        fin = false
-        while !fin #TODO remplacer la boucle par un retry
-          begin
-            @driver.open(@id)
-            fin = true
-            @@logger.an_event.debug "browser #{name} #{@id} is opened"
-          rescue TechnicalError => e
-            @@logger.an_event.warn "browser #{name} #{@id} cannot be opened, try #{count_try}"
-            @@logger.an_event.debug e
-            count_try += 1
-            fin = count_try > max_count_try
-          end
-        end
-
-        raise TechnicalError, "browser #{name} #{@id} cannot be opened" if  count_try > max_count_try
-      end
-
-      def open
-        @@logger.an_event.debug "begin open browser"
-        count_try = 1
-        max_count_try = 3
 
         begin
           @driver.open
@@ -261,6 +240,19 @@ module Browsers
         ensure
           @@logger.an_event.debug "end open browser"
           raise TechnicalError, "browser #{name} #{@id} cannot be opened" if  count_try > max_count_try
+        end
+      end
+
+      def open
+        @@logger.an_event.debug "begin open browser"
+        begin
+          @driver.open
+          @@logger.an_event.debug "browser #{name} #{@id} is opened"
+        rescue TechnicalError => e
+          @@logger.an_event.debug e.message
+          raise TechnicalError, "browser #{name} #{@id} cannot be opened"
+        ensure
+          @@logger.an_event.debug "end open browser"
         end
       end
 
@@ -279,38 +271,36 @@ module Browsers
           @@logger.an_event.debug "browser #{name} is closed"
         rescue TechnicalError => e
           @@logger.an_event.debug e.message
-           # recuperation des pid du browser au cas ou le kill de sahi ne fonctionne pas qd il y a plusieurs instance du
-        # du même process lancé.
-        # on est obliger de la faire maintenant car lors du kill fait par sahi, sahi supprimer les infos de proxy dans la base de registre
-        # il devient alors impossible d'atteindre le browser pour lui affecter un title pour recuperer son pid
-        #----------------------------------------------------------------------------------------------------
-        #
-        # affecte l'id du browser dans le title de la fenetre
-        #
-        #-----------------------------------------------------------------------------------------------------
-        begin
-          title_updt = @driver.set_title(@id)
-          @@logger.an_event.debug "browser #{name} has set title #{title_updt}"
-        rescue TechnicalError => e
-          @@logger.an_event.error e.message
-          raise TechnicalError, "browser #{name} cannot close"
-        ensure
-          @@logger.an_event.debug "end browser quit"
-        end
-        #----------------------------------------------------------------------------------------------------
-        #
-        # recupere le PID du browser en fonction de l'id du browser dans le titre de la fenetre du browser
-        #
-        #-----------------------------------------------------------------------------------------------------
-        begin
-          @pids = @driver.get_pids(@id)
-          @@logger.an_event.debug "browser #{name} pid is retrieve"
-        rescue TechnicalError => e
-          @@logger.an_event.error e.message
-          raise TechnicalError, "browser #{name} cannot get pid"
-        ensure
-          @@logger.an_event.debug "end browser quit"
-        end
+          # recuperation des pid du browser au cas ou le kill de sahi ne fonctionne pas qd il y a plusieurs instance du
+          # du même process lancé.
+          #----------------------------------------------------------------------------------------------------
+          #
+          # affecte l'id du browser dans le title de la fenetre
+          #
+          #-----------------------------------------------------------------------------------------------------
+          begin
+            title_updt = @driver.set_title(@id)
+            @@logger.an_event.debug "browser #{name} has set title #{title_updt}"
+          rescue TechnicalError => e
+            @@logger.an_event.error e.message
+            raise TechnicalError, "browser #{name} cannot close"
+          ensure
+            @@logger.an_event.debug "end browser quit"
+          end
+          #----------------------------------------------------------------------------------------------------
+          #
+          # recupere le PID du browser en fonction de l'id du browser dans le titre de la fenetre du browser
+          #
+          #-----------------------------------------------------------------------------------------------------
+          begin
+            @pids = @driver.get_pids(@id)
+            @@logger.an_event.debug "browser #{name} pid is retrieve"
+          rescue TechnicalError => e
+            @@logger.an_event.error e.message
+            raise TechnicalError, "browser #{name} cannot get pid"
+          ensure
+            @@logger.an_event.debug "end browser quit"
+          end
           #----------------------------------------------------------------------------------------------------
           #
           # kill le browser en fonction de ses Pids

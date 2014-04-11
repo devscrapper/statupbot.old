@@ -47,6 +47,30 @@ module VisitorFactory
       }
     end
 
+    def os
+      os_arr = []
+      @hash.each_key { |os| os_arr << os }
+      os_arr
+    end
+
+    def os_version(os)
+      os_version_arr = []
+      @hash[os].each_key { |os_version| os_version_arr << os_version }
+      os_version_arr
+    end
+
+    def browser(os, os_version)
+      browser_arr = []
+      @hash[os][os_version].each_key { |browser| browser_arr << browser }
+      browser_arr
+    end
+
+    def browser_version(os, os_version, browser)
+      browser_version_arr = []
+      @hash[os][os_version][browser].each_key { |browser_version| browser_version_arr << browser_version }
+      browser_version_arr
+    end
+
     def proxy_system?(os, os_version, browser, browser_version)
       begin
         @hash[os][os_version][browser][browser_version]["proxy_system"]=="true"

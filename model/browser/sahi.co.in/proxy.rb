@@ -111,11 +111,17 @@ module Browsers
 
       def delete_config
         @@logger.an_event.debug "begin delete_config"
+        try_count = 0
+        max_try_count = 3
         begin
-          FileUtils.rm_r(@home, :force => true) if File.exist?(@home)
+          FileUtils.rm_r(@home) if File.exist?(@home)
           @@logger.an_event.debug "config files proxy Sahi are deleted in #{@home}"
         rescue Exception => e
-          @@logger.an_event.warn e.message
+          @@logger.an_event.debug "config files proxy Sahi are not completly deleted, try #{try_count}"
+          sleep (1)
+          try_count += 1
+          retry if try_count < max_try_count
+          @@logger.an_event.debug e.message
           raise TechnicalError, "config files proxy Sahi are not completly deleted"
         ensure
           @@logger.an_event.debug "end delete_config"
@@ -149,8 +155,7 @@ module Browsers
         begin
           Process.kill("KILL", @pid)
           Process.waitall
-          delete_config
-          @@logger.an_event.debug "proxy Sahi #{@pid} is stopped"
+             @@logger.an_event.debug "proxy Sahi #{@pid} is stopped"
         rescue SignalException => e
           @@logger.an_event.error e.message
           raise TechnicalError, "proxy Sahi #{@pid} is not stopped"

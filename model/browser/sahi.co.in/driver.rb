@@ -121,11 +121,10 @@ module Browsers
           pids = nil
           f = IO.popen("tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{id_browser}*\"")
           f.readlines("\n").each { |l|
-              @@logger.an_event.debug "row : #{l}"
-              raise if l == "Information\xFF: aucune t\x83che en service ne correspond aux crit\x8Ares sp\x82cifi\x82s."
-              pid = CSV.parse_line(l)[1]
-              pids = pids.nil? ? [pid] : pids + [pid]
-
+            @@logger.an_event.debug "row : #{l}"
+            pid = CSV.parse_line(l)[1]
+            raise if pid.nil? # c'est synonyme qu'en retour du tasklist, on a obtenu : "Information : aucune tâche en service ne correspond aux critères spécifiés."
+            pids = pids.nil? ? [pid] : pids + [pid]
           }
         rescue Exception => e
           pids = nil
@@ -151,7 +150,7 @@ module Browsers
           end
           raise TechnicalError, "max try join " if try_count == try_count_max and pids.nil?
         rescue Exception => e
-          @@logger.an_event.fatal e
+          @@logger.an_event.debug e.message
           pids = nil
           raise TechnicalError, "driver cannot get pids of browser #{id_browser}}"
         ensure
@@ -222,13 +221,13 @@ module Browsers
         begin
           pids.each { |pid|
             #TODO faire la version linux
-            cmd = "TASKKILL /PID #{pid} /T /F"#  force le kill de tous les sous process
+            cmd = "TASKKILL /PID #{pid} /T /F" #  force le kill de tous les sous process
             res = IO.popen(cmd).read #TODO prendre en compte l'UTF8
 
             @@logger.an_event.debug "kill command : #{cmd}"
             @@logger.an_event.debug "result : #{res}"
             raise "driver not kill" if res.include?("Erreur")
-                                            #TODO identifier si le kill a fonctionné et remonté une erreur
+                                               #TODO identifier si le kill a fonctionné et remonté une erreur
             @@logger.an_event.debug "driver #{@browser_type} pid #{pid} is killed"
           }
         rescue Exception => e
@@ -281,6 +280,42 @@ module Browsers
       #
       #-----------------------------------------------------------------------------------------------------------------
       def open
+        @@logger.an_event.debug "begin open driver"
+        raise FunctionalError, "browser type is not define" if @browser_type.nil?
+
+        try_count = 0
+        max_try_count = 3
+        begin
+          check_proxy
+        rescue Exception => e
+          try_count+=1
+          @@logger.an_event.debug "#{e.message}, try #{try_count}"
+          sleep(1)
+          retry if try_count < max_try_count
+          raise TechnicalError, e.message if try_count >= max_try_count
+        end
+
+        begin
+         @sahisid = Time.now.to_f
+          start_url = "http://sahi.example.com/_s_/dyn/Driver_initialized"
+          exec_command("launchPreconfiguredBrowser", {"browserType" => @browser_type, "startUrl" => start_url})
+          i = 0
+          while (i < 500)
+            i+=1
+            break if is_ready?
+            sleep(0.1)
+          end
+          @@logger.an_event.debug "open browser #{@browser_type}"
+
+        rescue RuntimeError => e
+          @@logger.an_event.fatal e.message
+          raise TechnicalError, "driver #{@browser_type} cannot start"
+        ensure
+          @@logger.an_event.debug "end open driver"
+        end
+      end
+
+      def open_old
         @@logger.an_event.debug "begin open driver"
         raise FunctionalError, "browser type is not define" if @browser_type.nil?
         begin

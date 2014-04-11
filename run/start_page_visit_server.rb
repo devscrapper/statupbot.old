@@ -44,7 +44,7 @@ class StartPageVisitServer
             </HEAD>
             </HTML>
           _end_of_html_
-        #res.body = "<html><head> </head><body><a href=\"#{param["url"]}\" rel=\"noreferrer\">#{param["url"]}</a></body></html>"
+
         when "datauri"
 
           res.body =<<-_end_of_html_
@@ -62,7 +62,7 @@ class StartPageVisitServer
             </HEAD>
             </HTML>
           _end_of_html_
-        #res.body = "<html><head> </head><body>no defined</body></html>"
+
       end
 
       res['Content-Type'] = 'text/html; charset=iso-8859-1'
