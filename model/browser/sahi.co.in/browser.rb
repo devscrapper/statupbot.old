@@ -38,6 +38,7 @@ module Browsers
       end
       VISITORS_DIR = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'visitors')).realpath
       LOG_DIR = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'log')).realpath
+      TMP_DIR = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'tmp')).realpath
       NO_REFERER = "noreferrer"
       DATA_URI = "datauri"
       attr_accessor :driver,
@@ -205,6 +206,59 @@ module Browsers
       end
 
 
+      def get_pid(id_browser)
+        @@logger.an_event.debug "begin get_pid"
+        raise FunctionalException, "id browser is not defined" if id_browser.nil?
+        #TODO détermine l'OS
+        #TODO prevoir une section pour linux & mac
+        pid_arr = nil
+        pids_name_file = File.join(TMP_DIR, "#{id_browser}_pids.csv")
+        begin
+          File.delete(pids_name_file) if File.exist?(pids_name_file)
+          cmd = 'powershell -NoLogo -NoProfile "get-process |  where-object {$_.mainWindowTitle -like \"' + "#{id_browser}*" + '\"} | Export-Csv -notype ' + pids_name_file + '; exit $LASTEXITCODE" < NUL'
+          @@logger.an_event.debug "command powershell : #{cmd}"
+          @pid = Process.spawn(cmd)
+          Process.waitpid(@pid)
+          if File.exist?(pids_name_file)
+            pid_arr = CSV.table(pids_name_file).by_col[:id]
+            @@logger.an_event.debug "pids catch : #{pid_arr}"
+            File.delete(pids_name_file)
+            raise TechnicalError, "none mainWindowTitle in powershell contains id browser #{id_browser}"  if pid_arr == []
+          else
+            raise TechnicalError, "file #{pids_name_file} not found"
+          end
+        rescue Exception => e
+          @@logger.an_event.debug e.message
+          raise "cannot get pid of #{id_browser}"
+        ensure
+          @@logger.an_event.debug "end get_pid"
+        end
+        pid_arr
+      end
+
+
+      def kill(pid_arr)
+        @@logger.an_event.debug "begin kill"
+        #TODO détermine l'OS
+        #TODO prevoir une section pour linux & mac
+
+        raise FunctionalError, "no pid" if pid_arr == []
+
+        pid_arr.each { |pid|
+          begin
+            cmd = 'powershell -NoLogo -NoProfile "Stop-Process ' + pid.to_s + '; exit $LASTEXITCODE" < NUL'
+            @@logger.an_event.debug "command powershell : #{cmd}"
+            ps_pid = Process.spawn(cmd)
+            Process.waitpid(ps_pid)
+          rescue Exception => e
+            @@logger.an_event.debug e.message
+            raise TechnicalError, "cannot kill pid #{pid}"
+          ensure
+            @@logger.an_event.debug "end kill"
+          end
+        }
+      end
+
       #----------------------------------------------------------------------------------------------------------------
       # name
       #----------------------------------------------------------------------------------------------------------------
@@ -254,6 +308,35 @@ module Browsers
         ensure
           @@logger.an_event.debug "end open browser"
         end
+
+        #----------------------------------------------------------------------------------------------------
+        #
+        # affecte l'id du browser dans le title de la fenetre
+        #
+        #-----------------------------------------------------------------------------------------------------
+        begin
+          title_updt = @driver.set_title(@id)
+          @@logger.an_event.debug "browser #{name} has set title #{title_updt}"
+        rescue TechnicalError => e
+          @@logger.an_event.error e.message
+          raise TechnicalError, "browser #{name} cannot close"
+        ensure
+          @@logger.an_event.debug "end open browser"
+        end
+        #----------------------------------------------------------------------------------------------------
+        #
+        # recupere le PID du browser en fonction de l'id du browser dans le titre de la fenetre du browser
+        #
+        #-----------------------------------------------------------------------------------------------------
+        begin
+          @pids = get_pid(@id)
+          @@logger.an_event.debug "browser #{name} pid is retrieve"
+        rescue TechnicalError => e
+          @@logger.an_event.FATAL e.message
+          raise TechnicalError, "browser #{name} cannot get pid"
+        ensure
+          @@logger.an_event.debug "end open browser"
+        end
       end
 
 
@@ -275,39 +358,11 @@ module Browsers
           # du même process lancé.
           #----------------------------------------------------------------------------------------------------
           #
-          # affecte l'id du browser dans le title de la fenetre
-          #
-          #-----------------------------------------------------------------------------------------------------
-          begin
-            title_updt = @driver.set_title(@id)
-            @@logger.an_event.debug "browser #{name} has set title #{title_updt}"
-          rescue TechnicalError => e
-            @@logger.an_event.error e.message
-            raise TechnicalError, "browser #{name} cannot close"
-          ensure
-            @@logger.an_event.debug "end browser quit"
-          end
-          #----------------------------------------------------------------------------------------------------
-          #
-          # recupere le PID du browser en fonction de l'id du browser dans le titre de la fenetre du browser
-          #
-          #-----------------------------------------------------------------------------------------------------
-          begin
-            @pids = @driver.get_pids(@id)
-            @@logger.an_event.debug "browser #{name} pid is retrieve"
-          rescue TechnicalError => e
-            @@logger.an_event.error e.message
-            raise TechnicalError, "browser #{name} cannot get pid"
-          ensure
-            @@logger.an_event.debug "end browser quit"
-          end
-          #----------------------------------------------------------------------------------------------------
-          #
           # kill le browser en fonction de ses Pids
           #
           #-----------------------------------------------------------------------------------------------------
           begin
-            @driver.kill(@pids)
+            kill(@pids)
             @@logger.an_event.debug "browser #{name} is killed"
           rescue TechnicalError => e
             @@logger.an_event.error e.message

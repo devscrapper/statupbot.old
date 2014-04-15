@@ -67,6 +67,7 @@ module VisitorFactory
 
     def receive_object(filename_visit)
       @@logger.an_event.debug "receive visit filename #{filename_visit}"
+	  if filename_visit != ""
       filename_visit = Pathname(filename_visit).realpath
       @@logger.an_event.debug "receive visit filename #{filename_visit}"
       #port_proxy = listening_port_proxy
@@ -95,7 +96,10 @@ module VisitorFactory
         @@logger.an_event.debug @@busy_visitors
         close_connection
       end
-
+	  else
+	  @@logger.an_event.error "visit file is empty"
+	     close_connection
+	  end
     end
   end
 

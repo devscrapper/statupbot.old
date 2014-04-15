@@ -334,8 +334,7 @@ def visitor_is_no_slave(opts)
 
   #TODO temporaire
   #cr = visitor_execute_visit(visitor, visit)
-  cr1 = visitor_close_browser(visitor)
-  return cr1 unless cr1==OK
+  visitor_close_browser(visitor)
   cr2 = visitor_die(visitor)
   return cr2 unless cr2==OK
   cr3 = visitor_inhume(visitor)

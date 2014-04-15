@@ -117,85 +117,57 @@ module Browsers
         start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"],)
         start_page
       end
+      def get_pid(id_browser)
+        @@logger.an_event.debug "begin get_pid"
+        raise FunctionalException, "id browser is not defined" if id_browser.nil?
+        pid_arr = nil
+        pids_name_file = File.join(TMP_DIR, "#{id_browser}_pids.csv")
+        begin
+          File.delete(pids_name_file) if File.exist?(pids_name_file)
+          cmd = 'powershell -NoLogo -NoProfile "get-process |  where-object {$_.mainWindowTitle -like \"' + "#{id_browser}*" + '\"} | Export-Csv -notype ' + pids_name_file + '; exit $LASTEXITCODE" < NUL'
+          @@logger.an_event.debug "command powershell : #{cmd}"
+          @pid = Process.spawn(cmd)
+          Process.waitpid(@pid)
+          if File.exist?(pids_name_file)
+            pid_arr = CSV.table(pids_name_file).by_col[:id]
+            @@logger.an_event.debug "pids catch : #{pid_arr}"
+            File.delete(pids_name_file)
+          else
+            raise TechnicalError, "file #{pids_name_file} not found"
+          end
+        rescue Exception => e
+          @@logger.an_event.debug e.message
+          raise "cannot get pid of #{id_browser}"
+        ensure
+          @@logger.an_event.debug "end get_pid"
+        end
+        pid_arr
+      end
 
+
+      def kill(pid_arr)
+        @@logger.an_event.debug "begin kill"
+
+        raise FunctionalError, "no pid" if pid_arr == []
+
+        pid_arr.each { |pid|
+          begin
+            cmd = 'powershell -NoLogo -NoProfile "Stop-Process ' + pid.to_s + '; exit $LASTEXITCODE" < NUL'
+            @@logger.an_event.debug "command powershell : #{cmd}"
+            ps_pid = Process.spawn(cmd)
+            Process.waitpid(ps_pid)
+          rescue Exception => e
+            @@logger.an_event.debug e.message
+            raise TechnicalError, "cannot kill pid #{pid}"
+          ensure
+            @@logger.an_event.debug "end kill"
+          end
+        }
+      end
       def process_exe
         "iexplore.exe"
       end
 
-      def quit
-
-        if @proxy_system
-          @@logger.an_event.debug "begin quit internet explorer with proxy system"
-          # qd il y a plusieurs instance de iexplorer.exe, le kill de sahi ne fonctionne pas.
-          # on est alors obliger de killer manuellement le internet explorer.
-          # il faut donc recuperer le pid d'internet explorer, 2 cas :
-          # - Si internet explorer utilise le proxy system de windows alors il faut récuperer le pid avant de demander à
-          # sahi de killer le process, car sahi supprime de la base de registre les info du proxy system. Alors il n'est plus
-          # possible d'utiliser la methode d'identification du process iexplorer en utilisant le titre de la fenetre
-          # d'internet explorer.
-          # - Si internet explorer n'utilise pas le  proxy system qd il est sandboxé (parametrage du proxy IE local au sandbox)
-          # alors on peut demander à sahi de killer Internet Explorer et si cela ne marche pas utiliser la methode d'identification
-          # au moyen du titre de la fenetre => on se retrouve dans la procédure classique d'arret d'un browser
-          # on utilise alors la super methode définit dans Browser.
-          #----------------------------------------------------------------------------------------------------
-          #
-          # affecte l'id du browser dans le title de la fenetre
-          #
-          #-----------------------------------------------------------------------------------------------------
-          begin
-            title_updt = @driver.set_title(@id)
-            @@logger.an_event.debug "browser #{name} has set title #{title_updt}"
-          rescue TechnicalError => e
-            @@logger.an_event.error e.message
-            raise TechnicalError, "browser #{name} cannot close"
-            @@logger.an_event.debug "end quit internet explorer with proxy system"
-          ensure
-
-          end
-          #----------------------------------------------------------------------------------------------------
-          #
-          # recupere le PID du browser en fonction de l'id du browser dans le titre de la fenetre du browser
-          #
-          #-----------------------------------------------------------------------------------------------------
-          begin
-            @pids = @driver.get_pids(@id)
-            @@logger.an_event.debug "browser #{name} pid #{@pids} is retrieve"
-          rescue TechnicalError => e
-            @@logger.an_event.error e.message
-            raise TechnicalError, "browser #{name} cannot get pid"
-            @@logger.an_event.debug "end quit internet explorer with proxy system"
-          ensure
-
-          end
-
-          begin
-            @driver.close
-            @@logger.an_event.debug "browser #{name} is closed"
-          rescue TechnicalError => e
-            @@logger.an_event.debug e.message
-            #----------------------------------------------------------------------------------------------------
-            #
-            # kill le browser en fonction de ses Pids
-            #
-            #-----------------------------------------------------------------------------------------------------
-            begin
-              @driver.kill(@pids)
-              @@logger.an_event.debug "browser #{name} is killed"
-            rescue TechnicalError => e
-              @@logger.an_event.error e.message
-              raise TechnicalError, "browser #{name} #{@id} is not killed"
-            ensure
-              @@logger.an_event.debug "end quit internet explorer with proxy system"
-            end
-          ensure
-            @@logger.an_event.debug "end quit internet explorer with proxy system"
-          end
-
-        else
-          # internet explorer n'utilise pas le proxy system car il est sandboxé
-          super
-        end
-      end
 
       #----------------------------------------------------------------------------------------------------------------
       # links

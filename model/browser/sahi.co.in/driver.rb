@@ -116,7 +116,7 @@ module Browsers
       def tasklist(id_browser)
         @@logger.an_event.debug "begin tasklist"
         @@logger.an_event.debug "tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{id_browser}*\""
-
+        f = nil
         begin
           pids = nil
           f = IO.popen("tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{id_browser}*\"")
@@ -129,7 +129,11 @@ module Browsers
         rescue Exception => e
           pids = nil
         ensure
-
+          begin
+            #sert à tuer tasklist si il est tj en vie
+            Process.kill("KILL", f.pid)
+          rescue
+          end
         end
         pids
       end
@@ -227,6 +231,11 @@ module Browsers
             @@logger.an_event.debug "kill command : #{cmd}"
             @@logger.an_event.debug "result : #{res}"
             raise "driver not kill" if res.include?("Erreur")
+            begin
+              #sert à tuer taskkill si il est tj en vie
+              Process.kill("KILL", res.pid)
+            rescue
+            end
                                                #TODO identifier si le kill a fonctionné et remonté une erreur
             @@logger.an_event.debug "driver #{@browser_type} pid #{pid} is killed"
           }
@@ -296,7 +305,7 @@ module Browsers
         end
 
         begin
-         @sahisid = Time.now.to_f
+          @sahisid = Time.now.to_f
           start_url = "http://sahi.example.com/_s_/dyn/Driver_initialized"
           exec_command("launchPreconfiguredBrowser", {"browserType" => @browser_type, "startUrl" => start_url})
           i = 0
