@@ -98,74 +98,9 @@ module Browsers
         end
       end
 
-      #-----------------------------------------------------------------------------------------------------------------
-      # get_pids
-      #-----------------------------------------------------------------------------------------------------------------
-      # input : id_browser  : id du browser
-      # output : les pids associés du process qui exécute l'id_browser
-      # exception :
-      # TechnicalError :
-      #     - une erreur est survenue lors de l'exécution de la fonction windows tasklist
-      # FunctionalError :
-      #     - id_browser n'est pas défini ou absent
-      #-----------------------------------------------------------------------------------------------------------------
-      #
-      #-----------------------------------------------------------------------------------------------------------------
-      #TODO prendre en compte l'UTF8
-      #TODO ne fonctionne que sur un os en francais
-      def tasklist(id_browser)
-        @@logger.an_event.debug "begin tasklist"
-        @@logger.an_event.debug "tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{id_browser}*\""
-        f = nil
-        begin
-          pids = nil
-          f = IO.popen("tasklist /FO CSV /NH /V /FI \"WINDOWTITLE eq #{id_browser}*\"")
-          f.readlines("\n").each { |l|
-            @@logger.an_event.debug "row : #{l}"
-            pid = CSV.parse_line(l)[1]
-            raise if pid.nil? # c'est synonyme qu'en retour du tasklist, on a obtenu : "Information : aucune tâche en service ne correspond aux critères spécifiés."
-            pids = pids.nil? ? [pid] : pids + [pid]
-          }
-        rescue Exception => e
-          pids = nil
-        ensure
-          begin
-            #sert à tuer tasklist si il est tj en vie
-            Process.kill("KILL", f.pid)
-          rescue
-          end
-        end
-        pids
-      end
-
-      def get_pids(id_browser)
-        @@logger.an_event.debug "begin get_pids"
-        raise FunctionalError, "id_browser is not define" if id_browser.nil? or id_browser == ""
-
-        pids=nil
-        try_count = 0
-        try_count_max = 3
-        begin
-          @@logger.an_event.debug "try_count_max #{try_count_max}, try_count #{try_count}, pids #{pids}"
-          while try_count < try_count_max and pids.nil?
-            pids = tasklist(id_browser)
-            try_count += 1
-            @@logger.an_event.debug "try_count_max #{try_count_max}, try_count #{try_count}, pids #{pids}"
-          end
-          raise TechnicalError, "max try join " if try_count == try_count_max and pids.nil?
-        rescue Exception => e
-          @@logger.an_event.debug e.message
-          pids = nil
-          raise TechnicalError, "driver cannot get pids of browser #{id_browser}}"
-        ensure
-
-        end
-        @@logger.an_event.debug "end get_pids"
-        pids
-      end
 
       #-----------------------------------------------------------------------------------------------------------------
-      # get_initialize
+      # initialize
       #-----------------------------------------------------------------------------------------------------------------
       # input :
       #    id_browser_type : type du browser qu'il faut créer, présent dans les fichiers  lib/sahi.in.co/config/browser_type/win32/64, mac, linux.xml
@@ -205,47 +140,7 @@ module Browsers
         end
       end
 
-      #-----------------------------------------------------------------------------------------------------------------
-      # kill
-      #-----------------------------------------------------------------------------------------------------------------
-      # input :
-      #    pids : la liste des pids associés au browser
-      # output : none
-      # exception :
-      # TechnicalError :
-      #     - une erreur est survenue lors de l'exécution de la fonction windows taskkill
-      # FunctionalError :
-      #     - pids n'est pas défini ou absent
-      #-----------------------------------------------------------------------------------------------------------------
-      #
-      #-----------------------------------------------------------------------------------------------------------------
-      def kill(pids)
-        @@logger.an_event.debug "begin kill browser"
-        raise FunctionalError, "driver has no pid" if pids.nil? or pids==[nil]
-        begin
-          pids.each { |pid|
-            #TODO faire la version linux
-            cmd = "TASKKILL /PID #{pid} /T /F" #  force le kill de tous les sous process
-            res = IO.popen(cmd).read #TODO prendre en compte l'UTF8
 
-            @@logger.an_event.debug "kill command : #{cmd}"
-            @@logger.an_event.debug "result : #{res}"
-            raise "driver not kill" if res.include?("Erreur")
-            begin
-              #sert à tuer taskkill si il est tj en vie
-              Process.kill("KILL", res.pid)
-            rescue
-            end
-                                               #TODO identifier si le kill a fonctionné et remonté une erreur
-            @@logger.an_event.debug "driver #{@browser_type} pid #{pid} is killed"
-          }
-        rescue Exception => e
-          @@logger.an_event.fatal e
-          raise TechnicalError, "driver  #{@browser_type} cannot be killed"
-        ensure
-          @@logger.an_event.debug "end kill browser"
-        end
-      end
 
 
       def navigate_to(url, force_reload=false)

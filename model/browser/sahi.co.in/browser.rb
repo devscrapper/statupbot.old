@@ -4,6 +4,7 @@ require 'sahi'
 require 'json'
 require 'csv'
 require 'pathname'
+require 'os'
 require_relative '../../page/link'
 require_relative '../../page/page'
 require_relative 'driver'
@@ -209,52 +210,62 @@ module Browsers
       def get_pid(id_browser)
         @@logger.an_event.debug "begin get_pid"
         raise FunctionalException, "id browser is not defined" if id_browser.nil?
-        #TODO détermine l'OS
-        #TODO prevoir une section pour linux & mac
-        pid_arr = nil
-        pids_name_file = File.join(TMP_DIR, "#{id_browser}_pids.csv")
-        begin
-          File.delete(pids_name_file) if File.exist?(pids_name_file)
-          cmd = 'powershell -NoLogo -NoProfile "get-process |  where-object {$_.mainWindowTitle -like \"' + "#{id_browser}*" + '\"} | Export-Csv -notype ' + pids_name_file + '; exit $LASTEXITCODE" < NUL'
-          @@logger.an_event.debug "command powershell : #{cmd}"
-          @pid = Process.spawn(cmd)
-          Process.waitpid(@pid)
-          if File.exist?(pids_name_file)
-            pid_arr = CSV.table(pids_name_file).by_col[:id]
-            @@logger.an_event.debug "pids catch : #{pid_arr}"
-            File.delete(pids_name_file)
-            raise TechnicalError, "none mainWindowTitle in powershell contains id browser #{id_browser}"  if pid_arr == []
-          else
-            raise TechnicalError, "file #{pids_name_file} not found"
+
+        if OS.windows?
+          pid_arr = nil
+          pids_name_file = File.join(TMP_DIR, "#{id_browser}_pids.csv")
+          begin
+            File.delete(pids_name_file) if File.exist?(pids_name_file)
+            cmd = 'powershell -NoLogo -NoProfile "get-process |  where-object {$_.mainWindowTitle -like \"' + "#{id_browser}*" + '\"} | Export-Csv -notype ' + pids_name_file + '; exit $LASTEXITCODE" < NUL'
+            @@logger.an_event.debug "command powershell : #{cmd}"
+            @pid = Process.spawn(cmd)
+            Process.waitpid(@pid)
+            if File.exist?(pids_name_file)
+              pid_arr = CSV.table(pids_name_file).by_col[:id]
+              @@logger.an_event.debug "pids catch : #{pid_arr}"
+              File.delete(pids_name_file)
+              raise TechnicalError, "none mainWindowTitle in powershell contains id browser #{id_browser}" if pid_arr == []
+            else
+              raise TechnicalError, "file #{pids_name_file} not found"
+            end
+          rescue Exception => e
+            @@logger.an_event.debug e.message
+            raise "cannot get pid of #{id_browser}"
+          ensure
+            @@logger.an_event.debug "end get_pid"
           end
-        rescue Exception => e
-          @@logger.an_event.debug e.message
-          raise "cannot get pid of #{id_browser}"
-        ensure
-          @@logger.an_event.debug "end get_pid"
+        elsif OS.mac?
+          #TODO determiner le get_pid pour mac
+        elsif OS.linux?
+          #TODO determiner le get_pid pour linux
         end
+
+
         pid_arr
       end
 
 
       def kill(pid_arr)
         @@logger.an_event.debug "begin kill"
-        #TODO détermine l'OS
-        #TODO prevoir une section pour linux & mac
-
         raise FunctionalError, "no pid" if pid_arr == []
 
         pid_arr.each { |pid|
-          begin
-            cmd = 'powershell -NoLogo -NoProfile "Stop-Process ' + pid.to_s + '; exit $LASTEXITCODE" < NUL'
-            @@logger.an_event.debug "command powershell : #{cmd}"
-            ps_pid = Process.spawn(cmd)
-            Process.waitpid(ps_pid)
-          rescue Exception => e
-            @@logger.an_event.debug e.message
-            raise TechnicalError, "cannot kill pid #{pid}"
-          ensure
-            @@logger.an_event.debug "end kill"
+          if OS.windows?
+            begin
+              cmd = 'powershell -NoLogo -NoProfile "Stop-Process ' + pid.to_s + '; exit $LASTEXITCODE" < NUL'
+              @@logger.an_event.debug "command powershell : #{cmd}"
+              ps_pid = Process.spawn(cmd)
+              Process.waitpid(ps_pid)
+            rescue Exception => e
+              @@logger.an_event.debug e.message
+              raise TechnicalError, "cannot kill pid #{pid}"
+            ensure
+              @@logger.an_event.debug "end kill"
+            end
+          elsif OS.mac?
+            #TODO determiner le get_pid pour mac
+          elsif OS.linux?
+            #TODO determiner le get_pid pour linux
           end
         }
       end
@@ -278,25 +289,6 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       # input :
       #----------------------------------------------------------------------------------------------------------------
-      def open_old
-        @@logger.an_event.debug "begin open browser"
-        count_try = 1
-        max_count_try = 3
-
-        begin
-          @driver.open
-          @@logger.an_event.debug "browser #{name} #{@id} is opened"
-        rescue TechnicalError => e
-          @@logger.an_event.warn "browser #{name} #{@id} cannot be opened, try #{count_try}"
-          @@logger.an_event.debug e
-          count_try += 1
-          retry if count_try < max_count_try
-        ensure
-          @@logger.an_event.debug "end open browser"
-          raise TechnicalError, "browser #{name} #{@id} cannot be opened" if  count_try > max_count_try
-        end
-      end
-
       def open
         @@logger.an_event.debug "begin open browser"
         begin
