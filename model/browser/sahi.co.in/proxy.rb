@@ -4,6 +4,7 @@ module Browsers
     class Proxy
 
       DIR_SAHI = Pathname(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co')).realpath
+      DIR_SAHI_TOOLS = Pathname(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co', 'tools')).realpath
       #CLASSPATH PROXY OPEN SOURCE
       #CLASS_PATH = File.join(DIR_SAHI, 'lib', 'sahi.jar') + ';' +
       #    File.join(DIR_SAHI, 'extlib', 'rhino', 'js.jar') + ';' +
@@ -55,6 +56,18 @@ module Browsers
         @log_properties = File.join(@user_home, 'config', 'log.properties')
 
         begin
+          # on precise le path de localisation de pslist et de pskill avant de copier vers userdata car c'est
+          # les path sont identiques pour tous les userdata
+          # DIR_SAHI\config\os.properties   avec :
+          # le path de pslist
+          # le path de pskill
+          file_name = File.join(DIR_SAHI, 'config', 'os.properties')
+          file_custom = File.read(file_name)
+          file_custom.gsub!(/path_pslist/, File.join(DIR_SAHI_TOOLS, 'pslist.exe'))
+          file_custom.gsub!(/path_pskill/,  File.join(DIR_SAHI_TOOLS, 'pskill.exe'))
+          File.write(file_name, file_custom)
+          @@logger.an_event.debug "customize path of pskill and pslist in #{file_name} with #{file_custom}"
+
           # on fait du nettoyage pour eviter de perturber le proxy avec un paramètrage bancal
           if File.exist?(@home)
             FileUtils.rm_r(@home, :force => true) if File.exist?(@home)
@@ -112,7 +125,7 @@ module Browsers
       def delete_config
         @@logger.an_event.debug "begin delete_config"
         try_count = 0
-        max_try_count = 3
+        max_try_count = 10
         begin
           FileUtils.rm_r(@home) if File.exist?(@home)
           @@logger.an_event.debug "config files proxy Sahi are deleted in #{@home}"
@@ -155,7 +168,7 @@ module Browsers
         begin
           Process.kill("KILL", @pid)
           Process.waitall
-             @@logger.an_event.debug "proxy Sahi #{@pid} is stopped"
+          @@logger.an_event.debug "proxy Sahi #{@pid} is stopped"
         rescue SignalException => e
           @@logger.an_event.error e.message
           raise TechnicalError, "proxy Sahi #{@pid} is not stopped"

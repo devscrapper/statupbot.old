@@ -18,6 +18,8 @@ gem 'selenium-webdriver'
 gem 'trollop'
 gem 'sahi'
 gem 'webrick'
+gem 'os'
+gem 'win32-process', '~> 0.7.4'
 # fin new gem
 
 #group :development

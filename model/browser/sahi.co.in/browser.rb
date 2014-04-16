@@ -214,9 +214,11 @@ module Browsers
         if OS.windows?
           pid_arr = nil
           pids_name_file = File.join(TMP_DIR, "#{id_browser}_pids.csv")
+          try_count = 0
+          max_try_count = 10
           begin
             File.delete(pids_name_file) if File.exist?(pids_name_file)
-            cmd = 'powershell -NoLogo -NoProfile "get-process |  where-object {$_.mainWindowTitle -like \"' + "#{id_browser}*" + '\"} | Export-Csv -notype ' + pids_name_file + '; exit $LASTEXITCODE" < NUL'
+            cmd = 'powershell -NoLogo -NoProfile "get-process | where-object {$_.mainWindowTitle -like \"' + "#{id_browser}*" + '\"} | Export-Csv -notype ' + pids_name_file + '; exit $LASTEXITCODE" < NUL'
             @@logger.an_event.debug "command powershell : #{cmd}"
             @pid = Process.spawn(cmd)
             Process.waitpid(@pid)
@@ -224,10 +226,16 @@ module Browsers
               pid_arr = CSV.table(pids_name_file).by_col[:id]
               @@logger.an_event.debug "pids catch : #{pid_arr}"
               File.delete(pids_name_file)
-              raise TechnicalError, "none mainWindowTitle in powershell contains id browser #{id_browser}" if pid_arr == []
+              raise FunctionalError, "none mainWindowTitle in powershell contains id browser #{id_browser}" if pid_arr == []
             else
               raise TechnicalError, "file #{pids_name_file} not found"
             end
+          rescue FunctionalError => e
+            @@logger.an_event.debug "none mainWindowTitle in powershell contains id browser #{id_browser}, try #{try_count}"
+            sleep (1)
+            try_count += 1
+            retry if pid_arr == [] and try_count < max_try_count
+            @@logger.an_event.FATAL "cannot get pid of #{id_browser}"
           rescue Exception => e
             @@logger.an_event.debug e.message
             raise "cannot get pid of #{id_browser}"
