@@ -230,7 +230,7 @@ def visitor_born(visitor_details,
     [VISITOR_IS_NOT_BORN_CONFIG_ERROR, nil]
 
   rescue Visitors::FunctionalError => e
-      @@logger.an_event.error "visitor #{visitor_details[:id]}  is not born, technical error"
+    @@logger.an_event.error "visitor #{visitor_details[:id]}  is not born, technical error"
 
     [VISITOR_IS_NOT_BORN_TECHNICAL_ERROR, nil]
   end
@@ -317,6 +317,7 @@ def visitor_is_no_slave(opts)
   @@logger.ndc context
 
   cr, visit = visitor_build_visit(visit_details)
+
   return cr unless cr==OK
 
   visit_details[:visitor][:browser][:proxy_system] = opts[:proxy_system] == "yes"
@@ -330,11 +331,11 @@ def visitor_is_no_slave(opts)
   return cr unless cr==OK
 
   cr = visitor_open_browser(visitor)
-  return cr unless cr==OK
-
-  #TODO temporaire
-  #cr = visitor_execute_visit(visitor, visit)
-  visitor_close_browser(visitor)
+  if cr == OK
+    #TODO temporaire
+    #cr = visitor_execute_visit(visitor, visit)
+    visitor_close_browser(visitor)
+  end
   cr2 = visitor_die(visitor)
   return cr2 unless cr2==OK
   cr3 = visitor_inhume(visitor)

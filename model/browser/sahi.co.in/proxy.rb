@@ -55,6 +55,10 @@ module Browsers
         @user_home = File.join(@visitor_dir, 'proxy', 'userdata')
         @log_properties = File.join(@user_home, 'config', 'log.properties')
 
+        raise TechnicalError, "#{File.join(DIR_SAHI_TOOLS, 'pslist.exe')} not found" unless File.exist?(File.join(DIR_SAHI_TOOLS, 'pslist.exe'))
+        raise TechnicalError, "#{File.join(DIR_SAHI_TOOLS, 'pskill.exe')} not found" unless File.exist?(File.join(DIR_SAHI_TOOLS, 'pskill.exe'))
+
+
         begin
           # on precise le path de localisation de pslist et de pskill avant de copier vers userdata car c'est
           # les path sont identiques pour tous les userdata

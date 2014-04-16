@@ -235,7 +235,7 @@ module Browsers
             sleep (1)
             try_count += 1
             retry if pid_arr == [] and try_count < max_try_count
-            @@logger.an_event.FATAL "cannot get pid of #{id_browser}"
+            @@logger.an_event.fatal "cannot get pid of #{id_browser}"
           rescue Exception => e
             @@logger.an_event.debug e.message
             raise "cannot get pid of #{id_browser}"
@@ -304,9 +304,8 @@ module Browsers
           @@logger.an_event.debug "browser #{name} #{@id} is opened"
         rescue TechnicalError => e
           @@logger.an_event.debug e.message
-          raise TechnicalError, "browser #{name} #{@id} cannot be opened"
-        ensure
           @@logger.an_event.debug "end open browser"
+          raise TechnicalError, "browser #{name} #{@id} cannot be opened"
         end
 
         #----------------------------------------------------------------------------------------------------
@@ -319,9 +318,8 @@ module Browsers
           @@logger.an_event.debug "browser #{name} has set title #{title_updt}"
         rescue TechnicalError => e
           @@logger.an_event.error e.message
-          raise TechnicalError, "browser #{name} cannot close"
-        ensure
           @@logger.an_event.debug "end open browser"
+          raise TechnicalError, "browser #{name} cannot close"
         end
         #----------------------------------------------------------------------------------------------------
         #
@@ -332,7 +330,8 @@ module Browsers
           @pids = get_pid(@id)
           @@logger.an_event.debug "browser #{name} pid is retrieve"
         rescue TechnicalError => e
-          @@logger.an_event.FATAL e.message
+          @@logger.an_event.fatal e.message
+          @@logger.an_event.debug "end open browser"
           raise TechnicalError, "browser #{name} cannot get pid"
         ensure
           @@logger.an_event.debug "end open browser"
@@ -366,11 +365,13 @@ module Browsers
             @@logger.an_event.debug "browser #{name} is killed"
           rescue TechnicalError => e
             @@logger.an_event.error e.message
+            @@logger.an_event.debug "end browser quit"
             raise TechnicalError, "browser #{name} #{@id} is not killed"
           ensure
-            @@logger.an_event.debug "end browser quit"
+
           end
         end
+        @@logger.an_event.debug "end browser quit"
       end
 
 
