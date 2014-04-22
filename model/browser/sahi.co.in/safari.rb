@@ -42,7 +42,7 @@ module Browsers
       # output : RAS
       # exception : RAS
       #----------------------------------------------------------------------------------------------------------------
-      def display_start_page(start_url)
+      def display_start_page(start_url, visitor_id)
         #@driver.navigate_to "http://jenn.kyrnin.com/about/showreferer.html"
         #fullscreen=yes|no|1|0 	Whether or not to display the browser in full-screen mode. Default is no. A window in full-screen mode must also be in theater mode. IE only
         #height=pixels 	The height of the window. Min. value is 100
@@ -55,21 +55,16 @@ module Browsers
         #TODO valider le format de l'interface safari au lancment
         #TODO valider l'absence de referer avec safari
         #TODO variabiliser le num de port
+
+        @@logger.an_event.debug "begin display_start_page"
+        raise FunctionalError, "start_url is not define" if start_url.nil? or start_url ==""
+
+        @@logger.an_event.debug "start_url : #{start_url}"
         window_parameters = "width=#{@width},height=#{@height},fullscreen=0,left=0,menubar=1,status=1,titlebar=1,top=0"
-        @driver.fetch("_sahi.open_start_page_sa(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}\",\"#{window_parameters}\")")
-        @@logger.an_event.info "display start page with parameters : #{window_parameters}"
-        page_details = current_page_details
+        @@logger.an_event.debug "windows parameters : #{window_parameters}"
 
-        start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"],)
-        page = click_on(start_page.link_by_url(start_url))
-        page
+        super("_sahi.open_start_page_sa(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")")
       end
-
-      def process_exe
-        #TODO valider get pid pour safari
-        "safari.exe"
-      end
-
     end
   end
 end

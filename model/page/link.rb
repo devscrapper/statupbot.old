@@ -1,8 +1,13 @@
 module Pages
   class Link
+    class FunctionalException < StandardError
 
+    end
+    class TechnicalException < StandardError
+
+    end
     attr_reader :url,
-                :path_frame,# cette donnée n'est pas utilisée avec Sahi
+                :path_frame, # cette donnée n'est pas utilisée avec Sahi
                 :element,
                 :window_tab,
                 :text # le texte du lien
@@ -16,7 +21,10 @@ module Pages
     end
 
     def click
-      @element.click
+      begin
+        @element.click
+      rescue Exception => e
+      end
     end
 
     def exist?

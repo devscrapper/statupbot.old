@@ -75,7 +75,7 @@ module Browsers
       # output : RAS
       # exception : RAS
       #----------------------------------------------------------------------------------------------------------------
-      def display_start_page(start_url)
+      def display_start_page(start_url, visitor_id)
         #@driver.navigate_to "http://jenn.kyrnin.com/about/showreferer.html"
         #fullscreen=yes|no|1|0 	Whether or not to display the browser in full-screen mode. Default is no. A window in full-screen mode must also be in theater mode. IE only
         #height=pixels 	The height of the window. Min. value is 100
@@ -88,22 +88,17 @@ module Browsers
         #top=pixels 	The top position of the window. Negative values not allowed
         #width=pixels 	The width of the window. Min. value is 100
         #@driver.open_start_page("width=#{@width},height=#{@height},fullscreen=no,left=0,menubar=yes,scrollbars=yes,status=yes,titlebar=yes,toolbar=yes,top=0")
+        @@logger.an_event.debug "begin display_start_page"
+        raise FunctionalError, "start_url is not define" if start_url.nil? or start_url ==""
+        @@logger.an_event.debug "start_url : #{start_url}"
+
         window_parameters = "width=#{@width},height=#{@height},fullscreen=no,left=0,menubar=yes,scrollbars=yes,status=yes,titlebar=yes,toolbar=yes,top=0"
-        # pour maitriser le referer on passe par un site local en https qui permet de ne pas affecter le referer
-        # incontournable sinon Google analityc enregistre la page de lancement de Sahi initializer
-        # @driver.fetch("_sahi.open_start_page_ff(\"https://localhost\",\"#{window_parameters}\")")
-        @driver.fetch("_sahi.open_start_page_ff(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}\",\"#{window_parameters}\")")
-        #@driver.fetch("_sahi._closeWindow()") marche pas pour fermer la première fenetre
-        #@driver.popup_name = "defaultSahiPopup"
-        @@logger.an_event.info "display start page with parameters : #{window_parameters}"
-        page_details = current_page_details
-        start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"],page_details["cookies"],)
-        start_page
+        @@logger.an_event.debug "windows parameters : #{window_parameters}"
+
+        super("_sahi.open_start_page_ff(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")")
       end
 
-      def process_exe
-        "firefox.exe"
-      end
+
 
     end
   end

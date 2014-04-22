@@ -91,10 +91,14 @@ module Browsers
       # affiche la root page du site https pour initialisé le référer à non défini
       #----------------------------------------------------------------------------------------------------------------
       # input : url (String)
-      # output : RAS
-      # exception : RAS
+      # output : Objet Page
+      # exception :
+      # TechnicalError :
+      # si il est impossble d'ouvrir la page start
+      # FunctionalError :
+      # Si il est impossible de recuperer les propriétés de la page
       #----------------------------------------------------------------------------------------------------------------
-      def display_start_page (start_url)
+      def display_start_page (start_url, visitor_id)
         #@driver.navigate_to "http://jenn.kyrnin.com/about/showreferer.html"
         #channelmode=yes|no|1|0 	Whether or not to display the window in theater mode. Default is no. IE only
         #fullscreen=yes|no|1|0 	Whether or not to display the browser in full-screen mode. Default is no. A window in full-screen mode must also be in theater mode. IE only
@@ -110,13 +114,29 @@ module Browsers
         #width=pixels 	The width of the window. Min. value is 100
         #@driver.open_start_page("width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0")
         #TODO variabiliser le num de port
+        @@logger.an_event.debug "begin display_start_page"
+        raise FunctionalError, "start_url is not define" if start_url.nil? or start_url ==""
+
+        @@logger.an_event.debug "start_url : #{start_url}"
         window_parameters = "width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0"
-        @@logger.an_event.info "display start page with parameters : #{window_parameters}"
-        @driver.fetch("_sahi.open_start_page_ie(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}\",\"#{window_parameters}\")")
-        page_details = current_page_details
-        start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"],)
-        start_page
+        @@logger.an_event.debug "windows parameters : #{window_parameters}"
+
+        super("_sahi.open_start_page_ie(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")")
       end
+
+        #-----------------------------------------------------------------------------------------------------------------
+      # get_pid
+      #-----------------------------------------------------------------------------------------------------------------
+      # input : id_browser
+      # output : tableau contenant les pids du browser
+      # exception :
+      # FunctionalError :
+      # si id_browser n'est pas défini
+      # si aucun pid n'a pu être associé à l'id_browser
+      #-----------------------------------------------------------------------------------------------------------------
+      # est utilisé pour recuperer le pid, pour tuer le browser si Sahi n'a pas réussi
+      #-----------------------------------------------------------------------------------------------------------------
+
       def get_pid(id_browser)
         @@logger.an_event.debug "begin get_pid"
         raise FunctionalException, "id browser is not defined" if id_browser.nil?
@@ -144,6 +164,19 @@ module Browsers
         pid_arr
       end
 
+        #-----------------------------------------------------------------------------------------------------------------
+      # kill
+      #-----------------------------------------------------------------------------------------------------------------
+      # input : tableau de pids
+      # output : none
+      # exception :
+      # FunctionalError :
+      # si aucune pid n'est passé à la fonction
+      # TechnicalError :
+      # si il n'a pas été possible de tuer le browser
+      #-----------------------------------------------------------------------------------------------------------------
+      # est utilisé pour recuperer le pid, pour tuer le browser si Sahi n'a pas réussi
+      #-----------------------------------------------------------------------------------------------------------------
 
       def kill(pid_arr)
         @@logger.an_event.debug "begin kill"
@@ -163,9 +196,6 @@ module Browsers
             @@logger.an_event.debug "end kill"
           end
         }
-      end
-      def process_exe
-        "iexplore.exe"
       end
 
 

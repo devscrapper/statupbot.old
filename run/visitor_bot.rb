@@ -86,16 +86,18 @@ class VisitException < StandardError
 
 end
 
-
-VISITOR_NOT_LOADED_VISIT_FILE = 1
-VISITOR_NOT_BUILT_VISIT = 2
+VISIT_IS_NOT_DEFINE = 1
+VISITOR_NOT_LOADED_VISIT_FILE = 2
+VISITOR_NOT_BUILT_VISIT = 3
+VISITOR_NOT_BUILT_VISIT_BAD_PROPERTIES = 4
 VISITOR_IS_NOT_BORN = 10
 VISITOR_IS_NOT_BORN_CONFIG_ERROR = 11
 VISITOR_IS_NOT_BORN_TECHNICAL_ERROR = 12
 VISITOR_NOT_OPEN_BROWSER = 20
 VISITOR_NOT_EXECUTE_VISIT = 30
+SERVER_START_PAGE_IS_NOT_STARTED = 31
 VISITOR_NOT_FOUND_LANDING_PAGE = 31
-VISITOR_NOT_SURF_COMPLETLY = 32
+VISITOR_NOT_SURF_COMPLETLY = 33
 VISITOR_NOT_CLOSE_BROWSER = 40
 VISITOR_NOT_DIE = 50
 VISITOR_NOT_INHUME = 60
@@ -203,11 +205,14 @@ def visitor_build_visit(visit_details)
   begin
     visit = Visit.new(visit_details)
     @@logger.an_event.debug visit.to_yaml
-    @@logger.an_event.info "visitor built visit #{visit_details[:id_visit]}"
     [OK, visit]
-  rescue Exception => e
-    @@logger.an_event.debug e
-    @@logger.an_event.error "visitor not built visit #{visit_details[:id_visit]}"
+  rescue Visits::FunctionalError => e
+    @@logger.an_event.debug e.message
+    #TODO delete visit file in tmp directory
+    [VISITOR_NOT_BUILT_VISIT_BAD_PROPERTIES, nil]
+
+  rescue Visits::TechnicalError,Exception => e
+    @@logger.an_event.debug e.message
     #TODO delete visit file in tmp directory
     [VISITOR_NOT_BUILT_VISIT, nil]
   end
@@ -255,11 +260,16 @@ def visitor_execute_visit(visitor, visit)
     #TODO delete visit file in tmp directory
     OK
   rescue Exception => e
-    @@logger.an_event.error "visitor #{visitor.id} not execute the visit #{visit.id}"
-    @@logger.an_event.debug e
+    @@logger.an_event.debug e.message
+    @@logger.an_event.error "visitor #{visitor.id} not terminate completly the visit #{visit.id}"
     case e.message
+
       #erreur fonctionnelle => le menage sera fait par lexcécution naturelle de visitor_bot
-      when Visitors::Visitor::VisitorException::NOT_FOUND_LANDING_PAGE
+      when  Visitors::Visitor::FunctionalError::CANNOT_DISPLAY_START_PAGE
+        SERVER_START_PAGE_IS_NOT_STARTED
+      when  Visitors::Visitor::FunctionalError::VISIT_NOT_DEFINE
+        VISIT_IS_NOT_DEFINE
+      when Visitors::Visitor::FunctionalError::LANDING_PAGE_NOT_FOUND
         VISITOR_NOT_FOUND_LANDING_PAGE
       when Visitors::Visitor::VisitorException::CANNOT_CONTINUE_SURF
         VISITOR_NOT_SURF_COMPLETLY
@@ -333,7 +343,7 @@ def visitor_is_no_slave(opts)
   cr = visitor_open_browser(visitor)
   if cr == OK
     #TODO temporaire
-    #cr = visitor_execute_visit(visitor, visit)
+    cr = visitor_execute_visit(visitor, visit)
     visitor_close_browser(visitor)
   end
   cr2 = visitor_die(visitor)

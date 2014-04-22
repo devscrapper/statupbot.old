@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby -w
 # encoding: UTF-8
 require 'yaml'
+require 'pathname'
 require_relative '../lib/logging'
 require_relative '../model/visit_factory/public'
 require_relative '../model/visit_factory/visit_factory'
@@ -20,6 +21,7 @@ logger.a_log.info "staging : #{$staging}"
 #--------------------------------------------------------------------------------------------------------------------
 # MAIN
 #--------------------------------------------------------------------------------------------------------------------
+
 stop=false
 while !stop
   begin
@@ -30,7 +32,7 @@ while !stop
       Signal.trap("TERM") { EventMachine.stop }
 
       logger.a_log.info "visit factory server is starting"
-      EventMachine.start_server "127.0.0.1", VisitFactory.listening_port, VisitFactory::BuildVisitConnection, logger
+      EventMachine.start_server "127.0.0.1", VisitFactory.listening_port, VisitFactory::BuildVisitConnection,  logger
       stop =true
     }
 

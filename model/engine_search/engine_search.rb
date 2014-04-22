@@ -1,19 +1,19 @@
 module EngineSearches
   class EngineSearch
-    class SearchEngineException < StandardError
+    class FunctionalError < StandardError
     end
     attr :page_url,
          :tag_search, :id_search
 
-    def self.build(engine, driver, sleeping_time)
+    def self.build(engine) #, driver, sleeping_time)   pour webdriver
 
       case engine
-        when :google
+        when "google"
           return Google.new()
-        when :bing
+        when "bing"
           return Bing.new()
         else
-          raise SearchEngineException, "search engine <#{engine}> unknown"
+          raise FunctionalError, "search engine <#{engine}> unknown"
       end
     end
 

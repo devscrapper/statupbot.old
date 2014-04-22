@@ -4,8 +4,11 @@ require 'eventmachine'
 require 'pathname'
 
 module VisitorFactory
-  VISITOR_NOT_LOADED_VISIT_FILE = 1
-  VISITOR_NOT_BUILT_VISIT = 2
+  VISIT_IS_NOT_DEFINE = 1
+  VISITOR_NOT_LOADED_VISIT_FILE = 2
+  VISITOR_NOT_BUILT_VISIT = 3
+  VISITOR_NOT_BUILT_VISIT_BAD_PROPERTIES = 4
+  SERVER_START_PAGE_IS_NOT_STARTED = 5
   VISITOR_IS_NOT_BORN = 10
   VISITOR_NOT_OPEN_BROWSER = 20
   VISITOR_NOT_EXECUTE_VISIT = 30
@@ -23,6 +26,8 @@ module VisitorFactory
   @@visitor_succ = 0
   @@visitor_not_loaded_visit_file = 0
   @@visitor_not_built_visit = 0
+  @@visitor_not_built_visit_bad_properties = 0
+  @@server_start_page_is_not_started = 0
   @@visitor_is_not_born = 0
   @@visitor_cannot_die = 0
   @@visitor_cannot_close_browser = 0
@@ -92,6 +97,7 @@ module VisitorFactory
 
       rescue Exception => e
         @@logger.an_event.error e.message
+       # EM.stop
       ensure
         @@logger.an_event.debug @@busy_visitors
         close_connection
@@ -112,6 +118,7 @@ module VisitorFactory
     geolocation = "" if @default_type_geo == "none"
     geolocation = "-r #{@default_type_geo} -o #{@default_ip_geo} -x #{@default_port_geo} -y #{@default_user_geo} -w #{@default_pwd_geo}" unless @default_type_geo == "none"
     #TODO déterminer la localisation du runtime ruby par parametrage ou automatiquement
+    #TODO assurer que le port d'ecoute de sahi n'est pas occupé par une exécution du proxy non terminé (ou planté) si c'est le cas lors utilisé un autre numero de port issue d'un pool de secours
     ruby = File.join("d:", "ruby193", "bin", "ruby.exe")
     begin
       cmd = "#{ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  #{visitor_bot} -v #{file_name} -t #{listening_port_sahi} -p #{proxy_system} #{geolocation}"
@@ -133,10 +140,16 @@ module VisitorFactory
             @@visitor_not_loaded_visit_file +=1
           when VISITOR_NOT_BUILT_VISIT
             @@visitor_not_built_visit +=1
+          when VISITOR_NOT_BUILT_VISIT_BAD_PROPERTIES
+            @@visitor_not_built_visit_bad_properties +=1
           when VISITOR_IS_NOT_BORN
             @@visitor_is_not_born +=1
           when VISITOR_NOT_OPEN_BROWSER
             @@visitor_cannot_open_browser +=1
+          when SERVER_START_PAGE_IS_NOT_STARTED
+		  @@server_start_page_is_not_started += 1
+            @@logger.an_event.fatal "server start page is not started"
+            #raise  "server start page is not started"
           when VISITOR_NOT_EXECUTE_VISIT
             @@visitor_not_execute_visit +=1
           when VISITOR_NOT_FOUND_LANDING_PAGE
@@ -153,6 +166,8 @@ module VisitorFactory
         @@logger.an_event.info "count visit #{@@count_visit}"
         @@logger.an_event.info "count visit success #{@@visitor_succ}"
         @@logger.an_event.info "count visitor not loaded visit file #{@@visitor_not_loaded_visit_file}"
+        @@logger.an_event.info "count some error in properties visit file #{@@visitor_not_built_visit_bad_properties}"
+		@@logger.an_event.info "count server start is not started #{@@server_start_page_is_not_started}"
         @@logger.an_event.info "count visitor not built visit #{@@visitor_not_built_visit}"
         @@logger.an_event.info "count visitor not born #{@@visitor_is_not_born}"
         @@logger.an_event.info "count visitor cannot open browser #{@@visitor_cannot_open_browser}"
@@ -165,7 +180,8 @@ module VisitorFactory
       }
     rescue Exception => e
       @@logger.an_event.debug e
-      @@logger.an_event.error "factory server cannot start visitor_bot"
+      @@logger.an_event.error "factory server catch an error from visitor_bot"
+      raise e
     end
   end
 

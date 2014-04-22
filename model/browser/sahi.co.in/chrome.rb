@@ -20,7 +20,8 @@ module Browsers
         super(browser_details)
         @driver = Browsers::SahiCoIn::Driver.new("#{browser_details[:name]}_#{browser_details[:version]}",
                                                  @listening_port_proxy)
-        @method_start_page = NO_REFERER
+        #@method_start_page = NO_REFERER
+        @method_start_page = DATA_URI
         customize_properties(visitor_dir)
       end
 
@@ -62,6 +63,39 @@ module Browsers
         File.write(file_name, file_custom)
       end
 
+      #-----------------------------------------------------------------------------------------------------------------
+      # click_on
+      #-----------------------------------------------------------------------------------------------------------------
+      # input : objet Link
+      # output : un objet Page
+      # exception :
+      # FunctionalError :
+      # si link n'est pas defini
+      # TechnicalError :
+      # si impossibilité technique de clicker sur le lien
+      #-----------------------------------------------------------------------------------------------------------------
+      #
+      #-----------------------------------------------------------------------------------------------------------------
+      def click_on(link)
+        @@logger.an_event.debug "begin click_on"
+        raise FunctionalError, "link is not define" if link.nil?
+        @@logger.an_event.debug "link #{link}"
+        page = nil
+        begin
+          link.click
+           #TODO pourquoi faut il mettre une temprosisation pour slectioner la page du referral pour recuperer ses proprieyé avec avoir cliquer sur son lien dans la start page ; ce pb n'existe pas avec la methode de lancement DATA_URI
+          @@logger.an_event.debug "browser #{name} #{@id} click on url #{link.url.to_s} in window #{link.window_tab}"
+          start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
+          page_details = current_page_details
+          page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"], Time.now - start_time)
+        rescue Exception => e
+          @@logger.an_event.debug e.message
+          @@logger.an_event.error "browser #{name} #{@id} cannot try to click on url #{link.url.to_s}"
+          raise TechnicalError, "browser #{name} #{@id} cannot try to click on url #{link.url.to_s}"
+        end
+        @@logger.an_event.debug "end click_on"
+        page
+      end
       #----------------------------------------------------------------------------------------------------------------
       # display_start_page
       #----------------------------------------------------------------------------------------------------------------
@@ -72,7 +106,7 @@ module Browsers
       # output : RAS
       # exception : RAS
       #----------------------------------------------------------------------------------------------------------------
-      def display_start_page(start_url)
+      def display_start_page(start_url, visitor_id)
         #@driver.navigate_to "http://jenn.kyrnin.com/about/showreferer.html"
         #fullscreen=yes|no|1|0 	Whether or not to display the browser in full-screen mode. Default is no. A window in full-screen mode must also be in theater mode. IE only
         #height=pixels 	The height of the window. Min. value is 100
@@ -85,22 +119,20 @@ module Browsers
         #@driver.open_start_page("width=#{@width},height=#{@height},fullscreen=0,left=0,menubar=1,status=1,titlebar=1,top=0")
         # pour maitriser le referer on passe par un site local en https qui permet de ne pas affecter le referer
         # incontournable sinon Google analityc enregistre la page de lancement de Sahi initializer
+        @@logger.an_event.debug "begin display_start_page"
+        raise FunctionalError, "start_url is not define" if start_url.nil? or start_url ==""
 
+        @@logger.an_event.debug "start_url : #{start_url}"
         window_parameters = "width=#{@width},height=#{@height},fullscreen=0,left=0,menubar=1,status=1,titlebar=1,top=0"
+        @@logger.an_event.debug "windows parameters : #{window_parameters}"
+
         #TODO variabiliser le port 8080 dans le paramter file yml de visitor_bot
         #TODO prendre en compte les window parameter pour chrome
-        @driver.fetch("_sahi.open_start_page_ch(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}\",\"#{window_parameters}\")")
-        # @driver.popup_name = "defaultSahiPopup"
-        @@logger.an_event.info "display start page with parameters : #{window_parameters}"
-        page_details = current_page_details
-
-        start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"],page_details["cookies"])
-        page = click_on(start_page.link_by_url(start_url))
-        page
-      end
-
-      def process_exe
-        "chrome.exe"
+        #start_page = super("_sahi.open_start_page_ch(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}\",\"#{window_parameters}\")")
+        #page = click_on(start_page.link_by_url(start_url))
+        #
+        #page
+        super("_sahi.open_start_page_ch(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")")
       end
 
     end

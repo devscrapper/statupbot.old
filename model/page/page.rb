@@ -1,6 +1,6 @@
 module Pages
   class Page
-    class PageException < StandardError
+    class FunctionalError < StandardError
       PARAM_MALFORMED = "paramaters of page are malformed"
       AROUND_UNKNOWN = "around unknown"
       URL_NOT_FOUND = "url not found"
@@ -18,7 +18,7 @@ module Pages
 
     def sleeping_time
       #on deduit le temps passé à chercher les liens dans la page
-    #  (@duration - @duration_search_link <= 0) ? 0 : @duration - @duration_search_link
+      #  (@duration - @duration_search_link <= 0) ? 0 : @duration - @duration_search_link
       @duration
     end
 
@@ -32,20 +32,20 @@ module Pages
         @links= links
         @cookies = cookies
         @duration_search_link = duration_search_link.to_i
-        @@logger.an_event.info "page url #{@url}"
-        @@logger.an_event.info "page referrer #{@referrer}"
-        @@logger.an_event.info "page title #{@title}"
-        @@logger.an_event.info "page links #{@links}"
-        @@logger.an_event.info "page window_tab #{@window_tab}"
-        @@logger.an_event.info "page cookies #{@cookies}"
-        @@logger.an_event.info "page duration search link #{@duration_search_link}"
+        @@logger.an_event.debug "page url #{@url}"
+        @@logger.an_event.debug "page referrer #{@referrer}"
+        @@logger.an_event.debug "page title #{@title}"
+        @@logger.an_event.debug "page links #{@links}"
+        @@logger.an_event.debug "page window_tab #{@window_tab}"
+        @@logger.an_event.debug "page cookies #{@cookies}"
+        @@logger.an_event.debug "page duration search link #{@duration_search_link}"
       rescue Exception => e
-        raise PageException::PARAM_MALFORMED
+        raise FunctionalError::PARAM_MALFORMED
       end
     end
 
     def link(around=:inside_fqdn)
-      raise PageException::NONE_LINK if @links.size == 0
+      raise FunctionalError::NONE_LINK if @links.size == 0
       case around
         when :inside_fqdn
           @links.select { |l| l.url.hostname == @url.hostname }.shuffle[0]
@@ -65,7 +65,7 @@ module Pages
           @links.select { |l| l.url.hostname != @url.hostname }.shuffle[0]
         else
           @@logger.an_event.debug "around #{around} unknown"
-          raise PageException::AROUND_UNKNOWN
+          raise FunctionalError::AROUND_UNKNOWN
       end
     end
 
@@ -78,10 +78,22 @@ module Pages
     # soit une url au format URI   => transformation dans al fonction en string
     #Pour rechercher landing_url dans referral_page : Referral_Page.link_by_url(landing_url)
     def link_by_url(url)
+      @@logger.an_event.debug "url #{url.to_s}"
       urls = (url.is_a?(Array)) ? url.map { |u| (u.is_a?(URI)) ? u.to_s : u } : [(url.is_a?(URI)) ? url.to_s : url]
-      res = @links.select { |l| urls.include?(l.url.to_s) }
-      raise PageException::URL_NOT_FOUND if res.size == 0
-      res.shuffle[0]
+      @@logger.an_event.debug "urls #{urls}"
+      @@logger.an_event.debug "count links of page #{@links.size}"
+      res = @links.select { |l|
+        @@logger.an_event.debug "l #{l.inspect}"
+        @@logger.an_event.debug "include? #{urls.include?(l.url.to_s)}"
+        urls.include?(l.url.to_s)
+      }
+      if res.size == 0
+        @@logger.an_event.debug "url #{url.to_s} not found"
+        raise FunctionalError::URL_NOT_FOUND
+      end
+      link = res.shuffle[0]
+      @@logger.an_event.debug "chosen link #{link}"
+      link
     end
 
     def link_by_hostname(hostname)

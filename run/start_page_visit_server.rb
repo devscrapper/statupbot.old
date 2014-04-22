@@ -23,10 +23,14 @@ class StartPageVisitServer
     trap 'INT' do
       @server.shutdown
     end
-
+    begin
     server.mount_proc '/start_link' do |req, res|
       param = req.query
-
+      @@logger.a_log.info "method #{param["method"]}"
+      @@logger.a_log.info "url #{param["url"]}"
+      @@logger.a_log.info "visitor id #{param["visitor_id"]}"
+      @@logger.a_log.info "header http #{req.header}"
+      @@logger.a_log.info "cookies http #{req.cookies}"
       case param["method"]
         when "noreferrer"
           res.body =<<-_end_of_html_
@@ -68,7 +72,9 @@ class StartPageVisitServer
       res['Content-Type'] = 'text/html; charset=iso-8859-1'
       res.status = 200
     end
-
+    rescue Exception => e
+      @@logger.an_event.error e.message
+    end
   end
 
   def start

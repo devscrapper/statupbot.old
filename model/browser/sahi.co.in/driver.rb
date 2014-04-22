@@ -21,6 +21,7 @@ module Browsers
         exist = false
         require 'rexml/document'
         include REXML
+        #TODO utiliser os.rb pour determiner le fichier browser_type.xml
         begin
           ["win32.xml", "win64.xml", "mac.xml", "linux.xml"].each { |file_name|
             path_name = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co', 'config', "browser_types", file_name)).realpath
@@ -91,10 +92,10 @@ module Browsers
         begin
           JSON.parse(fetch("_sahi.current_page_details()"))
         rescue Exception => e
-          @@logger.an_event.fatal e
+          @@logger.an_event.debug e
           raise TechnicalError, "driver cannot get current page details"
         ensure
-          @@logger.an_event.debug "begin current_page_details"
+          @@logger.an_event.debug "end current_page_details"
         end
       end
 
@@ -107,8 +108,6 @@ module Browsers
       #    listening_port_sahi : le port d'écoute du proxy Sahi
       # output : un objet browser
       # exception :
-      # TechnicalError :
-      #     - une erreur est survenue lors de l'exécution de la fonction windows tasklist
       # FunctionalError :
       #     - id_browser n'est pas défini ou absent
       #     - listening_port_sahi n'est pas défini ou absent
