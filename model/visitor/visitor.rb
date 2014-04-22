@@ -21,6 +21,7 @@ module Visitors
     NO_MORE_RESULT_PAGE = "no more results pages"
     CANNOT_CLICK_ON_LINK_OF_NEXT_PAGE = "cannot click on link of next page"
     LANDING_PAGE_NOT_FOUND = "landing page not found"
+    CANNOT_CONTINUE_SURF = "visitor cannot surf"
   end
   class TechnicalError < StandardError
 
@@ -38,7 +39,7 @@ module Visitors
       CANNOT_OPEN_BROWSER = "visitor cannot open browser"
       CANNOT_CONTINUE_VISIT = "visitor cannot continue visit"
       NOT_FOUND_LANDING_PAGE = "visitor #{@id} not found landing page"
-      CANNOT_CONTINUE_SURF = "visitor cannot surf"
+
       CANNOT_CLOSE_BROWSER = "visitor #{@id} cannot close his browser"
       CANNOT_DIE = "visitor cannot die"
       DIE_DIRTY = "visitor die dirty"
@@ -58,20 +59,15 @@ module Visitors
                                #----------------------------------------------------------------------------------------------------------------
                                # class methods
                                #----------------------------------------------------------------------------------------------------------------
-    def self.build(visitor_details, exist_pub_in_visit,
-        listening_port_sahi_proxy = nil, proxy_ip=nil, proxy_port=nil, proxy_user=nil, proxy_pwd=nil)
+    def self.build(visitor_details)
       #exist_pub_in_visit = true si il existe une pub dans la visit alors on utilise un browser de type webdriver
       #sinon un browser de type sahi
       @@logger.an_event.debug "begin build visitor"
       @@logger.an_event.debug "visitor detail #{visitor_details}"
-      @@logger.an_event.debug "listening_port_sahi_proxy #{listening_port_sahi_proxy}"
+
       begin
-        return Visitor.new(visitor_details,
-                           (exist_pub_in_visit == true) ? :webdriver : :sahi,
-                           listening_port_sahi_proxy, proxy_ip, proxy_port, proxy_user, proxy_pwd) if visitor_details[:return_visitor] == :true
-        return Visitor.new(visitor_details,
-                           (exist_pub_in_visit == true) ? :webdriver : :sahi,
-                           listening_port_sahi_proxy, proxy_ip, proxy_port, proxy_user, proxy_pwd) unless visitor_details[:return_visitor] == :true
+        # Pour le moment on ne travaille qu'avec SAHI
+        return Visitor.new(visitor_details, :sahi)
         @@logger.an_event.info "visitor is built"
 
       rescue Exception => e
@@ -103,29 +99,27 @@ module Visitors
 #["screens_colors", "24-bit"]
 #["screen_resolution", "1366x768"]
 #----------------------------------------------------------------------------------------------------------------
-    def initialize(visitor_details, browser_type,
-        listening_port_sahi_proxy = nil, proxy_ip=nil, proxy_port=nil, proxy_user=nil, proxy_pwd=nil)
+    def initialize(visitor_details, browser_type)
       @@logger.an_event.debug "begin initialize visitor"
       raise FunctionalError, "visitor details is not define" if visitor_details.nil?
 
       @id = visitor_details[:id]
-      @home = File.join(DIR_VISITORS, @id)
-
-      @@logger.an_event.info "visitor #{@id} create runtime directory #{@home}"
-      begin
-        # on fait du nettoyage pour eviter de perturber le proxy avec un paramètrage bancal
-        if File.exist?(@home)
-          FileUtils.rm_r(@home, :force => true) if File.exist?(@home)
-          @@logger.an_event.debug "clean config files visitor dir #{@home}"
-        end
-        FileUtils.mkdir_p(@home)
-      rescue Exception => e
-        @@logger.an_event.fatal e
-        raise TechnicalError, "visitor #{@id} cannot create runtime directory #{@home}"
-        @@logger.an_event.debug "end initialize visitor"
-      end
 
       if browser_type == :sahi
+        @home = File.join(DIR_VISITORS, @id)
+        @@logger.an_event.info "visitor #{@id} create runtime directory #{@home}"
+        begin
+          # on fait du nettoyage pour eviter de perturber le proxy avec un paramètrage bancal
+          if File.exist?(@home)
+            FileUtils.rm_r(@home, :force => true) if File.exist?(@home)
+            @@logger.an_event.debug "clean config files visitor dir #{@home}"
+          end
+          FileUtils.mkdir_p(@home)
+        rescue Exception => e
+          @@logger.an_event.fatal e
+          raise TechnicalError, "visitor #{@id} cannot create runtime directory #{@home}"
+          @@logger.an_event.debug "end initialize visitor"
+        end
         #------------------------------------------------------------------------------------------------------------
         #
         #Configure SAHI PROXY
@@ -133,8 +127,11 @@ module Visitors
         #------------------------------------------------------------------------------------------------------------
         begin
           @proxy = Browsers::SahiCoIn::Proxy.new(@home,
-                                                 listening_port_sahi_proxy,
-                                                 proxy_ip, proxy_port, proxy_user, proxy_pwd)
+                                                 visitor_details[:browser][:listening_port_proxy],
+                                                 visitor_details[:browser][:proxy_ip],
+                                                 visitor_details[:browser][:proxy_port],
+                                                 visitor_details[:browser][:proxy_user],
+                                                 visitor_details[:browser][:proxy_pwd])
           @@logger.an_event.info "visitor #{@id} configure sahi proxy on listening port = #{@proxy.listening_port_proxy}"
         rescue Browsers::FunctionalError => e
           @@logger.an_event.debug e.message
@@ -147,7 +144,6 @@ module Visitors
           @@logger.an_event.debug "end initialize visitor"
         end
 
-        visitor_details[:browser][:listening_port_proxy] = listening_port_sahi_proxy
         #------------------------------------------------------------------------------------------------------------
         #
         # configure Browser
@@ -558,7 +554,7 @@ module Visitors
       rescue Exception => e
         @@logger.an_event.debug e
         @@logger.an_event.error "visitor #{@id} stop surf at page #{page.url}"
-        raise Visitors::Visitor::VisitorException::CANNOT_CONTINUE_SURF
+        raise FunctionalError::CANNOT_CONTINUE_SURF
       end
     end
   end

@@ -4,49 +4,69 @@ require 'eventmachine'
 require 'pathname'
 
 module VisitorFactory
+  #--------------------------------------------------------------------------------------------------------------------
+  # return code Visitor_Bot
+  #--------------------------------------------------------------------------------------------------------------------
   VISIT_IS_NOT_DEFINE = 1
   VISITOR_NOT_LOADED_VISIT_FILE = 2
   VISITOR_NOT_BUILT_VISIT = 3
   VISITOR_NOT_BUILT_VISIT_BAD_PROPERTIES = 4
-  SERVER_START_PAGE_IS_NOT_STARTED = 5
   VISITOR_IS_NOT_BORN = 10
+  VISITOR_IS_NOT_BORN_CONFIG_ERROR = 11
+  VISITOR_IS_NOT_BORN_TECHNICAL_ERROR = 12
   VISITOR_NOT_OPEN_BROWSER = 20
   VISITOR_NOT_EXECUTE_VISIT = 30
-  VISITOR_NOT_FOUND_LANDING_PAGE = 31
-  VISITOR_NOT_SURF_COMPLETLY = 32
+  SERVER_START_PAGE_IS_NOT_STARTED = 31
+  VISITOR_NOT_FOUND_LANDING_PAGE = 32
+  VISITOR_NOT_SURF_COMPLETLY = 33
   VISITOR_NOT_CLOSE_BROWSER = 40
   VISITOR_NOT_DIE = 50
-  VISITOR_NOT_CLOSE_BROWSER_AND_NOT_DIE = 60
+  VISITOR_NOT_INHUME = 60
+
+
+  #--------------------------------------------------------------------------------------------------------------------
+  # Global variables
+  #--------------------------------------------------------------------------------------------------------------------
   @@logger = nil
   @@busy_visitors = {}
   @@sem_busy_visitors = Mutex.new
   @@free_visitors = []
   @@sem_free_visitors = Mutex.new
   @@listening_port_proxy = 9999
-  @@visitor_succ = 0
-  @@visitor_not_loaded_visit_file = 0
-  @@visitor_not_built_visit = 0
-  @@visitor_not_built_visit_bad_properties = 0
-  @@server_start_page_is_not_started = 0
-  @@visitor_is_not_born = 0
-  @@visitor_cannot_die = 0
-  @@visitor_cannot_close_browser = 0
-  @@visitor_cannot_open_browser = 0
-  @@visitor_not_execute_visit= 0
-  @@visitor_cannot_continue_visit = 0
-  @@visitor_die_dirty = 0
-  @@visitor_start_failed = 0
-  @@visitor_failed = 0
-  @@count_visit = 0
-  @@visitor_not_found_landing_page = 0
-  @@visitor_not_close_visitor_and_not_die = 0
+
+  #--------------------------------------------------------------------------------------------------------------------
+  # Statistics
+  #--------------------------------------------------------------------------------------------------------------------
+  @@statistics = []
+  STAT_COUNT_VISIT = 0
+  STAT_VISIT_SUCCESS = 1
+  STAT_VISIT_ERROR_NOT_LOADED = 2
+  STAT_VISIT_ERROR_NOT_BUILT = 3
+  STAT_VISIT_ERROR_BAD_PROPERTIES = 4
+  STAT_VISIT_NOT_EXECUTE = 5
+  STAT_VISITOR_ERROR_NOT_BORN = 6
+  STAT_VISITOR_ERROR_NOT_OPEN_BROWSER = 7
+  STAT_VISITOR_ERROR_NOT_FOUND_LANDING_PAGE = 8
+  STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER = 9
+  STAT_VISITOR_ERROR_NOT_DIE = 10
+  STAT_VISITOR_ERROR_DIE_DIRTY = 11
+  @@statistics[STAT_COUNT_VISIT]=[0, []]
+  @@statistics[STAT_VISIT_SUCCESS]=[0, []]
+  @@statistics[STAT_VISIT_ERROR_NOT_LOADED]=[0, []]
+  @@statistics[STAT_VISIT_ERROR_NOT_BUILT]=[0, []]
+  @@statistics[STAT_VISIT_ERROR_BAD_PROPERTIES]=[0, []]
+  @@statistics[STAT_VISIT_NOT_EXECUTE]=[0, []]
+  @@statistics[STAT_VISITOR_ERROR_NOT_BORN]=[0, []]
+  @@statistics[STAT_VISITOR_ERROR_NOT_OPEN_BROWSER]=[0, []]
+  @@statistics[STAT_VISITOR_ERROR_NOT_FOUND_LANDING_PAGE]=[0, []]
+  @@statistics[STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER]=[0, []]
+  @@statistics[STAT_VISITOR_ERROR_NOT_DIE]=[0, []]
+  @@statistics[STAT_VISITOR_ERROR_DIE_DIRTY]=[0, []]
 
 
   #--------------------------------------------------------------------------------------------------------------------
   # CONNECTION
   #--------------------------------------------------------------------------------------------------------------------
-  DIR_VISITORS = Pathname(File.join(File.dirname(__FILE__), '..', '..', 'visitors')).realpath
-
   class AssignNewVisitorConnection < EventMachine::Connection
     include EM::Protocols::ObjectProtocol
     attr :default_ip_geo,
@@ -71,46 +91,63 @@ module VisitorFactory
 
 
     def receive_object(filename_visit)
-      @@logger.an_event.debug "receive visit filename #{filename_visit}"
-	  if filename_visit != ""
-      filename_visit = Pathname(filename_visit).realpath
-      @@logger.an_event.debug "receive visit filename #{filename_visit}"
-      #port_proxy = listening_port_proxy
-      port_visitor_bot = listening_port_visitor_bot
-      visit_file = File.open(filename_visit, "r:BOM|UTF-8:-")
-      visit_details = YAML::load(visit_file.read)
-      os = visit_details[:visitor][:browser][:operating_system]
-      os_version = visit_details[:visitor][:browser][:operating_system_version]
-      browser = visit_details[:visitor][:browser][:name]
-      browser_version = visit_details[:visitor][:browser][:version]
-      id_visitor = visit_details[:visitor][:id]
-      begin
-        proxy_system = @browser_type_repository.proxy_system?(os, os_version, browser, browser_version) == true ? "yes" : "no"
-        port_proxy = @browser_type_repository.listening_port_proxy(os, os_version, browser, browser_version)[0]
+      if filename_visit != ""
+        filename_visit = Pathname(filename_visit).realpath
+        @@logger.an_event.debug "receive visit filename #{filename_visit}"
+        #port_proxy = listening_port_proxy
+        port_visitor_bot = listening_port_visitor_bot
+        visit_file = File.open(filename_visit, "r:BOM|UTF-8:-")
+        visit_details = YAML::load(visit_file.read)
+        os = visit_details[:visitor][:browser][:operating_system]
+        @@logger.an_event.debug "os #{os}"
+        os_version = visit_details[:visitor][:browser][:operating_system_version]
+        @@logger.an_event.debug "os_version #{os_version}"
 
-        @@count_visit +=1
-        execute_visit(filename_visit, port_proxy, port_visitor_bot, proxy_system, id_visitor)
-        @@sem_busy_visitors.synchronize {
-          @@busy_visitors[port_proxy] = port_visitor_bot
-          @@logger.an_event.info "add visitor listening port visitor #{port_visitor_bot} to busy visitors"
-        }
+        browser = visit_details[:visitor][:browser][:name]
+        @@logger.an_event.debug "browser #{browser}"
 
-      rescue Exception => e
-        @@logger.an_event.error e.message
-       # EM.stop
-      ensure
-        @@logger.an_event.debug @@busy_visitors
+        browser_version = visit_details[:visitor][:browser][:version]
+        @@logger.an_event.debug "browser_version #{browser_version}"
+
+        id_visitor = visit_details[:visitor][:id]
+        @@logger.an_event.debug "id_visitor #{id_visitor}"
+
+        id_visit = visit_details[:id_visit]
+        @@logger.an_event.debug "id_visit #{id_visit}"
+
+        begin
+          proxy_system = @browser_type_repository.proxy_system?(os, os_version, browser, browser_version) == true ? "yes" : "no"
+          @@logger.an_event.debug "proxy_system #{proxy_system}"
+
+          port_proxy = @browser_type_repository.listening_port_proxy(os, os_version, browser, browser_version)[0]
+          @@logger.an_event.debug "port_proxy #{port_proxy}"
+
+          @@statistics[STAT_COUNT_VISIT][0] +=1
+          @@statistics[STAT_COUNT_VISIT][1] << id_visit
+
+          execute_visit(filename_visit, port_proxy, port_visitor_bot, proxy_system, id_visitor, id_visit)
+
+          @@sem_busy_visitors.synchronize {
+            @@busy_visitors[port_proxy] = port_visitor_bot
+            @@logger.an_event.info "add visitor listening port visitor #{port_visitor_bot} to busy visitors"
+          }
+
+        rescue Exception => e
+          @@logger.an_event.error e.message
+            # EM.stop
+        ensure
+          @@logger.an_event.debug @@busy_visitors
+          close_connection
+        end
+      else
+        @@logger.an_event.error "visit file is empty"
         close_connection
       end
-	  else
-	  @@logger.an_event.error "visit file is empty"
-	     close_connection
-	  end
     end
   end
 
 
-  def execute_visit(file_name, listening_port_sahi, listening_port_visitor_bot, proxy_system, id_visitor)
+  def execute_visit(file_name, listening_port_sahi, listening_port_visitor_bot, proxy_system, id_visitor, id_visit)
     #TODO intégrer browser_type
     #TODO meo asservissement en passant par parametre le listening_port_visitor_bot
 
@@ -130,53 +167,58 @@ module VisitorFactory
       @@sem_busy_visitors.synchronize {
         case status.exitstatus
           when 0
-            @@visitor_succ += 1
-            dir =  Pathname(File.join(File.dirname(__FILE__), "..",'..', "log")).realpath
-            files = File.join(dir,"visitor_bot_#{id_visitor}.{*}")
+            @@statistics[STAT_VISIT_SUCCESS][0] +=1
+            @@statistics[STAT_VISIT_SUCCESS][1] << id_visit
+            dir = Pathname(File.join(File.dirname(__FILE__), "..", '..', "log")).realpath
+            files = File.join(dir, "visitor_bot_#{id_visitor}.{*}")
             FileUtils.rm_r(Dir.glob(files), :force => true)
 
 
           when VISITOR_NOT_LOADED_VISIT_FILE
-            @@visitor_not_loaded_visit_file +=1
+            @@statistics[STAT_VISIT_ERROR_NOT_LOADED][0] +=1
+            @@statistics[STAT_VISIT_ERROR_NOT_LOADED][1] << id_visit
           when VISITOR_NOT_BUILT_VISIT
-            @@visitor_not_built_visit +=1
+            @@statistics[STAT_VISIT_ERROR_NOT_BUILT][0] +=1
+            @@statistics[STAT_VISIT_ERROR_NOT_BUILT][1] << id_visit
           when VISITOR_NOT_BUILT_VISIT_BAD_PROPERTIES
-            @@visitor_not_built_visit_bad_properties +=1
+            @@statistics[STAT_VISIT_ERROR_BAD_PROPERTIES][0] +=1
+            @@statistics[STAT_VISIT_ERROR_BAD_PROPERTIES][1] << id_visit
           when VISITOR_IS_NOT_BORN
-            @@visitor_is_not_born +=1
+            @@statistics[STAT_VISITOR_ERROR_NOT_BORN][0] +=1
+            @@statistics[STAT_VISITOR_ERROR_NOT_BORN][1] << id_visit
           when VISITOR_NOT_OPEN_BROWSER
-            @@visitor_cannot_open_browser +=1
+            @@statistics[STAT_VISITOR_ERROR_NOT_OPEN_BROWSER][0] +=1
+            @@statistics[STAT_VISITOR_ERROR_NOT_OPEN_BROWSER][1] << id_visit
           when SERVER_START_PAGE_IS_NOT_STARTED
-		  @@server_start_page_is_not_started += 1
             @@logger.an_event.fatal "server start page is not started"
-            #raise  "server start page is not started"
           when VISITOR_NOT_EXECUTE_VISIT
-            @@visitor_not_execute_visit +=1
+            @@statistics[STAT_VISIT_NOT_EXECUTE][0] +=1
+            @@statistics[STAT_VISIT_NOT_EXECUTE][1] << id_visit
           when VISITOR_NOT_FOUND_LANDING_PAGE
-            @@visitor_not_found_landing_page +=1
+            @@statistics[STAT_VISITOR_ERROR_NOT_FOUND_LANDING_PAGE][0] +=1
+            @@statistics[STAT_VISITOR_ERROR_NOT_FOUND_LANDING_PAGE][1] << id_visit
           when VISITOR_NOT_SURF_COMPLETLY
-            @@visitor_cannot_continue_visit +=1
+            @@statistics[STAT_VISIT_NOT_EXECUTE][0] +=1
+            @@statistics[STAT_VISIT_NOT_EXECUTE][1] << id_visit
           when VISITOR_NOT_CLOSE_BROWSER
-            @@visitor_cannot_close_browser +=1
+            @@statistics[STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER][0] +=1
+            @@statistics[STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER][1] << id_visit
           when VISITOR_NOT_DIE
-            @@visitor_cannot_die +=1
-          when VISITOR_NOT_CLOSE_BROWSER_AND_NOT_DIE
-            @@visitor_not_close_visitor_and_not_die += 1
+            @@statistics[STAT_VISITOR_ERROR_NOT_DIE][0] +=1
+            @@statistics[STAT_VISITOR_ERROR_NOT_DIE][1] << id_visit
         end
-        @@logger.an_event.info "count visit #{@@count_visit}"
-        @@logger.an_event.info "count visit success #{@@visitor_succ}"
-        @@logger.an_event.info "count visitor not loaded visit file #{@@visitor_not_loaded_visit_file}"
-        @@logger.an_event.info "count some error in properties visit file #{@@visitor_not_built_visit_bad_properties}"
-		@@logger.an_event.info "count server start is not started #{@@server_start_page_is_not_started}"
-        @@logger.an_event.info "count visitor not built visit #{@@visitor_not_built_visit}"
-        @@logger.an_event.info "count visitor not born #{@@visitor_is_not_born}"
-        @@logger.an_event.info "count visitor cannot open browser #{@@visitor_cannot_open_browser}"
-        @@logger.an_event.info "count visitor not execute visit #{@@visitor_not_execute_visit}"
-        @@logger.an_event.info "count visitor not found landing page #{@@visitor_not_found_landing_page}"
-        @@logger.an_event.info "count visitor cannot surf completly#{@@visitor_cannot_continue_visit}"
-        @@logger.an_event.info "count visitor cannot close browser #{@@visitor_cannot_close_browser}"
-        @@logger.an_event.info "count visitor cannot die #{@@visitor_cannot_die}"
-        @@logger.an_event.info "count visitor not close browser and not die #{@@visitor_not_close_visitor_and_not_die}"
+        @@logger.an_event.info "count visit                          => #{@@statistics[STAT_COUNT_VISIT][0]} | #{@@statistics[STAT_COUNT_VISIT][1]}"
+        @@logger.an_event.info "count visit success                  => #{@@statistics[STAT_VISIT_SUCCESS][0]} | #{@@statistics[STAT_VISIT_SUCCESS][1]}"
+        @@logger.an_event.info "count visit file oaded               => #{@@statistics[STAT_VISIT_ERROR_NOT_LOADED][0]} | #{@@statistics[STAT_VISIT_ERROR_NOT_LOADED][1]}"
+        @@logger.an_event.info "count visit not built                => #{@@statistics[STAT_VISIT_ERROR_NOT_BUILT][0]} | #{@@statistics[STAT_VISIT_ERROR_NOT_BUILT][1]}"
+        @@logger.an_event.info "count bad properties in visit        => #{@@statistics[STAT_VISIT_ERROR_BAD_PROPERTIES][0]} | #{@@statistics[STAT_VISIT_ERROR_BAD_PROPERTIES][1]}"
+        @@logger.an_event.info "count visitor not born               => #{@@statistics[STAT_VISITOR_ERROR_NOT_BORN][0]} | #{@@statistics[STAT_VISITOR_ERROR_NOT_BORN][1]}"
+        @@logger.an_event.info "count visitor not open browser       => #{@@statistics[STAT_VISITOR_ERROR_NOT_OPEN_BROWSER][0]} | #{@@statistics[STAT_VISITOR_ERROR_NOT_OPEN_BROWSER][1]}"
+        @@logger.an_event.info "count visitor not found landing page => #{@@statistics[STAT_VISITOR_ERROR_NOT_FOUND_LANDING_PAGE][0]} | #{@@statistics[STAT_VISITOR_ERROR_NOT_FOUND_LANDING_PAGE][1]}"
+        @@logger.an_event.info "count visitor not execute visit      => #{@@statistics[STAT_VISIT_NOT_EXECUTE][0]} | #{@@statistics[STAT_VISIT_NOT_EXECUTE][1]}"
+        @@logger.an_event.info "count visitor not close browser      => #{@@statistics[STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER][0]} | #{@@statistics[STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER][1]}"
+        @@logger.an_event.info "count visitor not die                => #{@@statistics[STAT_VISITOR_ERROR_NOT_DIE][0]} | #{@@statistics[STAT_VISITOR_ERROR_NOT_DIE][1]}"
+        @@logger.an_event.info "count visitor die dirty              => #{@@statistics[STAT_VISITOR_ERROR_DIE_DIRTY][0]} | #{@@statistics[STAT_VISITOR_ERROR_DIE_DIRTY][1]}"
       }
     rescue Exception => e
       @@logger.an_event.debug e
@@ -209,11 +251,6 @@ module VisitorFactory
     end
 
   end
-
-  #def listening_port_proxy
-  #  #TODO calculer le listening port du proxy webdriver ou sahi
-  #  @@listening_port_proxy-=1
-  #end
 
   def listening_port_visitor_bot
     #TODO calculer le listening port de visitor bot pour l"asservissemnt"

@@ -96,13 +96,13 @@ VISITOR_IS_NOT_BORN_TECHNICAL_ERROR = 12
 VISITOR_NOT_OPEN_BROWSER = 20
 VISITOR_NOT_EXECUTE_VISIT = 30
 SERVER_START_PAGE_IS_NOT_STARTED = 31
-VISITOR_NOT_FOUND_LANDING_PAGE = 31
+VISITOR_NOT_FOUND_LANDING_PAGE = 32
 VISITOR_NOT_SURF_COMPLETLY = 33
 VISITOR_NOT_CLOSE_BROWSER = 40
 VISITOR_NOT_DIE = 50
 VISITOR_NOT_INHUME = 60
-VISITOR_NOT_CLOSE_BROWSER_AND_NOT_DIE = 70
 OK = 0
+=begin
 class Connection < EventMachine::Connection
   include EM::Protocols::ObjectProtocol
 
@@ -156,6 +156,7 @@ def build_visit(visit_details)
   visit
 end
 
+
 def build_visitor(visitor_details,
     exist_pub_in_visit,
     listening_port_sahi_proxy = nil, proxy_ip=nil, proxy_port=nil, proxy_user=nil, proxy_pwd=nil)
@@ -185,16 +186,17 @@ def visitor_is_slave(opts)
     EM.connect '127.0.0.1', opts[:listening_port], Client, visit_details
   }
 end
-
+=end
 def visitor_load_visit_file(file_path)
   begin
     visit_file = File.open(file_path, "r:BOM|UTF-8:-")
     visit_details = YAML::load(visit_file.read)
     visit_file.close
+    #File.delete(file_path)
     @@logger.an_event.info "visit file #{file_path} is loaded"
     [OK, visit_details]
   rescue Exception => e
-    @@logger.an_event.debug e
+    @@logger.an_event.debug e.message
     @@logger.an_event.error "visit file #{file_path} is not loaded"
     [VISITOR_NOT_LOADED_VISIT_FILE, nil]
   end
@@ -202,16 +204,18 @@ end
 
 def visitor_build_visit(visit_details)
   visit = nil
+  @@logger.an_event.debug "visit details #{visit_details}"
   begin
     visit = Visit.new(visit_details)
-    @@logger.an_event.debug visit.to_yaml
+
     [OK, visit]
+
   rescue Visits::FunctionalError => e
     @@logger.an_event.debug e.message
     #TODO delete visit file in tmp directory
     [VISITOR_NOT_BUILT_VISIT_BAD_PROPERTIES, nil]
 
-  rescue Visits::TechnicalError,Exception => e
+  rescue Visits::TechnicalError, Exception => e
     @@logger.an_event.debug e.message
     #TODO delete visit file in tmp directory
     [VISITOR_NOT_BUILT_VISIT, nil]
@@ -219,40 +223,78 @@ def visitor_build_visit(visit_details)
 
 end
 
-def visitor_born(visitor_details,
-    exist_pub_in_visit,
-    listening_port_sahi_proxy = nil, proxy_ip=nil, proxy_port=nil, proxy_user=nil, proxy_pwd=nil)
+def visitor_born(visitor_details)
   visitor = nil
-  @@logger.an_event.debug "listening_port_sahi_proxy #{listening_port_sahi_proxy}"
+  @@logger.an_event.debug "visitor details #{visitor_details}"
   begin
-    visitor = Visitor.build(visitor_details, exist_pub_in_visit,
-                            listening_port_sahi_proxy, proxy_ip, proxy_port, proxy_user, proxy_pwd)
-    @@logger.an_event.debug visitor.to_yaml
+    visitor = Visitor.build(visitor_details)
 
     [OK, visitor]
   rescue Visitors::FunctionalError => e
+    @@logger.an_event.debug e.message
     @@logger.an_event.error "visitor #{visitor_details[:id]}  is not born, config is mistaken"
     [VISITOR_IS_NOT_BORN_CONFIG_ERROR, nil]
 
-  rescue Visitors::FunctionalError => e
+  rescue Visitors::TechnicalError, Exception => e
+    @@logger.an_event.debug e.message
     @@logger.an_event.error "visitor #{visitor_details[:id]}  is not born, technical error"
-
     [VISITOR_IS_NOT_BORN_TECHNICAL_ERROR, nil]
   end
 end
 
 def visitor_open_browser(visitor)
+  @@logger.an_event.debug visitor.to_yaml
   begin
     visitor.open_browser
     OK
   rescue Exception => e
-    @@logger.an_event.error e.message
+    @@logger.an_event.error "visitor #{visitor.id} not open its browser"
     @@logger.an_event.debug e
+    visitor_die(visitor)
     VISITOR_NOT_OPEN_BROWSER
   end
 end
 
+
+def visitor_browse_referrer(visitor, visit)
+  landing_page = nil
+  begin
+    landing_page = visitor.browse(visit.referrer)
+    [OK, landing_page]
+
+  rescue FunctionalError::CANNOT_DISPLAY_START_PAGE => e
+    @@logger.an_event.debug e.message
+    @@logger.an_event.error "visitor #{@id} cannot browser start page"
+    visitor_close_browser(visitor)
+    visitor_die(visitor)
+    [SERVER_START_PAGE_IS_NOT_STARTED, nil]
+
+  rescue Exception => e
+    @@logger.an_event.debug e.message
+    @@logger.an_event.error "visitor #{@id} not found landing page"
+    visitor_close_browser(visitor)
+    visitor_die(visitor)
+    [VISITOR_NOT_FOUND_LANDING_PAGE, nil]
+  end
+end
+
+def visitor_surf(visitor, visit, landing_page)
+  page = nil
+  begin
+    page = visitor.surf(visit.durations, landing_page, visit.around)
+    [OK, page]
+  rescue Exception => e
+    @@logger.an_event.debug e.message
+    @@logger.an_event.error "visitor #{@id} not finish visit"
+    visitor_close_browser(visitor)
+    visitor_die(visitor)
+    [VISITOR_NOT_EXECUTE_VISIT, nil]
+  end
+end
+=begin
+
 def visitor_execute_visit(visitor, visit)
+  @@logger.an_event.debug visit.to_yaml
   begin
     @@logger.an_event.info "visitor #{visitor.id} start execution of visit #{visit.id}"
     visitor.execute(visit)
@@ -265,9 +307,9 @@ def visitor_execute_visit(visitor, visit)
     case e.message
 
       #erreur fonctionnelle => le menage sera fait par lexcécution naturelle de visitor_bot
-      when  Visitors::Visitor::FunctionalError::CANNOT_DISPLAY_START_PAGE
+      when Visitors::Visitor::FunctionalError::CANNOT_DISPLAY_START_PAGE
         SERVER_START_PAGE_IS_NOT_STARTED
-      when  Visitors::Visitor::FunctionalError::VISIT_NOT_DEFINE
+      when Visitors::Visitor::FunctionalError::VISIT_NOT_DEFINE
         VISIT_IS_NOT_DEFINE
       when Visitors::Visitor::FunctionalError::LANDING_PAGE_NOT_FOUND
         VISITOR_NOT_FOUND_LANDING_PAGE
@@ -279,9 +321,8 @@ def visitor_execute_visit(visitor, visit)
     end
 
   end
-
-
 end
+=end
 
 def visitor_close_browser(visitor)
   begin
@@ -291,6 +332,7 @@ def visitor_close_browser(visitor)
 
     @@logger.an_event.debug e
     @@logger.an_event.error "visitor #{visitor.id} not close his browser"
+    visitor_die(visitor)
     VISITOR_NOT_CLOSE_BROWSER
   end
 end
@@ -320,48 +362,77 @@ def visitor_inhume(visitor)
 end
 
 def visitor_is_no_slave(opts)
+  visit = nil
+  visitor = nil
+  landing_page = nil
+  page = nil
+  #---------------------------------------------------------------------------------------------------------------------
+  # chargement du fichier definissant la visite
+  #---------------------------------------------------------------------------------------------------------------------
   cr, visit_details = visitor_load_visit_file(opts[:visit_file_name])
-  return cr unless cr==OK
-
-  context = ["visit=#{visit_details[:id_visit]}"]
-  @@logger.ndc context
-
-  cr, visit = visitor_build_visit(visit_details)
-
-  return cr unless cr==OK
-
-  visit_details[:visitor][:browser][:proxy_system] = opts[:proxy_system] == "yes"
-  cr, visitor = visitor_born(visit_details[:visitor],
-                             visit_details[:advert][:advertising] != :none,
-                             opts[:listening_port_sahi_proxy],
-                             opts[:proxy_ip],
-                             opts[:proxy_port],
-                             opts[:proxy_user],
-                             opts[:proxy_pwd]) if   visit_details[:advert][:advertising] == :none
-  return cr unless cr==OK
-
-  cr = visitor_open_browser(visitor)
   if cr == OK
-    #TODO temporaire
-    cr = visitor_execute_visit(visitor, visit)
-    visitor_close_browser(visitor)
+    context = ["visit=#{visit_details[:id_visit]}"]
+    @@logger.ndc context
+    visit_details[:visitor][:browser][:proxy_system] = opts[:proxy_system] == "yes"
   end
-  cr2 = visitor_die(visitor)
-  return cr2 unless cr2==OK
-  cr3 = visitor_inhume(visitor)
-  return cr3 unless cr3==OK
+  #---------------------------------------------------------------------------------------------------------------------
+  # Creation de la visit
+  #---------------------------------------------------------------------------------------------------------------------
+  if cr == OK
+    cr, visit = visitor_build_visit(visit_details)
+  end
+  #---------------------------------------------------------------------------------------------------------------------
+  # Creation du visitor
+  #---------------------------------------------------------------------------------------------------------------------
+  if cr == OK
+    visitor_details = visit_details[:visitor]
+    visitor_details[:browser][:listening_port_proxy] = opts[:listening_port_sahi_proxy]
+    visitor_details[:browser][:proxy_ip] = opts[:proxy_ip]
+    visitor_details[:browser][:proxy_port] = opts[:proxy_port]
+    visitor_details[:browser][:proxy_user] = opts[:proxy_user]
+    visitor_details[:browser][:proxy_pwd] = opts[:proxy_pwd]
 
+    cr, visitor = visitor_born(visitor_details)
+  end
+  #---------------------------------------------------------------------------------------------------------------------
+  # Visitor open browser
+  #---------------------------------------------------------------------------------------------------------------------
+  if cr == OK
+    cr = visitor_open_browser(visitor)
+  end
+  #---------------------------------------------------------------------------------------------------------------------
+  # Visitor browse referrer
+  #---------------------------------------------------------------------------------------------------------------------
+  if cr == OK
+    cr, landing_page = visitor_browse_referrer(visitor, visit)
+  end
+  #---------------------------------------------------------------------------------------------------------------------
+  # Visitor execute visit
+  #---------------------------------------------------------------------------------------------------------------------
+  if cr == OK
+    #TODO meo le surf de la visit
+#    cr, page = visitor_surf(visitor, visit, landing_page)
+  end
+  #---------------------------------------------------------------------------------------------------------------------
+  # Visitor close its browser
+  #---------------------------------------------------------------------------------------------------------------------
+  if cr == OK
+    cr = visitor_close_browser(visitor)
+  end
+  #---------------------------------------------------------------------------------------------------------------------
+  # Visitor die
+  #---------------------------------------------------------------------------------------------------------------------
+  if cr == OK
+    cr = visitor_die(visitor)
+  end
+  #---------------------------------------------------------------------------------------------------------------------
+  # Visitor inhume
+  #---------------------------------------------------------------------------------------------------------------------
+  if cr == OK
+    cr = visitor_inhume(visitor)
+  end
 
-  #if cr != VISITOR_NOT_EXECUTE_VISIT
-  #  cr1 = visitor_close_browser(visitor)
-  #  cr2 = visitor_die(visitor)
-  #  cr = VISITOR_NOT_CLOSE_BROWSER_AND_NOT_DIE if cr1 != OK and cr2 != OK
-  #  cr = OK if cr1 == OK and cr2 == OK
-  #  cr = cr1 if cr1 != OK
-  #  cr = cr2 if cr2 != OK
-  #end
-
-  return cr
+  cr
 end
 
 PARAMETERS = File.dirname(__FILE__) + "/../parameter/visitor_bot.yml"
@@ -410,8 +481,8 @@ visitor_id = YAML::load(File.read(opts[:visit_file_name]))[:visitor][:id]
 
 
 @@logger.an_event.debug "begin execution visitor_bot"
-state = 0
-state = visitor_is_slave(opts) if opts[:slave] == "yes"
+state = OK
+#state = visitor_is_slave(opts) if opts[:slave] == "yes"
 state = visitor_is_no_slave(opts) if opts[:slave] == "no"
 @@logger.an_event.debug "end execution visitor_bot, with state #{state}"
 Process.exit(state)
