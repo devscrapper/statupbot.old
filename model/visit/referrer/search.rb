@@ -3,9 +3,7 @@ module Visits
   module Referrers
     include EngineSearches
     class Search < Referrer
-      class SearchException < StandardError
-        KEYWORDS_NOT_PROVIDE = "keywords missing"
-      end
+
 
       attr :keywords,
            :durations,
@@ -13,21 +11,27 @@ module Visits
 
 
       def initialize(referer_details, landing_page)
-        raise SearchException::KEYWORDS_NOT_PROVIDE if referer_details[:keyword]== "(not provided)"  or \
-                                                        referer_details[:keyword] ==""
+        raise FunctionalError, "bad keywords for search referrer" if referer_details[:keyword][0]== "(not provided)"
+        raise FunctionalError, "keywords for search referrer are not define" if referer_details[:keyword].size == 0
         super(landing_page)
 
         @keywords = referer_details[:keyword]
         @durations = referer_details[:durations]
-
-        case referer_details[:source]
-          when "google"
-            @engine_search = Google.new()
-          when "bing"
-            @engine_search = Bing.new()
-          else
-            raise "search engine #{referer_details[:source]} unknown"
+        begin
+          @engine_search = EngineSearch.build(referer_details[:source])
+        rescue Exception => e
+          @@logger.an_event.debug e.message
+            raise FunctionalError, "search referrer is not create"
         end
+
+        #case referer_details[:source]
+        #  when "google"
+        #    @engine_search = Google.new()
+        #  when "bing"
+        #    @engine_search = Bing.new()
+        #  else
+        #    raise "search engine #{referer_details[:source]} unknown"
+        #end
       end
 
 
