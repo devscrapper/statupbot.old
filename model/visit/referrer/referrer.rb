@@ -1,11 +1,6 @@
 module Visits
   module Referrers
     class Referrer
-
-      class RefererException < StandardError;
-      end
-
-
       #----------------------------------------------------------------------------------------------------------
       # Source : chaque site référent a une origine ou source. Les sources possibles sont les suivantes :
       #    "Google" (nom d'un moteur de recherche),
@@ -67,19 +62,31 @@ module Visits
       #["medium", "(none)"]
       #["keyword", "(not set)"]
       def self.build(referer_details, landing_page)
-        case referer_details[:medium]
-          when "(none)"
-            return Direct.new(landing_page)
-          when "organic"
-            return Search.new(referer_details,
-                              landing_page)
-          when "referral"
-            return Referral.new(referer_details,
+        @@logger.an_event.debug "begin build referrer"
+        begin
+          case referer_details[:medium]
+            when "(none)"
+              return Direct.new(landing_page)
+            when "organic"
+              return Search.new(referer_details,
                                 landing_page)
-          else
-            raise RefererException, "medium #{@medium} is unknonwn"
-        end
+            when "referral"
+              return Referral.new(referer_details,
+                                  landing_page)
+            else
+              raise FunctionalError, "medium #{@medium} is unknonwn"
+          end
+        rescue FunctionalError => e
+          @@logger.an_event.debug e.message
+          @@logger.an_event.debug "end build referrer"
+          raise FunctionalError, "referrer #{referer_details[:medium]} has some bas properties"
+        rescue TechnicalError, Exception => e
+          @@logger.an_event.debug e.message
+          @@logger.an_event.debug "end build referrer"
+          raise TechnicalError, "referrer #{referer_details[:medium]} has some bas properties"
 
+        end
+        @@logger.an_event.debug "end build referrer"
       end
 
       def initialize(landing_url)
