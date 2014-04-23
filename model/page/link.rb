@@ -1,11 +1,6 @@
 module Pages
   class Link
-    class FunctionalException < StandardError
 
-    end
-    class TechnicalException < StandardError
-
-    end
     attr_reader :url,
                 :path_frame, # cette donnée n'est pas utilisée avec Sahi
                 :element,
@@ -29,6 +24,10 @@ module Pages
 
     def exist?
       @element.displayed? and @element.enabled?
+    end
+
+    def to_s
+      "url #{@url}, element #{@element}, window_tab #{@window_tab}, path_frame #{@path_frame}, text #{@text}"
     end
   end
 end

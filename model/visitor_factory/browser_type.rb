@@ -205,7 +205,7 @@ module VisitorFactory
           when "Chrome"
             res += Chrome(browser[1])
         end
-      }
+      } unless browsers.nil?
       res
     end
 
@@ -214,6 +214,7 @@ module VisitorFactory
       data = <<-_end_of_xml_
 <browserTypes>
 #{browsers(@hash["Windows"]["XP"])}
+#{browsers(@hash["Windows"]["VISTA"])}
 </browserTypes>
       _end_of_xml_
       data
@@ -227,6 +228,7 @@ module VisitorFactory
       data = <<-_end_of_xml_
 <browserTypes>
  #{browsers(@hash["Windows"]["7"])}
+ #{browsers(@hash["Windows"]["8"])}
 </browserTypes>
       _end_of_xml_
       f = File.new(out_filename, "w+")

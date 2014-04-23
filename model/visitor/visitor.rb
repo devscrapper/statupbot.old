@@ -53,6 +53,8 @@ module Visitors
     REFERRER_NOT_FOUND_LANDING_PAGE = "referrer not found landing page"
     REFERRAL_NOT_FOUND_LANDING_LINK = "referral not found landing link in referral page"
     SEARCH_NOT_FOUND_LANDING_LINK = "search not found landing link in results page"
+    PARAM_NOT_DEFINE = "some parameter not define"
+    CANNOT_SURF = "cannot suf"
 
     DIR_VISITORS = Pathname(File.join(File.dirname(__FILE__), '..', '..', 'visitors')).realpath
     attr_accessor :id,
@@ -277,7 +279,7 @@ module Visitors
             @@logger.an_event.info "visitor #{@id} see link of landing url"
           rescue Exception => e
             @@logger.an_event.debug e.message
-            raise FunctionalError::LINK_OF_LANDING_URL_NOT_FOUND
+            raise FunctionalError, SEARCH_NOT_FOUND_LANDING_LINK
           end
 
           begin
@@ -521,42 +523,33 @@ module Visitors
       landing_link
     end
 
-=begin
-      #TODO à terminer  comme le many-search    avec une boucle retry et exception => aie la tete
-      results_page.duration = durations.shift
-      read(results_page)
-      landing_link_found, landing_link = engine_search.exist_link?(results_page, landing_url)
-
-      if !landing_link_found
-        # landing n a pas ete trouvé dans la premiere page de resultats
-        # on chercher alors dans les pages suivantes dont le nombre est fixé par la taille du array referrer.durations
-        index_current_page = 1
-        durations.each_index { |i|
-          next_page_link_found, next_page_link = engine_search.next_page_link(results_page, index_current_page+1)
-          if next_page_link_found
-            # si il existe une page suivante on clique dessus et on  cherche landing_url
-            results_page = @browser.click_on(next_page_link)
-            results_page.duration = durations[i]
-            read(results_page)
-            landing_link_found, landing_link = engine_search.exist_link?(results_page, landing_url)
-
-            break if landing_link_found #si landing url a ete trouve on sort brutalement
-            index_current_page += 1
-          else
-            # on na pas trouve de page suivante, on sort brutalement
-
-            break
-          end
-        }
-      end
-      @@logger.an_event.debug "end search keyword with engine search"
-      return [landing_link_found, landing_link]
-    end
-=end
+    #-----------------------------------------------------------------------------------------------------------------
+    # surf
+    #-----------------------------------------------------------------------------------------------------------------
+    # input :
+    # durations : un tableau de durée de lecture de chaucne des pages
+    # page : la page de départ
+    # around : un tableau de périmètre de sélection des link pour chaque page
+    # output : un objet Page : la derniere
+    # exception :
+    # FunctionalError :
+    #-----------------------------------------------------------------------------------------------------------------
+    #
+    #-----------------------------------------------------------------------------------------------------------------
 
     def surf(durations, page, around)
       # le surf sur le website prend en entrée un around => arounds est rempli avec cette valeur
       # le surf sur l'advertiser predn en entrée un array de around pré calculé par engine bot en fonction des paramètre saisis au moyen de statupweb
+      @@logger.an_event.debug "durations #{durations.inspect}"
+      @@logger.an_event.debug "page #{page.to_s}"
+      @@logger.an_event.debug "arounds #{around.inspect}"
+
+      raise FunctionalError, PARAM_NOT_DEFINE if durations.nil? or
+          durations.size == 0 or
+          page.nil? or
+          around.nil? or
+          around.size == 0
+
       begin
         arounds = (around.is_a?(Array)) ? around : Array.new(durations.size, around)
         durations.each_index { |i|
@@ -566,13 +559,12 @@ module Visitors
             link = page.link(arounds[i])
             page = @browser.click_on(link)
           end # on ne clique pas quand on est sur la denriere page
-
         }
         page
-      rescue Exception => e
-        @@logger.an_event.debug e
+      rescue TechnicalError, Exception => e
+        @@logger.an_event.debug e.message
         @@logger.an_event.error "visitor #{@id} stop surf at page #{page.url}"
-        raise FunctionalError::CANNOT_CONTINUE_SURF
+        raise FunctionalError, CANNOT_SURF
       end
     end
   end

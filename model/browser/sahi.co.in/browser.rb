@@ -199,7 +199,7 @@ module Browsers
       def click_on(link)
         @@logger.an_event.debug "begin click_on"
         raise FunctionalError, "link is not define" if link.nil?
-        @@logger.an_event.debug "link #{link}"
+        @@logger.an_event.debug "link #{link.to_s}"
         page = nil
         begin
           link.click
@@ -426,6 +426,7 @@ module Browsers
           raise TechnicalError, "browser #{name} #{@id} cannot be opened"
         end
 
+=begin
         #----------------------------------------------------------------------------------------------------
         #
         # affecte l'id du browser dans le title de la fenetre
@@ -454,6 +455,7 @@ module Browsers
         ensure
           @@logger.an_event.debug "end open browser"
         end
+=end
       end
 
 
@@ -477,6 +479,7 @@ module Browsers
           @@logger.an_event.debug "browser #{name} is closed"
         rescue TechnicalError => e
           @@logger.an_event.debug e.message
+=begin
           #----------------------------------------------------------------------------------------------------
           #
           # kill le browser en fonction de ses Pids
@@ -492,6 +495,7 @@ module Browsers
           ensure
 
           end
+=end
         end
         @@logger.an_event.debug "end browser quit"
       end

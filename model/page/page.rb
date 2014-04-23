@@ -110,5 +110,9 @@ module Pages
     def link_by_tagname(tag, id)
 
     end
+
+    def to_s
+      "url #{@url}, title #{@title}"
+    end
   end
 end

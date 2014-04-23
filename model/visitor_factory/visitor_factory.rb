@@ -22,10 +22,9 @@ module VisitorFactory
   REFERRER_NOT_FOUND_LANDING_PAGE = 42
   REFERRAL_NOT_FOUND_LANDING_LINK = 43
   SEARCH_NOT_FOUND_LANDING_LINK = 44
-  VISITOR_NOT_SURF_COMPLETLY = 50
-  VISITOR_NOT_CLOSE_BROWSER = 60
-  VISITOR_NOT_DIE = 70
-  VISITOR_NOT_INHUME = 80
+  VISITOR_NOT_CLOSE_BROWSER = 50
+  VISITOR_NOT_DIE = 60
+  VISITOR_NOT_INHUME = 70
 
 
   #--------------------------------------------------------------------------------------------------------------------
@@ -58,7 +57,10 @@ module VisitorFactory
   STAT_SEARCH_NOT_FOUND_LANDING_LINK =13
   STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER = 14
   STAT_VISITOR_ERROR_NOT_DIE = 15
-  STAT_VISITOR_ERROR_DIE_DIRTY = 16
+
+
+
+
 
   @@statistics[STAT_COUNT_VISIT]=[0, []]
   @@statistics[STAT_VISIT_SUCCESS]=[0, []]
@@ -76,7 +78,7 @@ module VisitorFactory
   @@statistics[STAT_SEARCH_NOT_FOUND_LANDING_LINK]=[0, []]
   @@statistics[STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER]=[0, []]
   @@statistics[STAT_VISITOR_ERROR_NOT_DIE]=[0, []]
-  @@statistics[STAT_VISITOR_ERROR_DIE_DIRTY]=[0, []]
+
 
 
   #--------------------------------------------------------------------------------------------------------------------
@@ -225,9 +227,6 @@ module VisitorFactory
           when VISITOR_NOT_EXECUTE_VISIT
             @@statistics[STAT_VISIT_NOT_EXECUTE][0] +=1
             @@statistics[STAT_VISIT_NOT_EXECUTE][1] << id_visit
-          when VISITOR_NOT_SURF_COMPLETLY
-            @@statistics[STAT_VISIT_NOT_EXECUTE][0] +=1
-            @@statistics[STAT_VISIT_NOT_EXECUTE][1] << id_visit
           when VISITOR_NOT_CLOSE_BROWSER
             @@statistics[STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER][0] +=1
             @@statistics[STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER][1] << id_visit
@@ -237,16 +236,20 @@ module VisitorFactory
         end
         @@logger.an_event.info "count visit                          => #{@@statistics[STAT_COUNT_VISIT][0]} | #{@@statistics[STAT_COUNT_VISIT][1]}"
         @@logger.an_event.info "count visit success                  => #{@@statistics[STAT_VISIT_SUCCESS][0]} | #{@@statistics[STAT_VISIT_SUCCESS][1]}"
-        @@logger.an_event.info "count visit file oaded               => #{@@statistics[STAT_VISIT_ERROR_NOT_LOADED][0]} | #{@@statistics[STAT_VISIT_ERROR_NOT_LOADED][1]}"
+        @@logger.an_event.info "count visit file not loaded          => #{@@statistics[STAT_VISIT_ERROR_NOT_LOADED][0]} | #{@@statistics[STAT_VISIT_ERROR_NOT_LOADED][1]}"
         @@logger.an_event.info "count visit not built                => #{@@statistics[STAT_VISIT_ERROR_NOT_BUILT][0]} | #{@@statistics[STAT_VISIT_ERROR_NOT_BUILT][1]}"
         @@logger.an_event.info "count bad properties in visit        => #{@@statistics[STAT_VISIT_ERROR_BAD_PROPERTIES][0]} | #{@@statistics[STAT_VISIT_ERROR_BAD_PROPERTIES][1]}"
+        @@logger.an_event.info "count medium unknown in visit        => #{@@statistics[STAT_VISIT_ERROR_MEDIUM][0]} | #{@@statistics[STAT_VISIT_ERROR_MEDIUM][1]}"
+        @@logger.an_event.info "count engine search unknown in visit => #{@@statistics[STAT_VISIT_ERROR_ENGINE][0]} | #{@@statistics[STAT_VISIT_ERROR_ENGINE][1]}"
         @@logger.an_event.info "count visitor not born               => #{@@statistics[STAT_VISITOR_ERROR_NOT_BORN][0]} | #{@@statistics[STAT_VISITOR_ERROR_NOT_BORN][1]}"
         @@logger.an_event.info "count visitor not open browser       => #{@@statistics[STAT_VISITOR_ERROR_NOT_OPEN_BROWSER][0]} | #{@@statistics[STAT_VISITOR_ERROR_NOT_OPEN_BROWSER][1]}"
-        @@logger.an_event.info "count visitor not found landing page => #{@@statistics[STAT_VISITOR_ERROR_NOT_FOUND_LANDING_PAGE][0]} | #{@@statistics[STAT_VISITOR_ERROR_NOT_FOUND_LANDING_PAGE][1]}"
+        @@logger.an_event.info "count referrer not display start page=> #{@@statistics[STAT_REFERRER_NOT_DISPLAY_START_PAGE][0]} | #{@@statistics[STAT_REFERRER_NOT_DISPLAY_START_PAGE][1]}"
+        @@logger.an_event.info "count referrer not found landing page=> #{@@statistics[STAT_REFERRER_NOT_FOUND_LANDING_PAGE][0]} | #{@@statistics[STAT_REFERRER_NOT_FOUND_LANDING_PAGE][1]}"
+        @@logger.an_event.info "count referral not found landing link=> #{@@statistics[STAT_REFERRAL_NOT_FOUND_LANDING_LINK][0]} | #{@@statistics[STAT_REFERRAL_NOT_FOUND_LANDING_LINK][1]}"
+        @@logger.an_event.info "count search not found landing link  => #{@@statistics[STAT_SEARCH_NOT_FOUND_LANDING_LINK][0]} | #{@@statistics[STAT_SEARCH_NOT_FOUND_LANDING_LINK][1]}"
         @@logger.an_event.info "count visitor not execute visit      => #{@@statistics[STAT_VISIT_NOT_EXECUTE][0]} | #{@@statistics[STAT_VISIT_NOT_EXECUTE][1]}"
         @@logger.an_event.info "count visitor not close browser      => #{@@statistics[STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER][0]} | #{@@statistics[STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER][1]}"
         @@logger.an_event.info "count visitor not die                => #{@@statistics[STAT_VISITOR_ERROR_NOT_DIE][0]} | #{@@statistics[STAT_VISITOR_ERROR_NOT_DIE][1]}"
-        @@logger.an_event.info "count visitor die dirty              => #{@@statistics[STAT_VISITOR_ERROR_DIE_DIRTY][0]} | #{@@statistics[STAT_VISITOR_ERROR_DIE_DIRTY][1]}"
       }
     rescue Exception => e
       @@logger.an_event.debug e

@@ -100,10 +100,9 @@ REFERRER_NOT_DISPLAY_START_PAGE = 41
 REFERRER_NOT_FOUND_LANDING_PAGE = 42
 REFERRAL_NOT_FOUND_LANDING_LINK = 43
 SEARCH_NOT_FOUND_LANDING_LINK = 44
-VISITOR_NOT_SURF_COMPLETLY = 50
-VISITOR_NOT_CLOSE_BROWSER = 60
-VISITOR_NOT_DIE = 70
-VISITOR_NOT_INHUME = 80
+VISITOR_NOT_CLOSE_BROWSER = 50
+VISITOR_NOT_DIE = 60
+VISITOR_NOT_INHUME = 70
 OK = 0
 =begin
 class Connection < EventMachine::Connection
@@ -297,50 +296,18 @@ end
 
 def visitor_surf(visitor, visit, landing_page)
   page = nil
+
   begin
     page = visitor.surf(visit.durations, landing_page, visit.around)
     [OK, page]
   rescue Exception => e
     @@logger.an_event.debug e.message
-    @@logger.an_event.error "visitor #{@id} not finish visit"
+    @@logger.an_event.error "visitor #{@id} not execute visit"
     visitor_close_browser(visitor)
     visitor_die(visitor)
     [VISITOR_NOT_EXECUTE_VISIT, nil]
   end
 end
-
-=begin
-
-def visitor_execute_visit(visitor, visit)
-  @@logger.an_event.debug visit.to_yaml
-  begin
-    @@logger.an_event.info "visitor #{visitor.id} start execution of visit #{visit.id}"
-    visitor.execute(visit)
-    @@logger.an_event.info "visitor #{visitor.id} terminate execution of visit #{visit.id}"
-    #TODO delete visit file in tmp directory
-    OK
-  rescue Exception => e
-    @@logger.an_event.debug e.message
-    @@logger.an_event.error "visitor #{visitor.id} not terminate completly the visit #{visit.id}"
-    case e.message
-
-      #erreur fonctionnelle => le menage sera fait par lexcécution naturelle de visitor_bot
-      when Visitors::Visitor::FunctionalError::CANNOT_DISPLAY_START_PAGE
-        SERVER_START_PAGE_IS_NOT_STARTED
-      when Visitors::Visitor::FunctionalError::VISIT_NOT_DEFINE
-        VISIT_IS_NOT_DEFINE
-      when Visitors::Visitor::FunctionalError::LANDING_PAGE_NOT_FOUND
-        VISITOR_NOT_FOUND_LANDING_PAGE
-      when Visitors::Visitor::VisitorException::CANNOT_CONTINUE_SURF
-        VISITOR_NOT_SURF_COMPLETLY
-      else
-        #erreur technique irrémdiable, le menage a du être fait dans visitor.execute
-        VISITOR_NOT_EXECUTE_VISIT
-    end
-
-  end
-end
-=end
 
 def visitor_close_browser(visitor)
   begin
@@ -429,7 +396,7 @@ def visitor_is_no_slave(opts)
   #---------------------------------------------------------------------------------------------------------------------
   if cr == OK
     #TODO meo le surf de la visit
-    #    cr, page = visitor_surf(visitor, visit, landing_page)
+    cr, page = visitor_surf(visitor, visit, landing_page)
   end
   #---------------------------------------------------------------------------------------------------------------------
   # Visitor close its browser
