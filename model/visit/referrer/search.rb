@@ -19,6 +19,12 @@ module Visits
         @durations = referer_details[:durations]
         begin
           @engine_search = EngineSearch.build(referer_details[:source])
+        rescue EngineSearches::FunctionalError => e
+          @@logger.an_event.debug e.message
+          raise FunctionalError, e.message
+        rescue FunctionalError => e
+          @@logger.an_event.debug e.message
+           raise e
         rescue Exception => e
           @@logger.an_event.debug e.message
             raise FunctionalError, "search referrer is not create"

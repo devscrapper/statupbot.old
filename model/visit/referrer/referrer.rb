@@ -40,7 +40,10 @@ module Visits
       #
       #------------------------------------------------------------------------------------------------------------
       attr :landing_url
-
+      #----------------------------------------------------------------------------------------------------------------
+      # Message exception
+      #----------------------------------------------------------------------------------------------------------------
+      MEDIUM_UNKNOWN = "medium is unknown"
       #----------------------------------------------------------------------------------------------------------------
       # class methods
       #----------------------------------------------------------------------------------------------------------------
@@ -63,6 +66,7 @@ module Visits
       #["keyword", "(not set)"]
       def self.build(referer_details, landing_page)
         @@logger.an_event.debug "begin build referrer"
+
         begin
           case referer_details[:medium]
             when "(none)"
@@ -74,18 +78,20 @@ module Visits
               return Referral.new(referer_details,
                                   landing_page)
             else
-              raise FunctionalError, "medium #{@medium} is unknonwn"
+              @@logger.an_event.debug "medium #{referer_details[:medium]} unknown"
+              raise raise FunctionalError, MEDIUM_UNKNOWN
           end
         rescue FunctionalError => e
           @@logger.an_event.debug e.message
           @@logger.an_event.debug "end build referrer"
-          raise FunctionalError, "referrer #{referer_details[:medium]} has some bas properties"
+          raise e
         rescue TechnicalError, Exception => e
           @@logger.an_event.debug e.message
           @@logger.an_event.debug "end build referrer"
-          raise TechnicalError, "referrer #{referer_details[:medium]} has some bas properties"
+          raise TechnicalError, "referrer #{referer_details[:medium]} has some bad properties"
 
         end
+
         @@logger.an_event.debug "end build referrer"
       end
 

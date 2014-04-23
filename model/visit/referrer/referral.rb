@@ -2,9 +2,6 @@ require 'uri'
 module Visits
   module Referrers
     class Referral < Referrer
-      class ReferralException < StandardError
-      end
-
 
       attr :page_url, # URI de la page referral
            :duration

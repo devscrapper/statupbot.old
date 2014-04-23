@@ -6,10 +6,14 @@ require_relative 'advertising/advertising'
 
 
 module Visits
+  class TechnicalError < StandardError
+  end
+  class FunctionalError < StandardError
+
+  end
+
   class Visit
-    class VisitException < StandardError
-      PARAM_DETAILS_MALFORMED = "visit parameters are malformed"
-    end
+
     attr_reader :landing_url
     attr :referrer,
          :durations,
@@ -22,6 +26,7 @@ module Visits
 
     include Referrers
     include Advertisings
+
 
     #----------------------------------------------------------------------------------------------------------------
     # class methods
@@ -59,55 +64,64 @@ module Visits
                                 visit_details[:landing][:page_path])
         @referrer = Referrer.build(visit_details[:referrer], @landing_url)
         @advertising = Advertising.build(visit_details[:advert])
-      rescue Exception => e
-        @@logger.an_event.debug e
-        @@logger.an_event.error "visit #{visit_details[:id_visit]} is not built"
-        raise VisitException::PARAM_DETAILS_MALFORMED
-      end
-    end
-
-
-    #----------------------------------------------------------------------------------------------------------------
-    # plan
-    #----------------------------------------------------------------------------------------------------------------
-    # enregistre la visite aupres du schelduler
-    # planifie le referer et les pages
-    #----------------------------------------------------------------------------------------------------------------
-    # input :
-    #----------------------------------------------------------------------------------------------------------------
-    def plan(scheduler)
-      begin
-        scheduler.at @start_date_time do
-          assign_visitor
+        @@logger.an_event.debug "visit #{visit_details[:id_visit]} is built"
+      rescue FunctionalError => e
+        @@logger.an_event.debug e.message
+        case e.message
+          when Referrer::MEDIUM_UNKNOWN, EngineSearch::SEARCH_ENGINE_UNKNOWN
+            raise e
+          else
+            raise FunctionalError, "bad parameters"
         end
-        @@logger.an_event.info "assign visitor to #{@id} is planed at #{@start_date_time}"
-
-        @referer.plan(scheduler, @visitor_id)
-
-        Page.plan(@pages, scheduler, @visitor_id)
-
-        #TODO VALIDATE la planification de la publcité
-        @publicity.plan(scheduler, @visitor_id)
-
-        scheduler.at @stop_date_time do
-          free_visitor
-        end
-        @@logger.an_event.info "free visitor of visit #{@id} is planed at #{stop_date_time}"
-      rescue VisitException => e
-        @@logger.an_event.debug e
-        @@logger.an_event.info "assign or free visitor of visit #{@id} is not plan"
-        raise VisitException, e.message
-      rescue ReferralException => e
-        @@logger.an_event.debug e
-        @@logger.an_event.info "referrer of visit #{@id} is not plan"
-        raise VisitException, e.message
-      rescue PublicityException => e
-        @@logger.an_event.debug e
-        @@logger.an_event.info "publicity of visit #{@id} is not plan"
-        raise VisitException, e.message
+      rescue TechnicalError => e
+        @@logger.an_event.debug e.message
+        @@logger.an_event.fatal "visit #{visit_details[:id_visit]} is not built"
+        raise TechnicalError, "visit is not built"
       end
+  end
 
+
+  #----------------------------------------------------------------------------------------------------------------
+  # plan
+  #----------------------------------------------------------------------------------------------------------------
+  # enregistre la visite aupres du schelduler
+  # planifie le referer et les pages
+  #----------------------------------------------------------------------------------------------------------------
+  # input :
+  #----------------------------------------------------------------------------------------------------------------
+  def plan(scheduler)
+    begin
+      scheduler.at @start_date_time do
+        assign_visitor
+      end
+      @@logger.an_event.info "assign visitor to #{@id} is planed at #{@start_date_time}"
+
+      @referer.plan(scheduler, @visitor_id)
+
+      Page.plan(@pages, scheduler, @visitor_id)
+
+      #TODO VALIDATE la planification de la publcité
+      @publicity.plan(scheduler, @visitor_id)
+
+      scheduler.at @stop_date_time do
+        free_visitor
+      end
+      @@logger.an_event.info "free visitor of visit #{@id} is planed at #{stop_date_time}"
+    rescue VisitException => e
+      @@logger.an_event.debug e
+      @@logger.an_event.info "assign or free visitor of visit #{@id} is not plan"
+      raise VisitException, e.message
+    rescue ReferralException => e
+      @@logger.an_event.debug e
+      @@logger.an_event.info "referrer of visit #{@id} is not plan"
+      raise VisitException, e.message
+    rescue PublicityException => e
+      @@logger.an_event.debug e
+      @@logger.an_event.info "publicity of visit #{@id} is not plan"
+      raise VisitException, e.message
     end
 
   end
+
+end
 end

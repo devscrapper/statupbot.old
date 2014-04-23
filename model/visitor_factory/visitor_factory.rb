@@ -7,21 +7,22 @@ module VisitorFactory
   #--------------------------------------------------------------------------------------------------------------------
   # return code Visitor_Bot
   #--------------------------------------------------------------------------------------------------------------------
-  VISIT_IS_NOT_DEFINE = 1
-  VISITOR_NOT_LOADED_VISIT_FILE = 2
-  VISITOR_NOT_BUILT_VISIT = 3
-  VISITOR_NOT_BUILT_VISIT_BAD_PROPERTIES = 4
-  VISITOR_IS_NOT_BORN = 10
-  VISITOR_IS_NOT_BORN_CONFIG_ERROR = 11
-  VISITOR_IS_NOT_BORN_TECHNICAL_ERROR = 12
-  VISITOR_NOT_OPEN_BROWSER = 20
-  VISITOR_NOT_EXECUTE_VISIT = 30
-  SERVER_START_PAGE_IS_NOT_STARTED = 31
-  VISITOR_NOT_FOUND_LANDING_PAGE = 32
-  VISITOR_NOT_SURF_COMPLETLY = 33
-  VISITOR_NOT_CLOSE_BROWSER = 40
-  VISITOR_NOT_DIE = 50
-  VISITOR_NOT_INHUME = 60
+  VISIT_NOT_BUILT = 10
+  VISIT_FILE_NOT_LOADED = 11
+  VISIT_MEDIUM_REFERER_UNKNOWN = 12
+  VISIT_ENGINE_REFERER_UNKNOWN = 13
+  VISIT_BAD_PROPERTIES = 14
+  VISITOR_IS_NOT_BORN = 20
+  VISITOR_IS_NOT_BORN_CONFIG_ERROR = 21
+  VISITOR_IS_NOT_BORN_TECHNICAL_ERROR = 22
+  VISITOR_NOT_OPEN_BROWSER = 30
+  VISITOR_NOT_EXECUTE_VISIT = 40
+  SERVER_START_PAGE_IS_NOT_STARTED = 41
+  VISITOR_NOT_FOUND_LANDING_PAGE = 42
+  VISITOR_NOT_SURF_COMPLETLY = 43
+  VISITOR_NOT_CLOSE_BROWSER = 50
+  VISITOR_NOT_DIE = 60
+  VISITOR_NOT_INHUME = 70
 
 
   #--------------------------------------------------------------------------------------------------------------------
