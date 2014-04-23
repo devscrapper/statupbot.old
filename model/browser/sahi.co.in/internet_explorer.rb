@@ -137,6 +137,7 @@ module Browsers
       # est utilisé pour recuperer le pid, pour tuer le browser si Sahi n'a pas réussi
       #-----------------------------------------------------------------------------------------------------------------
 
+=begin
       def get_pid(id_browser)
         @@logger.an_event.debug "begin get_pid"
         raise FunctionalException, "id browser is not defined" if id_browser.nil?
@@ -197,6 +198,7 @@ module Browsers
           end
         }
       end
+=end
 
 
       #----------------------------------------------------------------------------------------------------------------
