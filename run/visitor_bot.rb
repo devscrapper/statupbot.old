@@ -96,12 +96,14 @@ VISITOR_IS_NOT_BORN_CONFIG_ERROR = 21
 VISITOR_IS_NOT_BORN_TECHNICAL_ERROR = 22
 VISITOR_NOT_OPEN_BROWSER = 30
 VISITOR_NOT_EXECUTE_VISIT = 40
-SERVER_START_PAGE_IS_NOT_STARTED = 41
-VISITOR_NOT_FOUND_LANDING_PAGE = 42
-VISITOR_NOT_SURF_COMPLETLY = 43
-VISITOR_NOT_CLOSE_BROWSER = 50
-VISITOR_NOT_DIE = 60
-VISITOR_NOT_INHUME = 70
+REFERRER_NOT_DISPLAY_START_PAGE = 41
+REFERRER_NOT_FOUND_LANDING_PAGE = 42
+REFERRAL_NOT_FOUND_LANDING_LINK = 43
+SEARCH_NOT_FOUND_LANDING_LINK = 44
+VISITOR_NOT_SURF_COMPLETLY = 50
+VISITOR_NOT_CLOSE_BROWSER = 60
+VISITOR_NOT_DIE = 70
+VISITOR_NOT_INHUME = 80
 OK = 0
 =begin
 class Connection < EventMachine::Connection
@@ -216,7 +218,7 @@ def visitor_build_visit(visit_details)
       when Referrer::MEDIUM_UNKNOWN
         [VISIT_MEDIUM_REFERER_UNKNOWN, nil]
       when EngineSearch::SEARCH_ENGINE_UNKNOWN
-        [VISIT_ENGINE_REFERER_UNKNOWN,nil]
+        [VISIT_ENGINE_REFERER_UNKNOWN, nil]
       else
         [VISIT_BAD_PROPERTIES, nil]
     end
@@ -268,19 +270,28 @@ def visitor_browse_referrer(visitor, visit)
     landing_page = visitor.browse(visit.referrer)
     [OK, landing_page]
 
-  rescue FunctionalError::CANNOT_DISPLAY_START_PAGE => e
-    @@logger.an_event.debug e.message
-    @@logger.an_event.error "visitor #{@id} cannot browser start page"
-    visitor_close_browser(visitor)
-    visitor_die(visitor)
-    [SERVER_START_PAGE_IS_NOT_STARTED, nil]
-
-  rescue Exception => e
+  rescue Visitors::FunctionalError => e
     @@logger.an_event.debug e.message
     @@logger.an_event.error "visitor #{@id} not found landing page"
     visitor_close_browser(visitor)
     visitor_die(visitor)
-    [VISITOR_NOT_FOUND_LANDING_PAGE, nil]
+    case e.message
+      when Visitor::REFERRER_NOT_DISPLAY_START_PAGE
+        [REFERRER_NOT_DISPLAY_START_PAGE, nil]
+      when Visitor::REFERRER_NOT_FOUND_LANDING_PAGE
+        [REFERRER_NOT_FOUND_LANDING_PAGE, nil]
+      when Visitor::REFERRAL_NOT_FOUND_LANDING_LINK
+        [REFERRAL_NOT_FOUND_LANDING_LINK, nil]
+      when Visitor::SEARCH_NOT_FOUND_LANDING_LINK
+        [SEARCH_NOT_FOUND_LANDING_LINK, nil]
+    end
+
+  rescue Visitors::TechnicalError, Exception => e
+    @@logger.an_event.debug e.message
+    @@logger.an_event.error "visitor #{@id} not found landing page"
+    visitor_close_browser(visitor)
+    visitor_die(visitor)
+    [REFERRER_NOT_FOUND_LANDING_PAGE, nil]
   end
 end
 
@@ -297,6 +308,7 @@ def visitor_surf(visitor, visit, landing_page)
     [VISITOR_NOT_EXECUTE_VISIT, nil]
   end
 end
+
 =begin
 
 def visitor_execute_visit(visitor, visit)
@@ -417,7 +429,7 @@ def visitor_is_no_slave(opts)
   #---------------------------------------------------------------------------------------------------------------------
   if cr == OK
     #TODO meo le surf de la visit
-#    cr, page = visitor_surf(visitor, visit, landing_page)
+    #    cr, page = visitor_surf(visitor, visit, landing_page)
   end
   #---------------------------------------------------------------------------------------------------------------------
   # Visitor close its browser
