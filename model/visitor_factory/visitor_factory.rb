@@ -7,6 +7,7 @@ module VisitorFactory
   #--------------------------------------------------------------------------------------------------------------------
   # return code Visitor_Bot
   #--------------------------------------------------------------------------------------------------------------------
+  OK = 0
   VISIT_NOT_BUILT = 10
   VISIT_FILE_NOT_LOADED = 11
   VISIT_MEDIUM_REFERER_UNKNOWN = 12
@@ -44,18 +45,23 @@ module VisitorFactory
   STAT_VISIT_ERROR_NOT_LOADED = 2
   STAT_VISIT_ERROR_NOT_BUILT = 3
   STAT_VISIT_ERROR_BAD_PROPERTIES = 4
-  STAT_VISIT_NOT_EXECUTE = 5
-  STAT_VISITOR_ERROR_NOT_BORN = 6
-  STAT_VISITOR_ERROR_NOT_OPEN_BROWSER = 7
-  STAT_VISITOR_ERROR_NOT_FOUND_LANDING_PAGE = 8
-  STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER = 9
-  STAT_VISITOR_ERROR_NOT_DIE = 10
-  STAT_VISITOR_ERROR_DIE_DIRTY = 11
+  STAT_VISIT_ERROR_MEDIUM = 5
+  STAT_VISIT_ERROR_ENGINE = 6
+  STAT_VISIT_NOT_EXECUTE = 7
+  STAT_VISITOR_ERROR_NOT_BORN = 8
+  STAT_VISITOR_ERROR_NOT_OPEN_BROWSER = 9
+  STAT_VISITOR_ERROR_NOT_FOUND_LANDING_PAGE = 10
+  STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER = 11
+  STAT_VISITOR_ERROR_NOT_DIE = 12
+  STAT_VISITOR_ERROR_DIE_DIRTY = 13
+
   @@statistics[STAT_COUNT_VISIT]=[0, []]
   @@statistics[STAT_VISIT_SUCCESS]=[0, []]
   @@statistics[STAT_VISIT_ERROR_NOT_LOADED]=[0, []]
   @@statistics[STAT_VISIT_ERROR_NOT_BUILT]=[0, []]
   @@statistics[STAT_VISIT_ERROR_BAD_PROPERTIES]=[0, []]
+  @@statistics[STAT_VISIT_ERROR_MEDIUM]=[0, []]
+  @@statistics[STAT_VISIT_ERROR_ENGINE]=[0, []]
   @@statistics[STAT_VISIT_NOT_EXECUTE]=[0, []]
   @@statistics[STAT_VISITOR_ERROR_NOT_BORN]=[0, []]
   @@statistics[STAT_VISITOR_ERROR_NOT_OPEN_BROWSER]=[0, []]
@@ -175,15 +181,21 @@ module VisitorFactory
             FileUtils.rm_r(Dir.glob(files), :force => true)
 
 
-          when VISITOR_NOT_LOADED_VISIT_FILE
+          when VISIT_FILE_NOT_LOADED
             @@statistics[STAT_VISIT_ERROR_NOT_LOADED][0] +=1
             @@statistics[STAT_VISIT_ERROR_NOT_LOADED][1] << id_visit
-          when VISITOR_NOT_BUILT_VISIT
+          when VISIT_NOT_BUILT
             @@statistics[STAT_VISIT_ERROR_NOT_BUILT][0] +=1
             @@statistics[STAT_VISIT_ERROR_NOT_BUILT][1] << id_visit
-          when VISITOR_NOT_BUILT_VISIT_BAD_PROPERTIES
+          when VISIT_BAD_PROPERTIES
             @@statistics[STAT_VISIT_ERROR_BAD_PROPERTIES][0] +=1
             @@statistics[STAT_VISIT_ERROR_BAD_PROPERTIES][1] << id_visit
+          when VISIT_MEDIUM_REFERER_UNKNOWN
+            @@statistics[STAT_VISIT_ERROR_MEDIUM][0] +=1
+            @@statistics[STAT_VISIT_ERROR_MEDIUM][1] << id_visit
+          when VISIT_ENGINE_REFERER_UNKNOWN
+            @@statistics[STAT_VISIT_ERROR_ENGINE][0] +=1
+            @@statistics[STAT_VISIT_ERROR_ENGINE][1] << id_visit
           when VISITOR_IS_NOT_BORN
             @@statistics[STAT_VISITOR_ERROR_NOT_BORN][0] +=1
             @@statistics[STAT_VISITOR_ERROR_NOT_BORN][1] << id_visit
