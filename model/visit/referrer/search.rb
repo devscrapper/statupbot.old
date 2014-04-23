@@ -4,9 +4,8 @@ module Visits
     include EngineSearches
     class Search < Referrer
 
-
-      attr :keywords,
-           :durations,
+      attr_accessor :keywords
+      attr :durations,
            :engine_search
 
 
@@ -24,10 +23,10 @@ module Visits
           raise FunctionalError, e.message
         rescue FunctionalError => e
           @@logger.an_event.debug e.message
-           raise e
+          raise e
         rescue Exception => e
           @@logger.an_event.debug e.message
-            raise FunctionalError, "search referrer is not create"
+          raise FunctionalError, "search referrer is not create"
         end
 
         #case referer_details[:source]

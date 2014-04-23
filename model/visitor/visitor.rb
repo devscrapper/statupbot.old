@@ -13,7 +13,7 @@ module Visitors
   class FunctionalError < StandardError
     VISIT_NOT_DEFINE = "visit is not define"
     REFERRER_NOT_DEFINE = "referrer is not define"
-    CANNOT_DISPLAY_START_PAGE = "referrer cannot display start page"
+
     CANNOT_CLICK_ON_LINK_OF_LANDING_URL = "visitor cannot click on link of landing url"
     LINK_OF_LANDING_URL_NOT_FOUND = "referrer not found link of landing url in results pages search"
     NONE_SEARCH_NOT_FOUND_LANDING_LINK = "none keywords found link of landing url in search"
@@ -46,6 +46,14 @@ module Visitors
       BAD_KEYWORDS = "keywords are bad"
     end
 
+    #----------------------------------------------------------------------------------------------------------------
+    # Message exception
+    #----------------------------------------------------------------------------------------------------------------
+    REFERRER_NOT_DISPLAY_START_PAGE = "referrer not display start page"
+    REFERRER_NOT_FOUND_LANDING_PAGE = "referrer not found landing page"
+    REFERRAL_NOT_FOUND_LANDING_LINK = "referral not found landing link in referral page"
+    SEARCH_NOT_FOUND_LANDING_LINK = "search not found landing link in results page"
+
     DIR_VISITORS = Pathname(File.join(File.dirname(__FILE__), '..', '..', 'visitors')).realpath
     attr_accessor :id,
                   :browser,
@@ -53,12 +61,12 @@ module Visitors
                   :proxy, #sahi : utilise le proxy sahi
                   # webdriver : n'utilise pas le proxy
                   :geolocation # webdriver : utilise la geolocation car il n'y a pas de proxy,
-                               # sahi : n'utilise pas geolocation car pris en charge par le proxy sahi
+    # sahi : n'utilise pas geolocation car pris en charge par le proxy sahi
 
-                               #  include CustomGifRequest
-                               #----------------------------------------------------------------------------------------------------------------
-                               # class methods
-                               #----------------------------------------------------------------------------------------------------------------
+    #  include CustomGifRequest
+    #----------------------------------------------------------------------------------------------------------------
+    # class methods
+    #----------------------------------------------------------------------------------------------------------------
     def self.build(visitor_details)
       #exist_pub_in_visit = true si il existe une pub dans la visit alors on utilise un browser de type webdriver
       #sinon un browser de type sahi
@@ -205,7 +213,8 @@ module Visitors
             @@logger.an_event.info "visitor #{@id} browse start page"
           rescue Exception => e
             @@logger.an_event.debug e.message
-            raise FunctionalError::CANNOT_DISPLAY_START_PAGE
+            @@logger.an_event.debug "end browse referrer"
+            raise FunctionalError, REFERRER_NOT_DISPLAY_START_PAGE
           end
 
         #---------------------------------------------------------------------------------------------------------------
@@ -215,13 +224,14 @@ module Visitors
         #---------------------------------------------------------------------------------------------------------------
         when Referral
           referral_page = nil
+          landing_link = nil
           begin
-            referral_page = @browser.display_start_page(referrer.page_url,@id)
+            referral_page = @browser.display_start_page(referrer.page_url, @id)
             @@logger.an_event.info "visitor #{@id} browse start page"
           rescue Exception => e
             @@logger.an_event.debug e.message
             @@logger.an_event.debug "end browse referrer"
-            raise FunctionalError::CANNOT_DISPLAY_START_PAGE
+            raise FunctionalError, REFERRER_NOT_DISPLAY_START_PAGE
           end
 
           @@logger.an_event.info "visitor #{@id} found referral page #{referral_page.url.to_s}"
@@ -229,11 +239,21 @@ module Visitors
           read(referral_page)
 
           begin
-            landing_page = @browser.click_on(referral_page.link_by_url(referrer.landing_url))
+            landing_link = referral_page.link_by_url(referrer.landing_url)
           rescue Exception => e
             @@logger.an_event.debug e.message
             @@logger.an_event.debug "end browse referrer"
-            raise FunctionalError::CANNOT_CLICK_ON_LINK_OF_LANDING_URL
+            raise FunctionalError, REFERRAL_NOT_FOUND_LANDING_LINK
+          end
+
+
+          begin
+            landing_page = @browser.click_on(landing_link)
+            @@logger.an_event.info "visitor #{@id} click on landing url #{landing_link.url.to_s}"
+          rescue Exception => e
+            @@logger.an_event.debug e.message
+            @@logger.an_event.debug "end browse referrer"
+            raise TechnicalError, REFERRER_NOT_FOUND_LANDING_PAGE
           end
 
         #---------------------------------------------------------------------------------------------------------------
@@ -249,7 +269,7 @@ module Visitors
           rescue Exception => e
             @@logger.an_event.debug e.message
             @@logger.an_event.debug "end browse referrer"
-            raise FunctionalError::CANNOT_DISPLAY_START_PAGE
+            raise FunctionalError, REFERRER_NOT_DISPLAY_START_PAGE
           end
 
           begin
@@ -260,15 +280,13 @@ module Visitors
             raise FunctionalError::LINK_OF_LANDING_URL_NOT_FOUND
           end
 
-
-
           begin
             landing_page = @browser.click_on(landing_link)
             @@logger.an_event.info "visitor #{@id} click on landing url #{landing_link.url.to_s}"
           rescue Exception => e
             @@logger.an_event.debug e.message
             @@logger.an_event.debug "end browse referrer"
-            raise FunctionalError::CANNOT_CLICK_ON_LINK_OF_LANDING_URL
+            raise TechnicalError, REFERRER_NOT_FOUND_LANDING_PAGE
           end
       end
       @@logger.an_event.debug "end browse referrer"
@@ -490,7 +508,7 @@ module Visitors
             @@logger.an_event.debug "end search keyword with engine search"
             raise TechnicalError::CANNOT_CLICK_ON_LINK_OF_NEXT_PAGE
           end
-          retry  # on recommence le begin
+          retry # on recommence le begin
         else
           #toutes les pages ont été passées en revue et le landing link n'a pas été trouvé
           @@logger.an_event.debug "end search keyword with engine search"
