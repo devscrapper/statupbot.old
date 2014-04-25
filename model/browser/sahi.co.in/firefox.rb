@@ -1,11 +1,14 @@
-require_relative '../../page/page'
 module Browsers
   module SahiCoIn
     class Firefox < Browser
-      class FirefoxException < StandardError
+      #----------------------------------------------------------------------------------------------------------------
+      # message exception
+      #----------------------------------------------------------------------------------------------------------------
+      FIREFOX_NOT_CREATE = "firefox not create"
+      #----------------------------------------------------------------------------------------------------------------
+      # include class
+      #----------------------------------------------------------------------------------------------------------------
 
-      end
-      include Pages
       #----------------------------------------------------------------------------------------------------------------
       # class methods
       #----------------------------------------------------------------------------------------------------------------
@@ -17,11 +20,28 @@ module Browsers
       #["operating_system", "Windows"]
       #["operating_system_version", "7"]
       def initialize(visitor_dir, browser_details)
-        super(browser_details)
-        @driver = Browsers::SahiCoIn::Driver.new("#{browser_details[:name]}_#{browser_details[:version]}",
-                                                 @listening_port_proxy)
-        @method_start_page = DATA_URI
-        customize_properties (visitor_dir)
+        @@logger.an_event.debug "BEGIN Firefox.initialize"
+
+        raise TechnicalError, PARAM_NOT_DEFINE if browser_details[:name].nil? or browser_details[:name] == "" or
+            browser_details[:version].nil? or browser_details[:version] == ""  or
+            visitor_dir.nil? or visitor_dir == ""
+
+        @@logger.an_event.debug "name #{browser_details[:name]}"
+        @@logger.an_event.debug "version #{browser_details[:version]}"
+        @@logger.an_event.debug "visitor_dir #{visitor_dir}"
+
+        begin
+          super(browser_details,
+                "#{browser_details[:name]}_#{browser_details[:version]}",
+                DATA_URI,
+                visitor_dir)
+        rescue Exception => e
+          @@logger.an_event.debug e.message
+          @@logger.an_event.error "cannot create firefox"
+          raise TechnicalError, FIREFOX_NOT_CREATE
+        ensure
+          @@logger.an_event.debug "END Firefox.initialize"
+        end
       end
 
       def customize_properties(visitor_dir)
@@ -70,36 +90,41 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       # ouvre un nouvelle fenetre du navigateur adaptée aux propriété du naviagateur et celle de la visit
       # affiche la root page du site https pour initialisé le référer à non défini
+      #@driver.navigate_to "http://jenn.kyrnin.com/about/showreferer.html"
+      #fullscreen=yes|no|1|0 	Whether or not to display the browser in full-screen mode. Default is no. A window in full-screen mode must also be in theater mode. IE only
+      #height=pixels 	The height of the window. Min. value is 100
+      #left=pixels 	The left position of the window. Negative values not allowed
+      #menubar=yes|no|1|0 	Whether or not to display the menu bar
+      #scrollbars=yes|no|1|0 	Whether or not to display scroll bars. IE, Firefox & Opera only
+      #status=yes|no|1|0 	Whether or not to add a status bar
+      #titlebar=yes|no|1|0 	Whether or not to display the title bar. Ignored unless the calling application is an HTML Application or a trusted dialog box
+      #toolbar=yes|no|1|0 	Whether or not to display the browser toolbar. IE and Firefox only
+      #top=pixels 	The top position of the window. Negative values not allowed
+      #width=pixels 	The width of the window. Min. value is 100
+      #@driver.open_start_page("width=#{@width},height=#{@height},fullscreen=no,left=0,menubar=yes,scrollbars=yes,status=yes,titlebar=yes,toolbar=yes,top=0")
+
       #----------------------------------------------------------------------------------------------------------------
       # input : url (String)
       # output : RAS
       # exception : RAS
       #----------------------------------------------------------------------------------------------------------------
       def display_start_page(start_url, visitor_id)
-        #@driver.navigate_to "http://jenn.kyrnin.com/about/showreferer.html"
-        #fullscreen=yes|no|1|0 	Whether or not to display the browser in full-screen mode. Default is no. A window in full-screen mode must also be in theater mode. IE only
-        #height=pixels 	The height of the window. Min. value is 100
-        #left=pixels 	The left position of the window. Negative values not allowed
-        #menubar=yes|no|1|0 	Whether or not to display the menu bar
-        #scrollbars=yes|no|1|0 	Whether or not to display scroll bars. IE, Firefox & Opera only
-        #status=yes|no|1|0 	Whether or not to add a status bar
-        #titlebar=yes|no|1|0 	Whether or not to display the title bar. Ignored unless the calling application is an HTML Application or a trusted dialog box
-        #toolbar=yes|no|1|0 	Whether or not to display the browser toolbar. IE and Firefox only
-        #top=pixels 	The top position of the window. Negative values not allowed
-        #width=pixels 	The width of the window. Min. value is 100
-        #@driver.open_start_page("width=#{@width},height=#{@height},fullscreen=no,left=0,menubar=yes,scrollbars=yes,status=yes,titlebar=yes,toolbar=yes,top=0")
-        @@logger.an_event.debug "begin display_start_page"
-        raise FunctionalError, "start_url is not define" if start_url.nil? or start_url ==""
+        @@logger.an_event.debug "BEGIN Firefox.display_start_page"
+
+        raise FunctionalError, PARAM_NOT_DEFINE if start_url.nil? or start_url =="" or visitor_id.nil?
+
         @@logger.an_event.debug "start_url : #{start_url}"
+        @@logger.an_event.debug "visitor_id : #{visitor_id}"
 
         window_parameters = "width=#{@width},height=#{@height},fullscreen=no,left=0,menubar=yes,scrollbars=yes,status=yes,titlebar=yes,toolbar=yes,top=0"
         @@logger.an_event.debug "windows parameters : #{window_parameters}"
 
-        super("_sahi.open_start_page_ff(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")")
+        cmd = "_sahi.open_start_page_ff(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")"
+        @@logger.an_event.debug "cmd : #{cmd}"
+        page = super(cmd)
+        @@logger.an_event.debug "END Firefox.display_start_page"
+        page
       end
-
-
-
     end
   end
 end

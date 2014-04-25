@@ -55,6 +55,7 @@ module Visitors
     SEARCH_NOT_FOUND_LANDING_LINK = "search not found landing link in results page"
     PARAM_NOT_DEFINE = "some parameter not define"
     CANNOT_SURF = "cannot suf"
+    PARAM_BROWSER_MISTAKEN = "param browser mistaken"
 
     DIR_VISITORS = Pathname(File.join(File.dirname(__FILE__), '..', '..', 'visitors')).realpath
     attr_accessor :id,
@@ -163,15 +164,15 @@ module Visitors
           @browser = Browsers::SahiCoIn::Browser.build(@home,
                                                        visitor_details[:browser])
           @@logger.an_event.info "visitor #{@id} configure browser #{@browser.name} #{@browser.id}"
-        rescue Browsers::FunctionalError => e
-          @@logger.an_event.error e.message
-          raise FunctionalError, "configuration of browser of visitor #{@id} is mistaken"
-          @@logger.an_event.debug "end initialize visitor"
-
-        rescue Browsers::TechnicalError => e
+        rescue FunctionalError => e
           @@logger.an_event.debug e.message
-          raise TechnicalError, "cannot build browser of visitor #{@id}"
           @@logger.an_event.debug "end initialize visitor"
+          raise FunctionalError, PARAM_BROWSER_MISTAKEN
+
+        rescue TechnicalError => e
+          @@logger.an_event.debug e.message
+          @@logger.an_event.debug "end initialize visitor"
+          raise TechnicalError, e.message
         end
 
         #------------------------------------------------------------------------------------------------------------
@@ -556,7 +557,7 @@ module Visitors
           page.duration = durations[i]
           read(page)
           if i < durations.size - 1
-            link = page.link(arounds[i])
+            link = page.link_by_around(arounds[i])
             page = @browser.click_on(link)
           end # on ne clique pas quand on est sur la denriere page
         }

@@ -1,15 +1,14 @@
-require_relative '../../page/page'
-require_relative 'driver'
 module Browsers
   module SahiCoIn
     class InternetExplorer < Browser
+      #----------------------------------------------------------------------------------------------------------------
+      # message exception
+      #----------------------------------------------------------------------------------------------------------------
+      IE_NOT_CREATE = "internet explorer not create"
+      #----------------------------------------------------------------------------------------------------------------
+      # include class
+      #----------------------------------------------------------------------------------------------------------------
 
-      class InternetExplorerException < StandardError
-
-      end
-      include Pages
-
-      #TODO la size du browser nest pas gerer car window.open dans le self
       #----------------------------------------------------------------------------------------------------------------
       # class methods
       #----------------------------------------------------------------------------------------------------------------
@@ -21,67 +20,55 @@ module Browsers
       #["operating_system", "Windows"]
       #["operating_system_version", "7"]
       def initialize(visitor_dir, browser_details)
-        @@logger.an_event.debug "begin initialize internet explorer"
-        super(browser_details)
-        @method_start_page = DATA_URI
+        @@logger.an_event.debug "BEGIN InternetExplorer.initialize"
+        raise TechnicalError, PARAM_NOT_DEFINE if browser_details[:name].nil? or browser_details[:name] == "" or
+            browser_details[:version].nil? or browser_details[:version] == "" or
+            browser_details[:proxy_system].nil? or browser_details[:proxy_system] == "" or
+            visitor_dir.nil? or visitor_dir == ""
+
+        @@logger.an_event.debug "name #{browser_details[:name]}"
+        @@logger.an_event.debug "version #{browser_details[:version]}"
+        @@logger.an_event.debug "proxy system #{browser_details[:proxy_system]}"
+        @@logger.an_event.debug "visitor_dir #{visitor_dir}"
 
         begin
-
-          if @proxy_system
-            browser_type = "#{browser_details[:name]}_#{browser_details[:version]}"
-          else
-            browser_type ="#{browser_details[:name]}_#{browser_details[:version]}_#{@listening_port_proxy}"
-          end
-          @driver = Driver.new(browser_type,
-                               @listening_port_proxy)
-        rescue FunctionalError => e
-          @@logger.an_event.error e.message
-          raise FunctionalError, "configuration of Internet Explorer #{@id} is mistaken"
-        ensure
-          @@logger.an_event.debug "end initialize internet explorer"
-        end
-
-
-        begin
-          customize_properties(visitor_dir)
+          super(browser_details,
+               "#{browser_details[:name]}_#{browser_details[:version]}" + (browser_details[:proxy_system] ? "" : "_#{@listening_port_proxy}"),
+                DATA_URI,
+                visitor_dir)
         rescue Exception => e
-          @@logger.an_event.error e.message
-          raise FunctionalError, "customisation of configuration of Internet Explorer #{@id} failed"
+          @@logger.an_event.debug e.message
+          @@logger.an_event.error "cannot create internet explorer"
+          raise TechnicalError, IE_NOT_CREATE
         ensure
-          @@logger.an_event.debug "end initialize internet explorer"
+          @@logger.an_event.debug "END InternetExplorer.initialize"
         end
       end
 
       def customize_properties(visitor_dir)
-        begin
-          # id_visitor\proxy\tools\proxy.properties :
-          # le port d'ecoute du proxy pour internet explorer
-          file_name = File.join(visitor_dir, 'proxy', 'tools', 'proxy.properties')
-          file_custom = File.read(file_name)
-          file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
-          File.write(file_name, file_custom)
+        # id_visitor\proxy\tools\proxy.properties :
+        # le port d'ecoute du proxy pour internet explorer
+        file_name = File.join(visitor_dir, 'proxy', 'tools', 'proxy.properties')
+        file_custom = File.read(file_name)
+        file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
+        File.write(file_name, file_custom)
 
 
-          # id_visitor\proxy\config\browser_types\win64.xml :
-          # le port d'ecoute du proxy pour internet explorer
-          file_name = File.join(visitor_dir, 'proxy', 'config', 'browser_types', 'win64.xml')
-          file_custom = File.read(file_name)
-          file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
-          file_custom.gsub!(/tool_sandboxing_browser_runtime_path/, Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co', 'tools', 'sandboxing_browser.rb')).realpath.to_s)
-          File.write(file_name, file_custom)
+        # id_visitor\proxy\config\browser_types\win64.xml :
+        # le port d'ecoute du proxy pour internet explorer
+        file_name = File.join(visitor_dir, 'proxy', 'config', 'browser_types', 'win64.xml')
+        file_custom = File.read(file_name)
+        file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
+        file_custom.gsub!(/tool_sandboxing_browser_runtime_path/, Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co', 'tools', 'sandboxing_browser.rb')).realpath.to_s)
+        File.write(file_name, file_custom)
 
-          # id_visitor\proxy\config\browser_types\win32.xml :
-          # le port d'ecoute du proxy pour internet explorer
-          file_name = File.join(visitor_dir, 'proxy', 'config', 'browser_types', 'win32.xml')
-          file_custom = File.read(file_name)
-          file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
-          file_custom.gsub!(/tool_sandboxing_browser_runtime_path/, Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co', 'tools', 'sandboxing_browser.rb')).realpath.to_s)
-          File.write(file_name, file_custom)
-        rescue Exception => e
-          @@logger.an_event.error e.message
-          raise TechnicalError, e.message
-        end
-
+        # id_visitor\proxy\config\browser_types\win32.xml :
+        # le port d'ecoute du proxy pour internet explorer
+        file_name = File.join(visitor_dir, 'proxy', 'config', 'browser_types', 'win32.xml')
+        file_custom = File.read(file_name)
+        file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
+        file_custom.gsub!(/tool_sandboxing_browser_runtime_path/, Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co', 'tools', 'sandboxing_browser.rb')).realpath.to_s)
+        File.write(file_name, file_custom)
       end
 
       #----------------------------------------------------------------------------------------------------------------
@@ -89,6 +76,21 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       # ouvre un nouvelle fenetre du navigateur adaptée aux propriété du naviagateur et celle de la visit
       # affiche la root page du site https pour initialisé le référer à non défini
+      #@driver.navigate_to "http://jenn.kyrnin.com/about/showreferer.html"
+      #channelmode=yes|no|1|0 	Whether or not to display the window in theater mode. Default is no. IE only
+      #fullscreen=yes|no|1|0 	Whether or not to display the browser in full-screen mode. Default is no. A window in full-screen mode must also be in theater mode. IE only
+      #height=pixels 	The height of the window. Min. value is 100
+      #left=pixels 	The left position of the window. Negative values not allowed
+      #menubar=yes|no|1|0 	Whether or not to display the menu bar
+      #resizable=yes|no|1|0 	Whether or not the window is resizable. IE only
+      #scrollbars=yes|no|1|0 	Whether or not to display scroll bars. IE, Firefox & Opera only
+      #status=yes|no|1|0 	Whether or not to add a status bar
+      #titlebar=yes|no|1|0 	Whether or not to display the title bar. Ignored unless the calling application is an HTML Application or a trusted dialog box
+      #toolbar=yes|no|1|0 	Whether or not to display the browser toolbar. IE and Firefox only
+      #top=pixels 	The top position of the window. Negative values not allowed
+      #width=pixels 	The width of the window. Min. value is 100
+      #@driver.open_start_page("width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0")
+
       #----------------------------------------------------------------------------------------------------------------
       # input : url (String)
       # output : Objet Page
@@ -99,32 +101,27 @@ module Browsers
       # Si il est impossible de recuperer les propriétés de la page
       #----------------------------------------------------------------------------------------------------------------
       def display_start_page (start_url, visitor_id)
-        #@driver.navigate_to "http://jenn.kyrnin.com/about/showreferer.html"
-        #channelmode=yes|no|1|0 	Whether or not to display the window in theater mode. Default is no. IE only
-        #fullscreen=yes|no|1|0 	Whether or not to display the browser in full-screen mode. Default is no. A window in full-screen mode must also be in theater mode. IE only
-        #height=pixels 	The height of the window. Min. value is 100
-        #left=pixels 	The left position of the window. Negative values not allowed
-        #menubar=yes|no|1|0 	Whether or not to display the menu bar
-        #resizable=yes|no|1|0 	Whether or not the window is resizable. IE only
-        #scrollbars=yes|no|1|0 	Whether or not to display scroll bars. IE, Firefox & Opera only
-        #status=yes|no|1|0 	Whether or not to add a status bar
-        #titlebar=yes|no|1|0 	Whether or not to display the title bar. Ignored unless the calling application is an HTML Application or a trusted dialog box
-        #toolbar=yes|no|1|0 	Whether or not to display the browser toolbar. IE and Firefox only
-        #top=pixels 	The top position of the window. Negative values not allowed
-        #width=pixels 	The width of the window. Min. value is 100
-        #@driver.open_start_page("width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0")
-        #TODO variabiliser le num de port
-        @@logger.an_event.debug "begin display_start_page"
-        raise FunctionalError, "start_url is not define" if start_url.nil? or start_url ==""
+#TODO variabiliser le num de port
+#TODO la size du browser nest pas gerer car window.open dans le self
+        @@logger.an_event.debug "BEGIN InternetExplorer.display_start_page"
+        raise FunctionalError, PARAM_NOT_DEFINE if start_url.nil? or start_url =="" or visitor_id.nil?
 
         @@logger.an_event.debug "start_url : #{start_url}"
+        @@logger.an_event.debug "visitor_id : #{visitor_id}"
+
+
         window_parameters = "width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0"
         @@logger.an_event.debug "windows parameters : #{window_parameters}"
 
-        super("_sahi.open_start_page_ie(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")")
+        cmd = "_sahi.open_start_page_ie(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")"
+
+        @@logger.an_event.debug "cmd : #{cmd}"
+        page = super(cmd)
+        @@logger.an_event.debug "END InternetExplorer.display_start_page"
+        page
       end
 
-        #-----------------------------------------------------------------------------------------------------------------
+      #-----------------------------------------------------------------------------------------------------------------
       # get_pid
       #-----------------------------------------------------------------------------------------------------------------
       # input : id_browser
@@ -210,11 +207,11 @@ module Browsers
       # output : Array de Link
       #----------------------------------------------------------------------------------------------------------------
       def links
+        #TODO valider son usage
+        @@logger.an_event.info "je passe par la ???????????????????????"
         sleep(3.5)
         super
       end
-
     end
-
   end
 end

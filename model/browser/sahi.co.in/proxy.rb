@@ -2,7 +2,19 @@ require 'pathname'
 module Browsers
   module SahiCoIn
     class Proxy
-
+      #----------------------------------------------------------------------------------------------------------------
+      # message exception
+      #----------------------------------------------------------------------------------------------------------------
+      PROXY_NOT_CREATE = "proxy not create"
+      PROXY_NOT_START = "proxy not start"
+      PROXY_NOT_STOP = "proxy not stop"
+      CLEAN_NOT_COMPLETE = "cleaning config file not complete"
+      #----------------------------------------------------------------------------------------------------------------
+      # include class
+      #----------------------------------------------------------------------------------------------------------------
+      #----------------------------------------------------------------------------------------------------------------
+      # constant
+      #----------------------------------------------------------------------------------------------------------------
       DIR_SAHI = Pathname(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co')).realpath
       DIR_SAHI_TOOLS = Pathname(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co', 'tools')).realpath
       #CLASSPATH PROXY OPEN SOURCE
@@ -28,9 +40,11 @@ module Browsers
               File.join(DIR_SAHI, 'extlib', 'c3p0', 'c3p0-0.9.5-pre5.jar') + ';' +
               File.join(DIR_SAHI, 'extlib', 'c3p0', 'mchange-commons-java-0.2.6.2'))
 
-
       #BIN_JAVA_PATH = "\"C:/Program Files (x86)/Java/jre6/bin/java\""
 
+      #----------------------------------------------------------------------------------------------------------------
+      # attribut
+      #----------------------------------------------------------------------------------------------------------------
       attr :pid, #pid du process java -classpath %class_path% net.sf.sahi.Proxy "%home%" "%user_home%"
            :listening_port_proxy, #port d'écoute de Sahi_proxy
            :home, # répertoire de config de Sahi_proxy
@@ -40,27 +54,66 @@ module Browsers
            :user_geo_proxy,
            :pwd_geo_proxy,
            :visitor_dir
+      #----------------------------------------------------------------------------------------------------------------
+      # class methods
+      #----------------------------------------------------------------------------------------------------------------
+      #----------------------------------------------------------------------------------------------------------------
+      # instance methods
+      #----------------------------------------------------------------------------------------------------------------
+
+      #----------------------------------------------------------------------------------------------------------------
+      # initialize
+      #----------------------------------------------------------------------------------------------------------------
+      # crée un proxy :
+      # inputs
+      # visitor_dir,
+      # listening_port_proxy,
+      # ip_geo_proxy,   (option)
+      # port_geo_proxy, (option)
+      # user_geo_proxy, (option)
+      # pwd_geo_proxy   (option)
+      # output
+      # FunctionalError
+      # TechnicalError
+      #----------------------------------------------------------------------------------------------------------------
+      #----------------------------------------------------------------------------------------------------------------
+      #
+      #----------------------------------------------------------------------------------------------------------------
 
       def initialize(visitor_dir, listening_port_proxy, ip_geo_proxy, port_geo_proxy, user_geo_proxy, pwd_geo_proxy)
-        @@logger.an_event.debug "begin initialize proxy"
-        raise FunctionalError, "listening port proxy sahi is not define" if listening_port_proxy.nil?
-        raise FunctionalError, "visitor runtime directory is not define" if visitor_dir.nil?
+        @@logger.an_event.debug "BEGIN Proxy.initialize"
+        raise FunctionalError, PARAM_NOT_DEFINE if listening_port_proxy.nil? or
+            visitor_dir.nil? or visitor_dir == "" or
+
+            raise TechnicalError, "#{File.join(DIR_SAHI_TOOLS, 'pslist.exe')} not found" unless File.exist?(File.join(DIR_SAHI_TOOLS, 'pslist.exe'))
+        raise TechnicalError, "#{File.join(DIR_SAHI_TOOLS, 'pskill.exe')} not found" unless File.exist?(File.join(DIR_SAHI_TOOLS, 'pskill.exe'))
+
+
+        @@logger.an_event.debug "visitor_dir #{visitor_dir}"
+        @@logger.an_event.debug "listening_port_proxy #{listening_port_proxy}"
+        @@logger.an_event.debug "ip_geo_proxy #{ip_geo_proxy}"
+        @@logger.an_event.debug "port_geo_proxy #{port_geo_proxy}"
+        @@logger.an_event.debug "user_geo_proxy #{user_geo_proxy}"
+        @@logger.an_event.debug "pwd_geo_proxy #{pwd_geo_proxy}"
+
+
         @ip_geo_proxy = ip_geo_proxy
         @port_geo_proxy = port_geo_proxy
         @user_geo_proxy = user_geo_proxy
         @pwd_geo_proxy = pwd_geo_proxy
         @listening_port_proxy = listening_port_proxy
         @visitor_dir = visitor_dir
+
+
         @home = File.join(@visitor_dir, 'proxy')
+        @@logger.an_event.debug "home #{@home}"
         @user_home = File.join(@visitor_dir, 'proxy', 'userdata')
+        @@logger.an_event.debug "user_home #{@user_home}"
         @log_properties = File.join(@user_home, 'config', 'log.properties')
-
-        raise TechnicalError, "#{File.join(DIR_SAHI_TOOLS, 'pslist.exe')} not found" unless File.exist?(File.join(DIR_SAHI_TOOLS, 'pslist.exe'))
-        raise TechnicalError, "#{File.join(DIR_SAHI_TOOLS, 'pskill.exe')} not found" unless File.exist?(File.join(DIR_SAHI_TOOLS, 'pskill.exe'))
-
+        @@logger.an_event.debug "log_properties #{@log_properties}"
 
         begin
-          # on precise le path de localisation de pslist et de pskill avant de copier vers userdata car c'est
+          # on precise le path de localisation de pslist et de pskill avant de copier vers userdata car
           # les path sont identiques pour tous les userdata
           # DIR_SAHI\config\os.properties   avec :
           # le path de pslist
@@ -68,7 +121,7 @@ module Browsers
           file_name = File.join(DIR_SAHI, 'config', 'os.properties')
           file_custom = File.read(file_name)
           file_custom.gsub!(/path_pslist/, File.join(DIR_SAHI_TOOLS, 'pslist.exe'))
-          file_custom.gsub!(/path_pskill/,  File.join(DIR_SAHI_TOOLS, 'pskill.exe'))
+          file_custom.gsub!(/path_pskill/, File.join(DIR_SAHI_TOOLS, 'pskill.exe'))
           File.write(file_name, file_custom)
           @@logger.an_event.debug "customize path of pskill and pslist in #{file_name} with #{file_custom}"
 
@@ -115,38 +168,65 @@ module Browsers
 
           File.write(file_name, file_custom)
           @@logger.an_event.debug "customize properties in #{file_name} with #{file_custom}"
-
         rescue Exception => e
-          @@logger.an_event.error e.message
-          raise TechnicalError, "config files proxy Sahi are not initialized"
+          @@logger.an_event.debug e.message
+          @@logger.an_event.error "config files proxy Sahi are not initialized"
+          raise TechnicalError, PROXY_NOT_CREATE
         ensure
-          @@logger.an_event.debug "proxy #{self.inspect}"
-          @@logger.an_event.debug "end initialize proxy"
+          @@logger.an_event.debug "END Proxy.initialize"
         end
       end
 
+      #----------------------------------------------------------------------------------------------------------------
+      # delete_config
+      #----------------------------------------------------------------------------------------------------------------
+      # delete les fichiers de configuration et d'exécution du proxy :
+      # inputs
+      # output
+      # FunctionalError
+      # TechnicalError
+      #----------------------------------------------------------------------------------------------------------------
+      #----------------------------------------------------------------------------------------------------------------
+      #
+      #----------------------------------------------------------------------------------------------------------------
 
       def delete_config
-        @@logger.an_event.debug "begin delete_config"
+        @@logger.an_event.debug "BEGIN Proxy.delete_config"
         try_count = 0
         max_try_count = 10
+
         begin
           FileUtils.rm_r(@home) if File.exist?(@home)
           @@logger.an_event.debug "config files proxy Sahi are deleted in #{@home}"
         rescue Exception => e
-          @@logger.an_event.debug "config files proxy Sahi are not completly deleted, try #{try_count}"
+          @@logger.an_event.debug "config files proxy Sahi is deleting, try #{try_count}"
           sleep (1)
           try_count += 1
           retry if try_count < max_try_count
           @@logger.an_event.debug e.message
-          raise TechnicalError, "config files proxy Sahi are not completly deleted"
+          @@logger.an_event.error "config files proxy Sahi are not completly deleted"
+          raise TechnicalError, CLEAN_NOT_COMPLETE
         ensure
-          @@logger.an_event.debug "end delete_config"
+          @@logger.an_event.debug "END Proxy.delete_config"
         end
       end
 
+      #----------------------------------------------------------------------------------------------------------------
+      # initialize
+      #----------------------------------------------------------------------------------------------------------------
+      # demarre un proxy :
+      # inputs
+
+      # output
+      # FunctionalError
+      # TechnicalError
+      #----------------------------------------------------------------------------------------------------------------
+      #----------------------------------------------------------------------------------------------------------------
+      #
+      #----------------------------------------------------------------------------------------------------------------
+
       def start
-        @@logger.an_event.debug "begin start proxy"
+        @@logger.an_event.debug "BEGIN Proxy.start"
         begin
           #@pid = spawn("java -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" ") #lanceur proxy open source
           #cmd = "#{BIN_JAVA_PATH} -Djava.util.logging.config.file=#{@log_properties} -classpath #{CLASS_PATH} net.sf.sahi.Proxy \"#{@home}\" \"#{@user_home}\" "
@@ -159,29 +239,40 @@ module Browsers
           @pid = Process.spawn(cmd, [:out, :err] => [sahi_proxy_log_file, "w"])
           @@logger.an_event.debug "proxy Sahi is started with pid #{@pid}"
         rescue Exception => e
-          @@logger.an_event.error e.message
-          raise TechnicalError, "proxy Sahi is not started"
+          @@logger.an_event.debug e.message
+          @@logger.an_event.error "proxy Sahi is not started"
+          raise TechnicalError, PROXY_NOT_START
         ensure
-          # on ne delete pas les fichier s de config pour aider au debugging
-          @@logger.an_event.debug "end start proxy"
+          @@logger.an_event.debug "END Proxy.start"
         end
       end
 
+      #----------------------------------------------------------------------------------------------------------------
+      # stop
+      #----------------------------------------------------------------------------------------------------------------
+      # stop un proxy :
+      # inputs
+      # output
+      # FunctionalError
+      # TechnicalError
+      #----------------------------------------------------------------------------------------------------------------
+      #----------------------------------------------------------------------------------------------------------------
+      #
+      #----------------------------------------------------------------------------------------------------------------
+
       def stop
-        @@logger.an_event.debug "begin stop proxy"
+        @@logger.an_event.debug "BEGIN Proxy.stop"
         begin
           Process.kill("KILL", @pid)
           Process.waitall
           @@logger.an_event.debug "proxy Sahi #{@pid} is stopped"
         rescue SignalException => e
-          @@logger.an_event.error e.message
-          raise TechnicalError, "proxy Sahi #{@pid} is not stopped"
+          @@logger.an_event.debug e.message
+          @@logger.an_event.error "proxy Sahi #{@pid} is not stopped"
+          raise TechnicalError, PROXY_NOT_STOP
         ensure
-          # on ne delete pas les fichier s de config pour aider au debugging
-          @@logger.an_event.debug "end stop proxy"
+          @@logger.an_event.debug "END Proxy.stop"
         end
-
-
       end
     end
   end
