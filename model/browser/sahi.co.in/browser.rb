@@ -11,10 +11,6 @@ require_relative 'driver'
 require_relative 'proxy'
 
 module Browsers
-  class FunctionalError < StandardError
-  end
-  class TechnicalError < StandardError
-  end
   #----------------------------------------------------------------------------------------------------------------
   # Exception message
   #----------------------------------------------------------------------------------------------------------------
@@ -34,6 +30,7 @@ module Browsers
       BROWSER_NOT_CLOSE = "browser not close"
       BROWSER_NOT_CREATE = "browser not create"
       CANNOT_SEARCH = "cannot search"
+      LINK_NOT_EXIST = "link not exist in current page"
       #----------------------------------------------------------------------------------------------------------------
       # include class
       #----------------------------------------------------------------------------------------------------------------
@@ -82,7 +79,7 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       def self.build(visitor_dir, browser_details)
         @@logger.an_event.debug "BEGIN Browser.build"
-        raise TechnicalError, PARAM_NOT_DEFINE if browser_details[:name].nil? or
+        raise StandardError, PARAM_NOT_DEFINE if browser_details[:name].nil? or
             browser_details[:name] == ""
 
         @@logger.an_event.debug "browser #{browser_details[:name]}"
@@ -106,7 +103,7 @@ module Browsers
             #  return Opera.new(visitor_dir, browser_details)
             else
               @@logger.an_event.warn "browser <#{browser_details[:name]}> unknown"
-              raise FunctionalError, BROWSER_UNKNOWN
+              raise StandardError, BROWSER_UNKNOWN
           end
         rescue Exception => e
           @@logger.an_event.debug e.message
@@ -134,7 +131,7 @@ module Browsers
       # :screen_resolution : 1600 x900
       # output : un objet Browser
       # exception :
-      # FunctionalError :
+      # StandardError :
       # si le listening_port_proxy n'est pas defini
       # si la resoltion d'ecran du browser n'est pas definie
       #-----------------------------------------------------------------------------------------------------------------
@@ -147,12 +144,10 @@ module Browsers
         @@logger.an_event.debug "browser_type #{browser_type}"
         @@logger.an_event.debug "method_start_page #{method_start_page}"
 
-        raise TechnicalError, PARAM_NOT_DEFINE if browser_details[:listening_port_proxy].nil? or
+        raise StandardError, PARAM_NOT_DEFINE if browser_details[:listening_port_proxy].nil? or
             browser_details[:screen_resolution].nil? or browser_details[:screen_resolution] == "" or
             browser_type.nil? or browser_type == "" or
             method_start_page.nil? or method_start_page == ""
-
-
 
 
         @id = UUID.generate
@@ -167,53 +162,17 @@ module Browsers
         rescue Exception => e
           @@logger.an_event.debug e.message
           @@logger.an_event.error "cannot create browser"
-          raise TechnicalError, BROWSER_NOT_CREATE
+          case e.message
+            when PARAM_NOT_DEFINE, Driver::BROWSER_TYPE_NOT_EXIST
+              raise StandardError, PARAM_NOT_DEFINE
+            else
+              raise StandardError, BROWSER_NOT_CREATE
+          end
         ensure
           @@logger.an_event.debug "END Browser.initialize"
         end
       end
 
-      #-----------------------------------------------------------------------------------------------------------------
-      # current_page_details
-      #-----------------------------------------------------------------------------------------------------------------
-      # input : none
-      # output : un hash contenant les infos suivantes de la page actuellement affichée dans le browser
-      #  url
-      #  referrer
-      #  titre
-      #  array d'objet Link
-      #  cookies
-      # exception :
-      # FunctionalError :
-      # si la page n'a aucun lien
-      # TechnicalError
-      # si impossibilité technique de recuperer les infos details
-      #-----------------------------------------------------------------------------------------------------------------
-      #
-      #-----------------------------------------------------------------------------------------------------------------
-      def current_page_details
-        @@logger.an_event.debug "BEGIN Browser.current_page_details"
-        page_details = nil
-        begin
-          page_details = @driver.current_page_details
-          page_details["links"].map! { |link|
-            if ["", "_top", "_self", "_parent"].include?(link["target"])
-              Link.new(URI.parse(link["href"]), @driver.link(link["href"]), page_details["title"], link["text"], nil)
-            else
-              @@logger.an_event.debug "link, href <#{link["href"]}> has bad target <#{link["target"]}>, so it is rejected"
-              nil
-            end
-          }.compact
-        rescue Exception => e
-          @@logger.an_event.debug e.message
-          raise TechnicalError, PROPERTIES_PAGE_NOT_FOUND
-        ensure
-          @@logger.an_event.debug "details #{page_details}"
-          @@logger.an_event.debug "END Browser.current_page_details"
-        end
-
-        page_details
-      end
 
       #-----------------------------------------------------------------------------------------------------------------
       # click_on
@@ -221,24 +180,30 @@ module Browsers
       # input : objet Link
       # output : un objet Page
       # exception :
-      # FunctionalError :
+      # StandardError :
       # si link n'est pas defini
-      # TechnicalError :
+      # StandardError :
       # si impossibilité technique de clicker sur le lien
       #-----------------------------------------------------------------------------------------------------------------
       #
       #-----------------------------------------------------------------------------------------------------------------
       def click_on(link)
         @@logger.an_event.debug "BEGIN Browser.click_on"
-        raise TechnicalError, PARAM_NOT_DEFINE if link.nil?
+        raise StandardError, PARAM_NOT_DEFINE if link.nil?
         @@logger.an_event.debug "link #{link.to_s}"
+
+
+        #if !link.exists?
+        #  @@logger.an_event.error "link #{link.to_s} not found"
+        #  raise StandardError, LINK_NOT_EXIST
+        #end
 
         begin
           link.click
         rescue Exception => e
           @@logger.an_event.debug e.message
           @@logger.an_event.debug "END Browser.click_on"
-          raise TechnicalError, CANNOT_CLICK_ON_LINK
+          raise StandardError, CANNOT_CLICK_ON_LINK
         ensure
 
         end
@@ -247,11 +212,11 @@ module Browsers
 
         begin
           start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-          page_details = current_page_details
+          page_details = @driver.current_page_details
         rescue Exception => e
           @@logger.an_event.debug e.message
           @@logger.an_event.debug "END Browser.click_on"
-          raise TechnicalError, PROPERTIES_PAGE_NOT_FOUND
+          raise StandardError, PROPERTIES_PAGE_NOT_FOUND
         ensure
 
         end
@@ -273,14 +238,14 @@ module Browsers
       # input : url (String)
       # output : Objet Page
       # exception :
-      # TechnicalError :
+      # StandardError :
       # si il est impossble d'ouvrir la page start
-      # FunctionalError :
+      # StandardError :
       # Si il est impossible de recuperer les propriétés de la page
       #----------------------------------------------------------------------------------------------------------------
       def display_start_page (url_start_page)
         @@logger.an_event.debug "BEGIN Browser.display_start_page"
-        raise TechnicalError, PARAM_NOT_DEFINE if url_start_page.nil?
+        raise StandardError, PARAM_NOT_DEFINE if url_start_page.nil?
         @@logger.an_event.debug "url_start_page : #{url_start_page}"
 
         begin
@@ -288,7 +253,7 @@ module Browsers
         rescue Exception => e
           @@logger.an_event.debug e.message
           @@logger.an_event.debug "END Browser.display_start_page"
-          raise TechnicalError, CANNOT_DISPLAY_PAGE
+          raise StandardError, CANNOT_DISPLAY_PAGE
         ensure
 
         end
@@ -297,11 +262,11 @@ module Browsers
 
         begin
           start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-          page_details = current_page_details
+          page_details = @driver.current_page_details
         rescue Exception => e
           @@logger.an_event.debug e.message
           @@logger.an_event.debug "END Browser.display_start_page"
-          raise TechnicalError, PROPERTIES_PAGE_NOT_FOUND
+          raise StandardError, PROPERTIES_PAGE_NOT_FOUND
         end
 
         start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"], Time.now - start_time)
@@ -316,7 +281,7 @@ module Browsers
       # input : id_browser
       # output : tableau contenant les pids du browser
       # exception :
-      # FunctionalError :
+      # StandardError :
       # si id_browser n'est pas défini
       # si aucun pid n'a pu être associé à l'id_browser
       #-----------------------------------------------------------------------------------------------------------------
@@ -324,7 +289,7 @@ module Browsers
       #-----------------------------------------------------------------------------------------------------------------
       def get_pid(id_browser)
         @@logger.an_event.debug "begin get_pid"
-        raise FunctionalError, "id browser is not defined" if id_browser.nil?
+        raise StandardError, "id browser is not defined" if id_browser.nil?
 
         if OS.windows?
           pid_arr = nil
@@ -341,11 +306,11 @@ module Browsers
               pid_arr = CSV.table(pids_name_file).by_col[:id]
               @@logger.an_event.debug "pids catch : #{pid_arr}"
               File.delete(pids_name_file)
-              raise FunctionalError, "none mainWindowTitle in powershell contains id browser #{id_browser}" if pid_arr == []
+              raise StandardError, "none mainWindowTitle in powershell contains id browser #{id_browser}" if pid_arr == []
             else
-              raise TechnicalError, "file #{pids_name_file} not found"
+              raise StandardError, "file #{pids_name_file} not found"
             end
-          rescue FunctionalError => e
+          rescue StandardError => e
             @@logger.an_event.debug "none mainWindowTitle in powershell contains id browser #{id_browser}, try #{try_count}"
             sleep (1)
             try_count += 1
@@ -353,7 +318,7 @@ module Browsers
             @@logger.an_event.fatal "cannot get pid of #{id_browser}"
           rescue Exception => e
             @@logger.an_event.debug e.message
-            raise FunctionalError, "cannot get pid of #{id_browser}"
+            raise StandardError, "cannot get pid of #{id_browser}"
           ensure
             @@logger.an_event.debug "end get_pid"
           end
@@ -373,16 +338,16 @@ module Browsers
       # input : tableau de pids
       # output : none
       # exception :
-      # FunctionalError :
+      # StandardError :
       # si aucune pid n'est passé à la fonction
-      # TechnicalError :
+      # StandardError :
       # si il n'a pas été possible de tuer le browser
       #-----------------------------------------------------------------------------------------------------------------
       # est utilisé pour recuperer le pid, pour tuer le browser si Sahi n'a pas réussi
       #-----------------------------------------------------------------------------------------------------------------
       def kill(pid_arr)
         @@logger.an_event.debug "begin kill"
-        raise FunctionalError, "no pid" if pid_arr == []
+        raise StandardError, "no pid" if pid_arr == []
 
         pid_arr.each { |pid|
           if OS.windows?
@@ -393,7 +358,7 @@ module Browsers
               Process.waitpid(ps_pid)
             rescue Exception => e
               @@logger.an_event.debug e.message
-              raise TechnicalError, "cannot kill pid #{pid}"
+              raise StandardError, "cannot kill pid #{pid}"
             ensure
               @@logger.an_event.debug "end kill"
             end
@@ -423,7 +388,7 @@ module Browsers
       # input : none
       # output : none
       # exception :
-      # TechnicalError :
+      # StandardError :
       # si il n'a pas été possible de lancer le browser  au moyen de sahi
       # si le titre de la fenetre du browser n'a pas pu être initialisé avec ld_browser
       # si le pid du browser n'a pas pu être recuperé
@@ -439,7 +404,7 @@ module Browsers
         rescue Exception => e
           @@logger.an_event.debug e.message
           @@logger.an_event.debug "END Browser.open"
-          raise TechnicalError, BROWSER_NOT_OPEN
+          raise StandardError, BROWSER_NOT_OPEN
         end
         @@logger.an_event.debug "browser #{name} #{@id} is opened"
 =begin
@@ -451,10 +416,10 @@ module Browsers
         begin
           title_updt = @driver.set_title(@id)
           @@logger.an_event.debug "browser #{name} has set title #{title_updt}"
-        rescue TechnicalError => e
+        rescue StandardError => e
           @@logger.an_event.error e.message
           @@logger.an_event.debug "end open browser"
-          raise TechnicalError, "browser #{name} no set title #{title_updt} with #{@id}"
+          raise StandardError, "browser #{name} no set title #{title_updt} with #{@id}"
         end
         #----------------------------------------------------------------------------------------------------
         #
@@ -464,10 +429,10 @@ module Browsers
         begin
           @pids = get_pid(@id)
           @@logger.an_event.debug "browser #{name} #{@id} pid is retrieve"
-        rescue TechnicalError => e
+        rescue StandardError => e
           @@logger.an_event.fatal e.message
           @@logger.an_event.debug "end open browser"
-          raise TechnicalError, "browser #{name} #{@id} cannot get its pid"
+          raise StandardError, "browser #{name} #{@id} cannot get its pid"
         ensure
           @@logger.an_event.debug "end open browser"
         end
@@ -482,7 +447,7 @@ module Browsers
       # input : none
       # output : none
       # exception :
-      # TechnicalError :
+      # StandardError :
       # si il n'a pas été possible de killer le browser automatiquement avec sahi ou manuellement
       #-----------------------------------------------------------------------------------------------------------------
       #   1-demande la fermeture du browser au driver
@@ -496,7 +461,7 @@ module Browsers
           @@logger.an_event.debug "browser #{name} is closed"
         rescue Exception => e
           @@logger.an_event.debug e.message
-          raise TechnicalError, BROWSER_NOT_CLOSE
+          raise StandardError, BROWSER_NOT_CLOSE
 =begin
           #----------------------------------------------------------------------------------------------------
           #
@@ -506,10 +471,10 @@ module Browsers
           begin
             kill(@pids)
             @@logger.an_event.debug "browser #{name} #{@id} is killed"
-          rescue TechnicalError => e
+          rescue StandardError => e
             @@logger.an_event.error e.message
             @@logger.an_event.debug "end browser quit"
-            raise TechnicalError, "browser #{name} #{@id} is not killed"
+            raise StandardError, "browser #{name} #{@id} is not killed"
           ensure
 
           end
@@ -524,7 +489,7 @@ module Browsers
       # input : les mots et le moteur de recherche
       # output : L'objet Page de la première page des resultats rendu par le moteur
       # exception :
-      # FunctionalError :
+      # StandardError :
       # si les mots cle ne sont pas defini
       # si le moteur de recherche n'est pas defini
       #-----------------------------------------------------------------------------------------------------------------
@@ -535,13 +500,23 @@ module Browsers
       #-----------------------------------------------------------------------------------------------------------------
       def search(keywords, engine_search)
         @@logger.an_event.debug "BEGIN Browser.search"
-        raise TechnicalError, PARAM_NOT_DEFINE if keywords.nil? or keywords==""
-        raise TechnicalError, PARAM_NOT_DEFINE if engine_search.nil?
+        raise StandardError, PARAM_NOT_DEFINE if keywords.nil? or keywords==""
+        raise StandardError, PARAM_NOT_DEFINE if engine_search.nil?
 
         @@logger.an_event.debug "keywords #{keywords}"
         @@logger.an_event.debug "engine_search #{engine_search.class}"
 
         page = nil
+        begin
+          @driver.search(keywords, engine_search)
+          @@logger.an_event.debug "browser #{name} #{@id} submit search form #{engine_search.class}"
+        rescue Exception => e
+          @@logger.an_event.error "browser #{name} #{@id} cannot submit search form #{engine_search.class}"
+          @@logger.an_event.debug "END Browser.search"
+          raise e
+        end
+
+=begin
         begin
           @driver.textbox(engine_search.id_search).value = keywords
           @@logger.an_event.debug "browser #{name} #{@id} enter keywords #{keywords} in search forma #{engine_search.class}"
@@ -552,16 +527,17 @@ module Browsers
           @@logger.an_event.debug e.message
           @@logger.an_event.error "browser #{name} #{@id} cannot submit search form #{engine_search.class}"
           @@logger.an_event.debug "END Browser.search"
-          raise TechnicalError, CANNOT_SEARCH
+          raise StandardError, CANNOT_SEARCH
         end
+=end
 
         begin
           start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-          page_details = current_page_details
+          page_details = @driver.current_page_details
         rescue Exception => e
           @@logger.an_event.debug e.message
           @@logger.an_event.debug "END Browser.search"
-          raise TechnicalError, PROPERTIES_PAGE_NOT_FOUND
+          raise StandardError, PROPERTIES_PAGE_NOT_FOUND
         end
         page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"], Time.now - start_time)
         @@logger.an_event.debug "END Browser.search"
@@ -580,7 +556,7 @@ module Browsers
       #-----------------------------------------------------------------------------------------------------------------
       def wait_on(page)
         @@logger.an_event.debug "BEGIN Browser.wait_on"
-        raise TechnicalError, PARAM_NOT_DEFINE if page.nil?
+        raise StandardError, PARAM_NOT_DEFINE if page.nil?
 
         @@logger.an_event.debug "browser #{name} #{@id} start waiting on page #{page.url}"
 

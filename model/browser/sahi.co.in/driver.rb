@@ -4,14 +4,15 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       # message exception
       #----------------------------------------------------------------------------------------------------------------
-      PROPERTIES_PAGE_NOT_FOUND = "properties page not found"
+      CATCH_PROPERTIES_PAGE_FAILED = "properties page not catch"
       BROWSER_TYPE_NOT_EXIST = "browser type not exist"
-      CLOSE_DRIVER_TIMEOUT = "driver close si timeout"
-      CANNOT_CLOSE_DRIVER = "cannot close driver"
-      CANNOT_CREATE_DRIVER = "cannot create driver"
-      DRIVER_NOT_FOUND_PROXY = "driver not found proxy"
-      CANNOT_OPEN_DRIVER = "cannot open driver"
-      CANNOT_SET_TITLE = "cannot set title"
+      CREATE_DRIVER_FAILED = "driver not create"
+      SAHI_PROXY_NOT_FOUND = "driver not found proxy"
+      OPEN_DRIVER_FAILED = "driver not open"
+      CLOSE_DRIVER_TIMEOUT = "driver close timeout"
+      SET_TITLE_FAILED = "title not set"
+      CLOSE_DRIVER_FAILED = "driver not close"
+      CANNOT_SEARCH = "driver cannot search"
       #----------------------------------------------------------------------------------------------------------------
       # include class
       #----------------------------------------------------------------------------------------------------------------
@@ -39,7 +40,7 @@ module Browsers
       # output :
       #   true : le browser type existe dans au moins un des fichiers lib/sahi.in.co/config/browser_type/win32/64, mac, linux.xml
       # exception :
-      #   TechnicalError : prb d'accès technique aux fichiers.
+      #   StandardError : prb d'accès technique aux fichiers.
       #-----------------------------------------------------------------------------------------------------------------
       # ATTENTION : controle que le browser type est présent dans au moins fichier, pas dans celui utilisé pour l'OS COURANT
       #-----------------------------------------------------------------------------------------------------------------
@@ -59,7 +60,7 @@ module Browsers
               @@logger.an_event.warn "config file #{file_name} not exist"
             end
           }
-          @@logger.an_event.info "browser_type #{@browser_type} found in win32/64, mac, linux files" if exist
+          @@logger.an_event.debug "browser_type #{@browser_type} found in win32/64, mac, linux files" if exist
           @@logger.an_event.error "browser_type #{@browser_type} not found in win32/64, mac, linux files" unless exist
         rescue Exception => e
           @@logger.an_event.debug e.message
@@ -77,7 +78,7 @@ module Browsers
       # input : none
       # output : none
       # exception :
-      # TechnicalError :
+      # StandardError :
       #     - sahi ne peut arreter le navigateur car plusieurs occurences du navigateur s'exécute
       #     - tout autre erreur
       #-----------------------------------------------------------------------------------------------------------------
@@ -87,14 +88,15 @@ module Browsers
         @@logger.an_event.debug "BEGIN Driver.close"
         begin
           exec_command("kill");
+          @@logger.an_event.debug "driver #{@browser_type} close"
         rescue Timeout::Error => e
           @@logger.an_event.debug e.message
           @@logger.an_event.error "driver #{@browser_type} close timeout"
-          raise TechnicalError, CLOSE_DRIVER_TIMEOUT
+          raise StandardError, CLOSE_DRIVER_TIMEOUT
         rescue Exception => e
           @@logger.an_event.debug e.message
           @@logger.an_event.error "driver #{@browser_type} cannot close"
-          raise TechnicalError, CANNOT_CLOSE_DRIVER
+          raise StandardError, CLOSE_DRIVER_FAILED
         ensure
           @@logger.an_event.debug "END Driver.close"
         end
@@ -111,7 +113,7 @@ module Browsers
       #   - title de la page
       #   - cookies de la page
       # exception :
-      # TechnicalError :
+      # StandardError :
       #     - une erreur est survenue lors de l'exécution de la fonction Sahi.prototype.current_page_details contenu
       #     dans le fichier lib/sahi.in.co/htdocs/spr/extensions.js
       #-----------------------------------------------------------------------------------------------------------------
@@ -122,14 +124,31 @@ module Browsers
         details = nil
         begin
           details = JSON.parse(fetch("_sahi.current_page_details()"))
+          @@logger.an_event.debug "details current page #{details}"
+
+          count_links = details["links"].size
+          @@logger.an_event.debug "details count links #{count_links} before cleaning"
+          details["links"].map! { |link|
+            if ["", "_top", "_self", "_parent"].include?(link["target"])
+              link["element"] = link(link["href"])
+              link
+            else
+              nil
+            end
+          }.compact
+          @@logger.an_event.debug "details count links #{details["links"].size} after cleaning"
+          @@logger.an_event.warn "some (#{count_links - details["links"].size}) links were cleaned" if  count_links - details["links"].size > 0
+          @@logger.an_event.debug "driver catch current page details"
         rescue Exception => e
           @@logger.an_event.debug e.message
-          @@logger.an_event.error "driver cannot get current page details"
-          raise TechnicalError, PROPERTIES_PAGE_NOT_FOUND
+          @@logger.an_event.FATAL "driver cannot catch current page details"
+          raise StandardError, CATCH_PROPERTIES_PAGE_FAILED
         ensure
           @@logger.an_event.debug "details #{details}"
           @@logger.an_event.debug "END Driver.current_page_details"
+
         end
+        details
       end
 
 
@@ -141,7 +160,7 @@ module Browsers
       #    listening_port_sahi : le port d'écoute du proxy Sahi
       # output : un objet browser
       # exception :
-      # FunctionalError :
+      # StandardError :
       #     - id_browser n'est pas défini ou absent
       #     - listening_port_sahi n'est pas défini ou absent
       #     - id_browser est absent des fichiers lib/sahi.in.co/config/browser_type/win32/64, mac, linux.xml
@@ -154,7 +173,7 @@ module Browsers
         @@logger.an_event.debug "browser_type #{browser_type}"
         @@logger.an_event.debug "listening_port_sahi #{listening_port_sahi}"
 
-        raise TechnicalError, PARAM_NOT_DEFINE if listening_port_sahi.nil? or browser_type.nil?
+        raise StandardError, PARAM_NOT_DEFINE if listening_port_sahi.nil? or browser_type.nil?
 
 
         @proxy_host = "localhost" #browser_type est utilisé à la place.
@@ -169,12 +188,12 @@ module Browsers
         rescue Exception => e
           @@logger.an_event.debug e.message
           @@logger.an_event.error "cannot create driver for browser type #{@browser_type}"
-          raise TechnicalError, CANNOT_CREATE_DRIVER
+          raise StandardError, CREATE_DRIVER_FAILED
         ensure
           @@logger.an_event.debug "END Driver.initialize"
         end
 
-        raise FunctionalError, BROWSER_TYPE_NOT_EXIST unless exist
+        raise StandardError, BROWSER_TYPE_NOT_EXIST unless exist
       end
 
 
@@ -184,9 +203,9 @@ module Browsers
       # input : none
       # output : none
       # exception :
-      # TechnicalError :
+      # StandardError :
       #     - une erreur est survenue lors de demande de lancement du browser auprès de Sahi.
-      # FunctionalError :
+      # StandardError :
       #     - browser_type n'est pas défini ou absent
       #-----------------------------------------------------------------------------------------------------------------
       #
@@ -205,15 +224,17 @@ module Browsers
           retry if try_count < max_try_count
           if try_count >= max_try_count
             @@logger.an_event.debug e.message
-            @@logger.an_event.error "driver not found proxy"
-            raise TechnicalError, DRIVER_NOT_FOUND_PROXY
+            @@logger.an_event.fatal "driver #{@browser_type} not found proxy"
+            raise StandardError, SAHI_PROXY_NOT_FOUND
           end
         end
 
+        @@logger.an_event.debug "proxy found
+"
         begin
           @sahisid = Time.now.to_f
           start_url = "http://sahi.example.com/_s_/dyn/Driver_initialized"
-          param =  {"browserType" => @browser_type, "startUrl" => start_url}
+          param = {"browserType" => @browser_type, "startUrl" => start_url}
           @@logger.an_event.debug "param #{param}"
           exec_command("launchPreconfiguredBrowser", param)
           i = 0
@@ -222,12 +243,12 @@ module Browsers
             break if is_ready?
             sleep(0.1)
           end
-          @@logger.an_event.debug "open browser #{@browser_type}"
+          @@logger.an_event.debug "open driver #{@browser_type}"
 
-        rescue RuntimeError => e
+        rescue Exception => e
           @@logger.an_event.debug e.message
-          @@logger.an_event.fatal "driver #{@browser_type} cannot start" 
-          raise TechnicalError, CANNOT_OPEN_DRIVER
+          @@logger.an_event.fatal "driver #{@browser_type} not start"
+          raise StandardError, OPEN_DRIVER_FAILED
         ensure
           @@logger.an_event.debug "END Driver.open"
         end
@@ -240,17 +261,18 @@ module Browsers
       # input : title de la fenetre du browser
       # output : title de la fenetre mis a jour
       # exception :
-      # TechnicalError :
+      # StandardError :
       #     - une erreur est survenue lors de l'exécution de la fonction Sahi.prototype.set_title contenu
       #     dans le fichier lib/sahi.in.co/htdocs/spr/extensions.js
-      # FunctionalError :
+      # StandardError :
       #     - title n'est pas défini ou absent
       #-----------------------------------------------------------------------------------------------------------------
       #
       #-----------------------------------------------------------------------------------------------------------------
       def set_title(title)
         @@logger.an_event.debug "BEGIN Driver.set_title"
-        raise TechnicalError, PARAM_NOT_DEFINE if title.nil?
+        @@logger.an_event.debug "title : #{title}"
+        raise StandardError, PARAM_NOT_DEFINE if title.nil?
         title_update = ""
         begin
           title_update = fetch("_sahi.set_title(\"#{title}\")")
@@ -258,14 +280,28 @@ module Browsers
         rescue Exception => e
           @@logger.an_event.debug e.message
           @@logger.an_event.fatal "driver not set title #{title}"
-          raise TechnicalError, CANNOT_SET_TITLE
+          raise StandardError, SET_TITLE_FAILED
         ensure
           @@logger.an_event.debug "END Driver.set_title"
           title_update
         end
       end
 
+      def search(keywords, engine_search)
+        begin
+          textbox(engine_search.id_search).value = keywords
+          @@logger.an_event.debug "driver enter keywords #{keywords} in search forma #{engine_search.class}"
 
+          submit(engine_search.label_search_button).click
+          @@logger.an_event.debug "driver submit search form #{engine_search.class}"
+        rescue Exception => e
+          @@logger.an_event.debug e.message
+          @@logger.an_event.error "driver cannot submit search form #{engine_search.class}"
+          @@logger.an_event.debug "END Driver.search"
+          raise StandardError, CANNOT_SEARCH
+        end
+
+      end
     end
   end
 end

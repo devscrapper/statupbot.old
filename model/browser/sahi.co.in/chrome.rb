@@ -22,7 +22,7 @@ module Browsers
       def initialize(visitor_dir, browser_details)
         @@logger.an_event.debug "BEGIN Chrome.initialize"
 
-        raise TechnicalError, PARAM_NOT_DEFINE if browser_details[:name].nil? or browser_details[:name] == "" or
+        raise StandardError, PARAM_NOT_DEFINE if browser_details[:name].nil? or browser_details[:name] == "" or
             browser_details[:version].nil? or browser_details[:version] == "" or
             visitor_dir.nil? or visitor_dir == ""
 
@@ -33,12 +33,13 @@ module Browsers
         begin
           super(browser_details,
                 "#{browser_details[:name]}_#{browser_details[:version]}",
-                DATA_URI, #@method_start_page = NO_REFERER #cette methode avec chrome nécessite de mettre un delai sinon il recupere le detail de la page avant d'avoir charger la page du referrer
+                NO_REFERER,
+                #DATA_URI,
                 visitor_dir)
         rescue Exception => e
           @@logger.an_event.debug e.message
           @@logger.an_event.error "cannot create chrome"
-          raise TechnicalError, CHROME_NOT_CREATE
+          raise StandardError, CHROME_NOT_CREATE
         ensure
           @@logger.an_event.debug "END Chrome.initialize"
         end
@@ -108,7 +109,7 @@ module Browsers
       def display_start_page(start_url, visitor_id)
         @@logger.an_event.debug "BEGIN Chrome.display_start_page"
 
-        raise FunctionalError, PARAM_NOT_DEFINE if start_url.nil? or start_url =="" or visitor_id.nil?
+        raise StandardError, PARAM_NOT_DEFINE if start_url.nil? or start_url =="" or visitor_id.nil?
 
         @@logger.an_event.debug "start_url : #{start_url}"
         @@logger.an_event.debug "visitor_id : #{visitor_id}"
@@ -121,11 +122,16 @@ module Browsers
 
         #TODO variabiliser le port 8080 dans le paramter file yml de visitor_bot
         #TODO prendre en compte les window parameter pour chrome
-        #start_page = super("_sahi.open_start_page_ch(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}\",\"#{window_parameters}\")")
-        #page = click_on(start_page.link_by_url(start_url))
-        #
-        #page
-        page = super(cmd)
+
+
+        # DATA_URI
+        #page = super(cmd)
+
+        # NO_REFERER
+        start_page = super(cmd)
+        page = click_on(start_page.link_by_url(start_url))
+
+
         @@logger.an_event.debug "END Chrome.display_start_page"
         page
       end

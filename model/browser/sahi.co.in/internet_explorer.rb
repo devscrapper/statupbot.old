@@ -21,7 +21,7 @@ module Browsers
       #["operating_system_version", "7"]
       def initialize(visitor_dir, browser_details)
         @@logger.an_event.debug "BEGIN InternetExplorer.initialize"
-        raise TechnicalError, PARAM_NOT_DEFINE if browser_details[:name].nil? or browser_details[:name] == "" or
+        raise StandardError, PARAM_NOT_DEFINE if browser_details[:name].nil? or browser_details[:name] == "" or
             browser_details[:version].nil? or browser_details[:version] == "" or
             browser_details[:proxy_system].nil? or browser_details[:proxy_system] == "" or
             visitor_dir.nil? or visitor_dir == ""
@@ -39,7 +39,7 @@ module Browsers
         rescue Exception => e
           @@logger.an_event.debug e.message
           @@logger.an_event.error "cannot create internet explorer"
-          raise TechnicalError, IE_NOT_CREATE
+          raise StandardError, IE_NOT_CREATE
         ensure
           @@logger.an_event.debug "END InternetExplorer.initialize"
         end
@@ -95,16 +95,16 @@ module Browsers
       # input : url (String)
       # output : Objet Page
       # exception :
-      # TechnicalError :
+      # StandardError :
       # si il est impossble d'ouvrir la page start
-      # FunctionalError :
+      # StandardError :
       # Si il est impossible de recuperer les propriétés de la page
       #----------------------------------------------------------------------------------------------------------------
       def display_start_page (start_url, visitor_id)
 #TODO variabiliser le num de port
 #TODO la size du browser nest pas gerer car window.open dans le self
         @@logger.an_event.debug "BEGIN InternetExplorer.display_start_page"
-        raise FunctionalError, PARAM_NOT_DEFINE if start_url.nil? or start_url =="" or visitor_id.nil?
+        raise StandardError, PARAM_NOT_DEFINE if start_url.nil? or start_url =="" or visitor_id.nil?
 
         @@logger.an_event.debug "start_url : #{start_url}"
         @@logger.an_event.debug "visitor_id : #{visitor_id}"
@@ -127,7 +127,7 @@ module Browsers
       # input : id_browser
       # output : tableau contenant les pids du browser
       # exception :
-      # FunctionalError :
+      # StandardError :
       # si id_browser n'est pas défini
       # si aucun pid n'a pu être associé à l'id_browser
       #-----------------------------------------------------------------------------------------------------------------
@@ -151,7 +151,7 @@ module Browsers
             @@logger.an_event.debug "pids catch : #{pid_arr}"
             File.delete(pids_name_file)
           else
-            raise TechnicalError, "file #{pids_name_file} not found"
+            raise StandardError, "file #{pids_name_file} not found"
           end
         rescue Exception => e
           @@logger.an_event.debug e.message
@@ -168,9 +168,9 @@ module Browsers
       # input : tableau de pids
       # output : none
       # exception :
-      # FunctionalError :
+      # StandardError :
       # si aucune pid n'est passé à la fonction
-      # TechnicalError :
+      # StandardError :
       # si il n'a pas été possible de tuer le browser
       #-----------------------------------------------------------------------------------------------------------------
       # est utilisé pour recuperer le pid, pour tuer le browser si Sahi n'a pas réussi
@@ -179,7 +179,7 @@ module Browsers
       def kill(pid_arr)
         @@logger.an_event.debug "begin kill"
 
-        raise FunctionalError, "no pid" if pid_arr == []
+        raise StandardError, "no pid" if pid_arr == []
 
         pid_arr.each { |pid|
           begin
@@ -189,7 +189,7 @@ module Browsers
             Process.waitpid(ps_pid)
           rescue Exception => e
             @@logger.an_event.debug e.message
-            raise TechnicalError, "cannot kill pid #{pid}"
+            raise StandardError, "cannot kill pid #{pid}"
           ensure
             @@logger.an_event.debug "end kill"
           end
@@ -197,21 +197,6 @@ module Browsers
       end
 =end
 
-
-      #----------------------------------------------------------------------------------------------------------------
-      # links
-      #----------------------------------------------------------------------------------------------------------------
-      # dans la page courante, liste tous les href issue des tag : <a>, <map>.
-      #----------------------------------------------------------------------------------------------------------------
-      # input : RAS
-      # output : Array de Link
-      #----------------------------------------------------------------------------------------------------------------
-      def links
-        #TODO valider son usage
-        @@logger.an_event.info "je passe par la ???????????????????????"
-        sleep(3.5)
-        super
-      end
     end
   end
 end
