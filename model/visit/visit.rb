@@ -3,17 +3,32 @@ require 'uri'
 require_relative '../../lib/logging'
 require_relative 'referrer/referrer'
 require_relative 'advertising/advertising'
-
+require_relative '../error'
 
 module Visits
-  class TechnicalError < StandardError
-  end
-  class FunctionalError < StandardError
 
-  end
 
   class Visit
+    #----------------------------------------------------------------------------------------------------------------
+    # include class
+    #----------------------------------------------------------------------------------------------------------------
+    include Errors
+    #    include Referrers
+    include Advertisings
 
+    #----------------------------------------------------------------------------------------------------------------
+    # Message exception
+    #----------------------------------------------------------------------------------------------------------------
+    class VisitError < Error
+    end
+    ARGUMENT_UNDEFINE = 700
+    VISIT_NOT_CREATE = 701
+    VISIT_NOT_FOUND = 702
+    VISIT_NOT_LOAD = 703
+
+    #----------------------------------------------------------------------------------------------------------------
+    # attribut
+    #----------------------------------------------------------------------------------------------------------------
     attr_reader :landing_url
     attr :referrer,
          :durations,
@@ -24,13 +39,32 @@ module Visits
          :around
 
 
-    include Referrers
-    include Advertisings
-
-
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
+    def self.build(file_path)
+      @@logger.an_event.debug "BEGIN Visit.build"
+
+      @@logger.an_event.debug "file_path #{file_path}"
+      raise VisitError.new(ARGUMENT_UNDEFINE), "file_path undefine" if file_path.nil?
+      raise VisitError.new(VISIT_NOT_FOUND), "visit file #{file_path} not found" unless File.exist?(file_path)
+
+      begin
+        visit_file = File.open(file_path, "r:BOM|UTF-8:-")
+        visit_details = YAML::load(visit_file.read)
+        visit_file.close
+        #TODO supprimer le fichier de visit  ; quand ? apres execution de la visit ou apres son chargemebnt?
+        #File.delete(file_path)
+        @@logger.an_event.info "visit file #{file_path} load"
+      rescue Exception => e
+        @@logger.an_event.error "visit file #{file_path} not load : #{e.message}"
+        raise VisitError.new(VISIT_NOT_LOAD), "visit file #{file_path} not load"
+      ensure
+        @@logger.an_event.debug "END Visit.build"
+        return visit_details
+      end
+    end
+
     #----------------------------------------------------------------------------------------------------------------
     # build
     #----------------------------------------------------------------------------------------------------------------
@@ -54,6 +88,25 @@ module Visits
     # {"id_visit":"1321","start_date_time":"2013-04-21 00:13:00 +0200","account_ga":"pppppppppppppp","return_visitor":"true","browser":"Internet Explorer","browser_version":"8.0","operating_system":"Windows","operating_system_version":"XP","flash_version":"11.6 r602","java_enabled":"Yes","screens_colors":"32-bit","screen_resolution":"1024x768","referral_path":"(not set)","source":"google","medium":"organic","keyword":"(not provided)","pages":[{"id_uri":"856","delay_from_start":"33","hostname":"centre-aude.epilation-laser-definitive.info","page_path":"/ville-11-castelnaudary.htm","title":"Centre d'épilation laser CASTELNAUDARY centres de remise en forme CASTELNAUDARY"}]}
     #----------------------------------------------------------------------------------------------------------------
     def initialize(visit_details)
+      @@logger.an_event.debug "BEGIN Visit.initialize"
+
+      @@logger.an_event.debug "id_visit #{visit_details[:id_visit]}"
+      @@logger.an_event.debug "visitor #{visit_details[:visitor]}"
+      @@logger.an_event.debug "start_date_time #{visit_details[:start_date_time]}"
+      @@logger.an_event.debug "many_hostname #{visit_details[:website][:many_hostname]}"
+      @@logger.an_event.debug "many_account_ga #{visit_details[:website][:many_account_ga]}"
+      @@logger.an_event.debug "fqdn #{visit_details[:landing][:fqdn]}"
+      @@logger.an_event.debug "page_path #{visit_details[:landing][:page_path]}"
+
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "id_visit undefine" if visit_details[:id_visit].nil?
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "visitor undefine" if visit_details[:visitor].nil?
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "start_date_time undefine" if visit_details[:start_date_time].nil?
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "many_hostname undefine" if visit_details[:website][:many_hostname].nil?
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "many_account_ga undefine" if visit_details[:website][:many_account_ga].nil?
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "fqdn undefine" if visit_details[:landing][:fqdn].nil?
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "page_path undefine" if visit_details[:landing][:page_path].nil?
+
+
       begin
         @id = visit_details[:id_visit]
         @visitor_details = visit_details[:visitor]
@@ -64,31 +117,27 @@ module Visits
                                 visit_details[:landing][:page_path])
         @referrer = Referrer.build(visit_details[:referrer], @landing_url)
         @advertising = Advertising.build(visit_details[:advert])
-        @@logger.an_event.debug "visit #{visit_details[:id_visit]} is built"
-      rescue FunctionalError => e
-        @@logger.an_event.debug e.message
-        case e.message
-          when Referrer::MEDIUM_UNKNOWN, EngineSearch::SEARCH_ENGINE_UNKNOWN
-            raise e
-          else
-            raise FunctionalError, "bad parameters"
-        end
-      rescue TechnicalError => e
-        @@logger.an_event.debug e.message
-        @@logger.an_event.fatal "visit #{visit_details[:id_visit]} is not built"
-        raise TechnicalError, "visit is not built"
+
+        @@logger.an_event.debug "visit #{@id} is create"
+
+      rescue Error => e
+        @@logger.an_event.error "visit #{visit_details[:id_visit]} not create #{e.message}"
+        raise VisitError.new(VISIT_NOT_CREATE, e), "visit #{visit_details[:id_visit]} not create"
+      ensure
+        @@logger.an_event.debug "END Visit.initialize"
       end
-  end
+    end
 
 
-  #----------------------------------------------------------------------------------------------------------------
-  # plan
-  #----------------------------------------------------------------------------------------------------------------
-  # enregistre la visite aupres du schelduler
-  # planifie le referer et les pages
-  #----------------------------------------------------------------------------------------------------------------
-  # input :
-  #----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
+    # plan
+    #----------------------------------------------------------------------------------------------------------------
+    # enregistre la visite aupres du schelduler
+    # planifie le referer et les pages
+    #----------------------------------------------------------------------------------------------------------------
+    # input :
+    #----------------------------------------------------------------------------------------------------------------
+=begin
   def plan(scheduler)
     begin
       scheduler.at @start_date_time do
@@ -122,6 +171,9 @@ module Visits
     end
 
   end
+=end
 
+  end
 end
-end
+
+

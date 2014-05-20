@@ -1,17 +1,26 @@
+require_relative '../error'
+
 module Pages
-  class FunctionalError < StandardError
-  end
-  class TechnicalError < StandardError
-  end
-  PARAM_NOT_DEFINE = "parameter are not define"
+
   class Page
+    #----------------------------------------------------------------------------------------------------------------
+    # include class
+    #----------------------------------------------------------------------------------------------------------------
+    include Errors
+
     #----------------------------------------------------------------------------------------------------------------
     # message exception
     #----------------------------------------------------------------------------------------------------------------
-    PARAM_MALFORMED = "paramaters of page are malformed"
-    AROUND_UNKNOWN = "around unknown"
-    URL_NOT_FOUND = "url not found"
-    NONE_LINK = "page has no link"
+    class PageError < Error
+
+    end
+    ARGUMENT_UNDEFINE = 500
+    PAGE_NOT_CREATE = 501
+    PAGE_AROUND_UNKNOWN = 502
+    URL_NOT_FOUND = 503
+    PAGE_NONE_LINK = 504
+    PAGE_NONE_LINK_BY_AROUND = 505
+    PAGE_NONE_LINK_BY_URL = 506
     #----------------------------------------------------------------------------------------------------------------
     # include class
     #----------------------------------------------------------------------------------------------------------------
@@ -48,8 +57,8 @@ module Pages
     # cookies,
     # duration_search_link=0
     # output
-    # FunctionalError
-    # TechnicalError
+    # StandardError
+    # StandardError
     #----------------------------------------------------------------------------------------------------------------
     #----------------------------------------------------------------------------------------------------------------
     #        #duration est initialisé avec le temps passé à chercher les liens dans la page
@@ -57,9 +66,6 @@ module Pages
 
     def initialize(url, referrer, title, window_tab, links, cookies, duration_search_link=0)
       @@logger.an_event.debug "BEGIN Page.initialize"
-      raise TechnicalError, PARAM_NOT_DEFINE if url.nil? or
-      referrer.nil? or
-          title.nil?
 
       @@logger.an_event.debug "url #{url}"
       @@logger.an_event.debug "referrer #{referrer}"
@@ -68,19 +74,23 @@ module Pages
       @@logger.an_event.debug "window_tab #{window_tab}"
       @@logger.an_event.debug "cookies #{cookies}"
       @@logger.an_event.debug "duration search link #{duration_search_link}"
+
+      raise PageError.new(ARGUMENT_UNDEFINE), "url undefine" if url.nil? or url == ""
+      raise PageError.new(ARGUMENT_UNDEFINE), "referrer undefine" if referrer.nil?
+      raise PageError.new(ARGUMENT_UNDEFINE), "title undefine" if title.nil?
+      raise PageError.new(ARGUMENT_UNDEFINE), "links undefine" if links.nil?
+
       begin
         @url = url.is_a?(URI) ? url : URI.parse(url)
         @referrer = referrer
         @title = title
         @window_tab = window_tab
-        @links= links
+        @links= links.map { |link| Pages::Link.new(URI.parse(link["href"]), link["element"], title, link["text"]) }
         @cookies = cookies
         @duration_search_link = duration_search_link.to_i
       rescue Exception => e
-        @@logger.an_event.debug e.message
-        @@logger.an_event.error "page #{@url.to_s} not created"
-        @@logger.an_event.debug "END Page.initialize"
-        raise FunctionalError, PARAM_MALFORMED
+        @@logger.an_event.error "page #{@url.to_s} not create : #{e.message}"
+        raise PageError.new(PAGE_NOT_CREATE), "page #{@url.to_s} not created"
       ensure
         @@logger.an_event.debug "END Page.initialize"
       end
@@ -93,16 +103,19 @@ module Pages
     # inputs
     # around
     # output
-    # FunctionalError
-    # TechnicalError
+    # StandardError
+    # StandardError
     #----------------------------------------------------------------------------------------------------------------
     #----------------------------------------------------------------------------------------------------------------
     #
     #----------------------------------------------------------------------------------------------------------------
     def link_by_around(around=:inside_fqdn)
       @@logger.an_event.debug "BEGIN Page.link"
-      raise FunctionalError, NONE_LINK if @links.size == 0
       @@logger.an_event.debug "around #{around}"
+
+      raise PageError.new(PAGE_NONE_LINK), "page #{@url.to_s} no link" if @links.size == 0
+
+
       link = nil
       case around
         when :inside_fqdn
@@ -124,8 +137,10 @@ module Pages
         else
           @@logger.an_event.warn "around #{around} unknown"
           @@logger.an_event.debug "END Page.link"
-          raise FunctionalError, AROUND_UNKNOWN
+          raise PageError.new(PAGE_AROUND_UNKNOWN), "around #{around} unknown"
       end
+      raise PageError.new(PAGE_NONE_LINK_BY_AROUND) if link.nil?
+      @@logger.an_event.debug "chosen link #{link.to_s}"
       @@logger.an_event.debug "END Page.link"
       link
     end
@@ -137,8 +152,8 @@ module Pages
     # inputs
     #url
     # output
-    # FunctionalError
-    # TechnicalError
+    # StandardError
+    # StandardError
     #----------------------------------------------------------------------------------------------------------------
     #----------------------------------------------------------------------------------------------------------------
     #      #Retourne un link au hasard de la liste d’ url fournie ou url
@@ -152,9 +167,9 @@ module Pages
 
     def link_by_url(url)
       @@logger.an_event.debug "BEGIN Page.link_by_url"
-      raise TechnicalError, PARAM_NOT_DEFINE if url.nil?
-
       @@logger.an_event.debug "url #{url.to_s}"
+
+      raise PageError.new(ARGUMENT_UNDEFINE), "url undefine" if url.nil?
 
       urls = (url.is_a?(Array)) ? url.map { |u| (u.is_a?(URI)) ? u.to_s : u } : [(url.is_a?(URI)) ? url.to_s : url]
       @@logger.an_event.debug "urls #{urls}"
@@ -165,11 +180,9 @@ module Pages
         @@logger.an_event.debug "include? #{urls.include?(l.url.to_s)}"
         urls.include?(l.url.to_s)
       }
-      if res.size == 0
-        @@logger.an_event.debug "url #{url.to_s} not found"
-        raise FunctionalError, URL_NOT_FOUND
-      end
+
       link = res.shuffle[0]
+      raise PageError.new(PAGE_NONE_LINK_BY_URL), "none link #{url.to_s} found by url" if link.nil?
       @@logger.an_event.debug "chosen link #{link.to_s}"
       @@logger.an_event.debug "END Page.link_by_url"
       link
@@ -187,8 +200,8 @@ module Pages
     # user_geo_proxy, (option)
     # pwd_geo_proxy   (option)
     # output
-    # FunctionalError
-    # TechnicalError
+    # StandardError
+    # StandardError
     #----------------------------------------------------------------------------------------------------------------
     #----------------------------------------------------------------------------------------------------------------
     #

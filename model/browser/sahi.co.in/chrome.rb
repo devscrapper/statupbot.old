@@ -4,7 +4,7 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       # message exception
       #----------------------------------------------------------------------------------------------------------------
-      CHROME_NOT_CREATE = "chrome not create"
+
       #----------------------------------------------------------------------------------------------------------------
       # include class
       #----------------------------------------------------------------------------------------------------------------
@@ -21,14 +21,14 @@ module Browsers
       #["operating_system_version", "7"]
       def initialize(visitor_dir, browser_details)
         @@logger.an_event.debug "BEGIN Chrome.initialize"
-
-        raise StandardError, PARAM_NOT_DEFINE if browser_details[:name].nil? or browser_details[:name] == "" or
-            browser_details[:version].nil? or browser_details[:version] == "" or
-            visitor_dir.nil? or visitor_dir == ""
-
         @@logger.an_event.debug "name #{browser_details[:name]}"
         @@logger.an_event.debug "version #{browser_details[:version]}"
         @@logger.an_event.debug "visitor_dir #{visitor_dir}"
+
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "browser name undefine" if browser_details[:name].nil? or browser_details[:name] == ""
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "browser version undefine" if browser_details[:version].nil? or browser_details[:version] == ""
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "visitor_dir undefine" if visitor_dir.nil? or visitor_dir == ""
+
 
         begin
           super(browser_details,
@@ -37,15 +37,18 @@ module Browsers
                 #DATA_URI,
                 visitor_dir)
         rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.error "cannot create chrome"
-          raise StandardError, CHROME_NOT_CREATE
+          raise e
         ensure
           @@logger.an_event.debug "END Chrome.initialize"
         end
       end
 
       def customize_properties(visitor_dir)
+        @@logger.an_event.debug "BEGIN Chrome.customize_properties"
+        @@logger.an_event.debug "visitor_dir #{visitor_dir}"
+
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "visitor_dir undefine" if visitor_dir.nil? or visitor_dir == ""
+
         # id_visitor\proxy\config\browser_types\win64.xml :
         # le port d'ecoute du proxy pour chrome
         file_name = File.join(visitor_dir, 'proxy', 'config', 'browser_types', 'win64.xml')
@@ -81,6 +84,7 @@ module Browsers
         file_custom.gsub!(/height_browser/, @height)
         file_custom.gsub!(/width_browser/, @width)
         File.write(file_name, file_custom)
+        @@logger.an_event.debug "END Chrome.customize_properties"
       end
 
 
@@ -108,11 +112,11 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       def display_start_page(start_url, visitor_id)
         @@logger.an_event.debug "BEGIN Chrome.display_start_page"
-
-        raise StandardError, PARAM_NOT_DEFINE if start_url.nil? or start_url =="" or visitor_id.nil?
-
         @@logger.an_event.debug "start_url : #{start_url}"
         @@logger.an_event.debug "visitor_id : #{visitor_id}"
+
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "start_url undefine" if start_url.nil? or start_url ==""
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "visitor_id undefine" if visitor_id.nil? or visitor_id == ""
 
         window_parameters = "width=#{@width},height=#{@height},fullscreen=0,left=0,menubar=1,status=1,titlebar=1,top=0"
         @@logger.an_event.debug "windows parameters : #{window_parameters}"
@@ -123,17 +127,20 @@ module Browsers
         #TODO variabiliser le port 8080 dans le paramter file yml de visitor_bot
         #TODO prendre en compte les window parameter pour chrome
 
-
         # DATA_URI
         #page = super(cmd)
 
         # NO_REFERER
-        start_page = super(cmd)
-        page = click_on(start_page.link_by_url(start_url))
-
-
-        @@logger.an_event.debug "END Chrome.display_start_page"
-        page
+        begin
+          start_page = super(cmd)
+          page = click_on(start_page.link_by_url(start_url))
+        rescue Exception => e
+          raise e
+        else
+          return page
+        ensure
+          @@logger.an_event.debug "END Chrome.display_start_page"
+        end
       end
     end
   end

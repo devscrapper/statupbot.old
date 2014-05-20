@@ -1,18 +1,34 @@
+
 module Browsers
   module SahiCoIn
     class Driver < Sahi::Browser
       #----------------------------------------------------------------------------------------------------------------
+      # include class
+      #----------------------------------------------------------------------------------------------------------------
+      include Errors
+
+      #----------------------------------------------------------------------------------------------------------------
       # message exception
       #----------------------------------------------------------------------------------------------------------------
-      CATCH_PROPERTIES_PAGE_FAILED = "properties page not catch"
-      BROWSER_TYPE_NOT_EXIST = "browser type not exist"
-      CREATE_DRIVER_FAILED = "driver not create"
-      SAHI_PROXY_NOT_FOUND = "driver not found proxy"
-      OPEN_DRIVER_FAILED = "driver not open"
-      CLOSE_DRIVER_TIMEOUT = "driver close timeout"
-      SET_TITLE_FAILED = "title not set"
-      CLOSE_DRIVER_FAILED = "driver not close"
-      CANNOT_SEARCH = "driver cannot search"
+      class DriverError < Error
+
+      end
+      ARGUMENT_UNDEFINE = 200 # à remonter en code retour de statupbot
+      DRIVER_NOT_CREATE = 201 # à remonter en code retour de statupbot
+      SAHI_PROXY_NOT_FOUND = 202 # à remonter en code retour de statupbot
+      BROWSER_TYPE_NOT_EXIST = 203 # à remonter en code retour de statupbot
+      OPEN_DRIVER_FAILED = 204 # à remonter en code retour de statupbot
+      CLOSE_DRIVER_TIMEOUT = 205 # à remonter en code retour de statupbot
+      CLOSE_DRIVER_FAILED = 206 # à remonter en code retour de statupbot
+      CATCH_PROPERTIES_PAGE_FAILED = 207 # à remonter en code retour de statupbot
+      DRIVER_SEARCH_FAILED = 208 # à remonter en code retour de statupbot
+      BROWSER_TYPE_FILE_NOT_FOUND = 209 # à remonter en code retour de statupbot
+      DRIVER_NOT_ACCESS_URL = 210
+      TEXTBOX_SEARCH_NOT_FOUND = 211
+      SUBMIT_SEARCH_NOT_FOUND = 212
+
+      #SET_TITLE_FAILED = "title not set"
+
       #----------------------------------------------------------------------------------------------------------------
       # include class
       #----------------------------------------------------------------------------------------------------------------
@@ -22,55 +38,15 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       # attribut
       #----------------------------------------------------------------------------------------------------------------
+
+      attr_reader :browser_type
+
       #----------------------------------------------------------------------------------------------------------------
       # class methods
       #----------------------------------------------------------------------------------------------------------------
       #----------------------------------------------------------------------------------------------------------------
       # instance methods
       #----------------------------------------------------------------------------------------------------------------
-
-      def browser_type
-        @browser_type
-      end
-
-      #-----------------------------------------------------------------------------------------------------------------
-      # browser_type_exist?
-      #-----------------------------------------------------------------------------------------------------------------
-      # input : none
-      # output :
-      #   true : le browser type existe dans au moins un des fichiers lib/sahi.in.co/config/browser_type/win32/64, mac, linux.xml
-      # exception :
-      #   StandardError : prb d'accès technique aux fichiers.
-      #-----------------------------------------------------------------------------------------------------------------
-      # ATTENTION : controle que le browser type est présent dans au moins fichier, pas dans celui utilisé pour l'OS COURANT
-      #-----------------------------------------------------------------------------------------------------------------
-      def browser_type_exist?
-        @@logger.an_event.debug "BEGIN Driver.browser_type_exist?"
-        exist = false
-        require 'rexml/document'
-        include REXML
-        #TODO utiliser os.rb pour determiner le fichier browser_type.xml
-        begin
-          ["win32.xml", "win64.xml", "mac.xml", "linux.xml"].each { |file_name|
-            path_name = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co', 'config', "browser_types", file_name)).realpath
-            if File.exist?(path_name)
-              browser_type_file = File.new(path_name)
-              exist ||= REXML::XPath.match(REXML::Document.new(browser_type_file), "browserTypes/browserType/name").map { |e| e.to_a[0] }.include?(@browser_type)
-            else
-              @@logger.an_event.warn "config file #{file_name} not exist"
-            end
-          }
-          @@logger.an_event.debug "browser_type #{@browser_type} found in win32/64, mac, linux files" if exist
-          @@logger.an_event.error "browser_type #{@browser_type} not found in win32/64, mac, linux files" unless exist
-        rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.fatal "access to browser type files failed"
-          raise e
-        ensure
-          @@logger.an_event.debug "END Driver.browser_type_exist?"
-        end
-        exist
-      end
 
       #-----------------------------------------------------------------------------------------------------------------
       # close
@@ -90,20 +66,18 @@ module Browsers
           exec_command("kill");
           @@logger.an_event.debug "driver #{@browser_type} close"
         rescue Timeout::Error => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.error "driver #{@browser_type} close timeout"
-          raise StandardError, CLOSE_DRIVER_TIMEOUT
+          @@logger.an_event.error "driver #{@browser_type} close timeout : #{e.message}"
+          raise DriverError.new(CLOSE_DRIVER_TIMEOUT), "driver #{@browser_type} close timeout"
         rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.error "driver #{@browser_type} cannot close"
-          raise StandardError, CLOSE_DRIVER_FAILED
+          @@logger.an_event.error "driver #{@browser_type} cannot close : #{e.message}"
+          raise DriverError.new(CLOSE_DRIVER_FAILED), "driver #{@browser_type} cannot close"
         ensure
           @@logger.an_event.debug "END Driver.close"
         end
       end
 
       #-----------------------------------------------------------------------------------------------------------------
-      # current_page_details
+      # get_details_current_page
       #-----------------------------------------------------------------------------------------------------------------
       # input : none
       # output : les informations contenu dans la page :
@@ -114,18 +88,20 @@ module Browsers
       #   - cookies de la page
       # exception :
       # StandardError :
-      #     - une erreur est survenue lors de l'exécution de la fonction Sahi.prototype.current_page_details contenu
+      #     - une erreur est survenue lors de l'exécution de la fonction Sahi.prototype.get_details_current_page contenu
       #     dans le fichier lib/sahi.in.co/htdocs/spr/extensions.js
       #-----------------------------------------------------------------------------------------------------------------
       #
       #-----------------------------------------------------------------------------------------------------------------
-      def current_page_details
-        @@logger.an_event.debug "END Driver.current_page_details"
+      def get_details_current_page
+        @@logger.an_event.debug "END Driver.get_details_current_page"
         details = nil
         begin
+          raise DriverError.new(DRIVER_NOT_ACCESS_URL), "driver not access url" if div("error_connect").exists?
+
           details = JSON.parse(fetch("_sahi.current_page_details()"))
           @@logger.an_event.debug "details current page #{details}"
-
+          #TODO à supprimer si aucun ecart n'est constaté entre count_links et details["links"]
           count_links = details["links"].size
           @@logger.an_event.debug "details count links #{count_links} before cleaning"
           details["links"].map! { |link|
@@ -136,19 +112,20 @@ module Browsers
               nil
             end
           }.compact
+
           @@logger.an_event.debug "details count links #{details["links"].size} after cleaning"
           @@logger.an_event.warn "some (#{count_links - details["links"].size}) links were cleaned" if  count_links - details["links"].size > 0
-          @@logger.an_event.debug "driver catch current page details"
+          #TODO à supprimer
+          @@logger.an_event.debug "driver catch details current page"
         rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.FATAL "driver cannot catch current page details"
-          raise StandardError, CATCH_PROPERTIES_PAGE_FAILED
+          @@logger.an_event.fatal "driver cannot catch details current page : #{e.message}"
+          raise DriverError.new(CATCH_PROPERTIES_PAGE_FAILED, e), "driver cannot catch details current page"
+        else
+          @@logger.an_event.debug "details #{details.nil? ? "empty" : details}"
+          return details
         ensure
-          @@logger.an_event.debug "details #{details}"
-          @@logger.an_event.debug "END Driver.current_page_details"
-
+          @@logger.an_event.debug "END Driver.get_details_current_page"
         end
-        details
       end
 
 
@@ -173,8 +150,9 @@ module Browsers
         @@logger.an_event.debug "browser_type #{browser_type}"
         @@logger.an_event.debug "listening_port_sahi #{listening_port_sahi}"
 
-        raise StandardError, PARAM_NOT_DEFINE if listening_port_sahi.nil? or browser_type.nil?
 
+        raise DriverError.new(ARGUMENT_UNDEFINE), "browser_type undefine" if browser_type.nil? or browser_type == ""
+        raise DriverError.new(ARGUMENT_UNDEFINE), "listening_port undefine" if listening_port_sahi.nil? or listening_port_sahi.nil? == ""
 
         @proxy_host = "localhost" #browser_type est utilisé à la place.
         @proxy_port = listening_port_sahi #est utilisé par check_proxy(), pour le reste browser_type est utilisé
@@ -183,17 +161,42 @@ module Browsers
         @sahisid = nil
         @print_steps = false
         @browser_type = browser_type.gsub(" ", "_")
+
+        #-----------------------------------------------------------------------------------------------------------------
+        #  check si browser type est defini dans les fichiers *.xml
+        #-----------------------------------------------------------------------------------------------------------------
+        require 'os'
+        browser_type_file = ""
+        if OS.windows?
+          browser_type_file = "win32.xml" if ENV["ProgramFiles(x86)"].nil?
+          browser_type_file = "win64.xml" unless ENV["ProgramFiles(x86)"].nil?
+        end
+        browser_type_file = "mac.xml" if OS.mac?
+        browser_type_file = "linux" if OS.linux?
+
         begin
-          exist = browser_type_exist?
+          require 'rexml/document'
+          include REXML
+
+          exist = false
+          path_name = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co', 'config', "browser_types", browser_type_file)).realpath
+          if File.exist?(path_name)
+            browser_type_file = File.new(path_name)
+            exist ||= REXML::XPath.match(REXML::Document.new(browser_type_file), "browserTypes/browserType/name").map { |e| e.to_a[0] }.include?(@browser_type)
+            @@logger.an_event.debug "browser type #{@browser_type} exist ? #{exist}"
+          else
+            raise DriverError.new(BROWSER_TYPE_FILE_NOT_FOUND), "browser type file #{path_name} not exist"
+          end
+
+          raise DriverError.new(BROWSER_TYPE_NOT_EXIST), "browser type #{@browser_type} not exist" unless exist
+          @@logger.an_event.debug "driver #{@browser_type} create"
         rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.error "cannot create driver for browser type #{@browser_type}"
-          raise StandardError, CREATE_DRIVER_FAILED
+          @@logger.an_event.fatal "driver #{@browser_type} not create : #{e.message}"
+          raise DriverError.new(DRIVER_NOT_CREATE, e), "driver #{@browser_type} not create"
         ensure
           @@logger.an_event.debug "END Driver.initialize"
         end
 
-        raise StandardError, BROWSER_TYPE_NOT_EXIST unless exist
       end
 
 
@@ -223,14 +226,13 @@ module Browsers
           sleep(1)
           retry if try_count < max_try_count
           if try_count >= max_try_count
-            @@logger.an_event.debug e.message
-            @@logger.an_event.fatal "driver #{@browser_type} not found proxy"
-            raise StandardError, SAHI_PROXY_NOT_FOUND
+            @@logger.an_event.fatal "driver #{@browser_type} not connect to proxy : #{e.message}"
+            raise DriverError.new(SAHI_PROXY_NOT_FOUND), "driver #{@browser_type} not connect proxy"
           end
         end
 
-        @@logger.an_event.debug "proxy found
-"
+        @@logger.an_event.debug "driver #{@browser_type} connect to proxy"
+
         begin
           @sahisid = Time.now.to_f
           start_url = "http://sahi.example.com/_s_/dyn/Driver_initialized"
@@ -243,12 +245,12 @@ module Browsers
             break if is_ready?
             sleep(0.1)
           end
-          @@logger.an_event.debug "open driver #{@browser_type}"
+
+          @@logger.an_event.debug "driver #{@browser_type} open"
 
         rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.fatal "driver #{@browser_type} not start"
-          raise StandardError, OPEN_DRIVER_FAILED
+          @@logger.an_event.fatal "driver #{@browser_type} not open : #{e.message}"
+          raise DriverError.new(OPEN_DRIVER_FAILED), "driver #{@browser_type} not open"
         ensure
           @@logger.an_event.debug "END Driver.open"
         end
@@ -269,36 +271,60 @@ module Browsers
       #-----------------------------------------------------------------------------------------------------------------
       #
       #-----------------------------------------------------------------------------------------------------------------
-      def set_title(title)
-        @@logger.an_event.debug "BEGIN Driver.set_title"
-        @@logger.an_event.debug "title : #{title}"
-        raise StandardError, PARAM_NOT_DEFINE if title.nil?
-        title_update = ""
-        begin
-          title_update = fetch("_sahi.set_title(\"#{title}\")")
-          @@logger.an_event.debug "title update : #{title_update}, title : #{title}"
-        rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.fatal "driver not set title #{title}"
-          raise StandardError, SET_TITLE_FAILED
-        ensure
-          @@logger.an_event.debug "END Driver.set_title"
-          title_update
-        end
-      end
+      #def set_title(title)
+      #  @@logger.an_event.debug "BEGIN Driver.set_title"
+      #  @@logger.an_event.debug "title : #{title}"
+      #  raise StandardError, PARAM_NOT_DEFINE if title.nil?
+      #  title_update = ""
+      #  begin
+      #    title_update = fetch("_sahi.set_title(\"#{title}\")")
+      #    @@logger.an_event.debug "title update : #{title_update}, title : #{title}"
+      #  rescue Exception => e
+      #    @@logger.an_event.debug e.message
+      #    @@logger.an_event.fatal "driver not set title #{title}"
+      #    raise StandardError, SET_TITLE_FAILED
+      #  ensure
+      #    @@logger.an_event.debug "END Driver.set_title"
+      #    title_update
+      #  end
+      #end
 
+      #-----------------------------------------------------------------------------------------------------------------
+      # search
+      #-----------------------------------------------------------------------------------------------------------------
+      # input : les mots cle que on veut rechercher, l'objet moteur de recherche
+      # output : RAS
+      # exception :
+      # StandardError :
+      #     - une erreur est survenue lors de l'exécution de la fonction Sahi.prototype.set_title contenu
+      #     dans le fichier lib/sahi.in.co/htdocs/spr/extensions.js
+      # StandardError :
+      #     - title n'est pas défini ou absent
+      #-----------------------------------------------------------------------------------------------------------------
+      #
+      #-----------------------------------------------------------------------------------------------------------------
       def search(keywords, engine_search)
+        @@logger.an_event.debug "BEGIN Driver.search"
+        @@logger.an_event.debug "keywords #{keywords}"
+        @@logger.an_event.debug "engine_search #{engine_search.class}"
+
+        raise DriverError.new(ARGUMENT_UNDEFINE), "keywords undefine" if keywords.nil? or keywords==""
+        raise DriverError.new(ARGUMENT_UNDEFINE), "engine_search undefine" if engine_search.nil?
+
+        raise TEXTBOX_SEARCH_NOT_FOUND unless textbox(engine_search.id_search).exists?
+        raise SUBMIT_SEARCH_NOT_FOUND unless submit(engine_search.label_search_button).exists?
+
         begin
-          textbox(engine_search.id_search).value = keywords
-          @@logger.an_event.debug "driver enter keywords #{keywords} in search forma #{engine_search.class}"
+          textbox(engine_search.id_search).value = !keywords.is_a?(String) ? keywords.to_s : keywords
+          @@logger.an_event.debug "driver #{@browser_type} enter keywords #{keywords} in search form #{engine_search.class}"
 
           submit(engine_search.label_search_button).click
-          @@logger.an_event.debug "driver submit search form #{engine_search.class}"
+          @@logger.an_event.debug "driver #{@browser_type} submit search form #{engine_search.class}"
         rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.error "driver cannot submit search form #{engine_search.class}"
+          @@logger.an_event.error "driver #{@browser_type} cannot submit search form #{engine_search.class}  : #{e.message}"
+          raise DriverError.new(DRIVER_SEARCH_FAILED), "driver #{@browser_type} cannot submit search form #{engine_search.class}"
+        ensure
           @@logger.an_event.debug "END Driver.search"
-          raise StandardError, CANNOT_SEARCH
         end
 
       end

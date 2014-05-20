@@ -4,7 +4,6 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       # message exception
       #----------------------------------------------------------------------------------------------------------------
-      FIREFOX_NOT_CREATE = "firefox not create"
       #----------------------------------------------------------------------------------------------------------------
       # include class
       #----------------------------------------------------------------------------------------------------------------
@@ -21,10 +20,13 @@ module Browsers
       #["operating_system_version", "7"]
       def initialize(visitor_dir, browser_details)
         @@logger.an_event.debug "BEGIN Firefox.initialize"
+        @@logger.an_event.debug "name #{browser_details[:name]}"
+        @@logger.an_event.debug "version #{browser_details[:version]}"
+        @@logger.an_event.debug "visitor_dir #{visitor_dir}"
 
-        raise TechnicalError, PARAM_NOT_DEFINE if browser_details[:name].nil? or browser_details[:name] == "" or
-            browser_details[:version].nil? or browser_details[:version] == ""  or
-            visitor_dir.nil? or visitor_dir == ""
+        raise ArgumentError, "browser name undefine" if browser_details[:name].nil? or browser_details[:name] == ""
+        raise ArgumentError, "browser version undefine" if browser_details[:version].nil? or browser_details[:version] == ""
+        raise ArgumentError, "visitor_dir undefine" if visitor_dir.nil? or visitor_dir == ""
 
         @@logger.an_event.debug "name #{browser_details[:name]}"
         @@logger.an_event.debug "version #{browser_details[:version]}"
@@ -36,15 +38,17 @@ module Browsers
                 DATA_URI,
                 visitor_dir)
         rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.error "cannot create firefox"
-          raise TechnicalError, FIREFOX_NOT_CREATE
+          raise e
         ensure
           @@logger.an_event.debug "END Firefox.initialize"
         end
       end
 
       def customize_properties(visitor_dir)
+        @@logger.an_event.debug "BEGIN Firefox.customize_properties"
+        @@logger.an_event.debug "visitor_dir #{visitor_dir}"
+
+        raise ArgumentError, "visitor_dir undefine" if visitor_dir.nil? or visitor_dir == ""
         # id_visitor\proxy\config\ff_profile_template\prefs.js :
         # le port d'ecoute du proxy pour firefox
         file_name = File.join(visitor_dir, 'proxy', 'config', 'ff_profile_template', 'prefs.js')
@@ -83,6 +87,7 @@ module Browsers
         file_custom.gsub!(/height_browser/, @height)
         file_custom.gsub!(/width_browser/, @width)
         File.write(file_name, file_custom)
+        @@logger.an_event.debug "END Firefox.customize_properties"
       end
 
       #----------------------------------------------------------------------------------------------------------------
@@ -111,19 +116,26 @@ module Browsers
       def display_start_page(start_url, visitor_id)
         @@logger.an_event.debug "BEGIN Firefox.display_start_page"
 
-        raise FunctionalError, PARAM_NOT_DEFINE if start_url.nil? or start_url =="" or visitor_id.nil?
-
         @@logger.an_event.debug "start_url : #{start_url}"
         @@logger.an_event.debug "visitor_id : #{visitor_id}"
+
+        raise ArgumentError, "start_url undefine" if start_url.nil? or start_url ==""
+        raise ArgumentError, "visitor_id undefine" if visitor_id.nil? or visitor_id == ""
 
         window_parameters = "width=#{@width},height=#{@height},fullscreen=no,left=0,menubar=yes,scrollbars=yes,status=yes,titlebar=yes,toolbar=yes,top=0"
         @@logger.an_event.debug "windows parameters : #{window_parameters}"
 
         cmd = "_sahi.open_start_page_ff(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")"
         @@logger.an_event.debug "cmd : #{cmd}"
-        page = super(cmd)
-        @@logger.an_event.debug "END Firefox.display_start_page"
-        page
+        begin
+          page = super(cmd)
+        rescue Exception => e
+          raise e
+        else
+          return page
+        ensure
+          @@logger.an_event.debug "END Firefox.display_start_page"
+        end
       end
     end
   end

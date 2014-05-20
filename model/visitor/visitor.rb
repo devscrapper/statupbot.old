@@ -4,60 +4,65 @@ require_relative '../../model/browser/webdriver/browser'
 require_relative '../../model/browser/sahi.co.in/browser'
 require_relative '../visit/referrer/referrer'
 require_relative '../visit/advertising/advertising'
+require_relative '../error'
 require 'pathname'
 
 #require_relative 'customize_queries_connection'
 #require_relative 'custom_gif_request/custom_gif_request'
 #TODO reviser globalement la gestion des erreurs et des exceptions
 module Visitors
-  class FunctionalError < StandardError
-    VISIT_NOT_DEFINE = "visit is not define"
-    REFERRER_NOT_DEFINE = "referrer is not define"
-
-    CANNOT_CLICK_ON_LINK_OF_LANDING_URL = "visitor cannot click on link of landing url"
-    LINK_OF_LANDING_URL_NOT_FOUND = "referrer not found link of landing url in results pages search"
-    NONE_SEARCH_NOT_FOUND_LANDING_LINK = "none keywords found link of landing url in search"
-    SEARCH_NOT_FOUND_LANDING_LINK = "keywords found link of landing url in search"
-    NO_MORE_RESULT_PAGE = "no more results pages"
-    CANNOT_CLICK_ON_LINK_OF_NEXT_PAGE = "cannot click on link of next page"
-    LANDING_PAGE_NOT_FOUND = "landing page not found"
-    CANNOT_CONTINUE_SURF = "visitor cannot surf"
-  end
-  class TechnicalError < StandardError
-
-  end
+  #----------------------------------------------------------------------------------------------------------------
+  # include class
+  #----------------------------------------------------------------------------------------------------------------
   include Geolocations
   include Nationalities
   include Browsers
   include Visits::Referrers
   include Visits::Advertisings
 
-  class Visitor
-    #TODO à supprimer
-    class VisitorException < StandardError
-      CANNOT_CREATE_DIR = "visitor cannot create runtime directory"
-      CANNOT_OPEN_BROWSER = "visitor cannot open browser"
-      CANNOT_CONTINUE_VISIT = "visitor cannot continue visit"
-      NOT_FOUND_LANDING_PAGE = "visitor #{@id} not found landing page"
 
-      CANNOT_CLOSE_BROWSER = "visitor #{@id} cannot close his browser"
-      CANNOT_DIE = "visitor cannot die"
-      DIE_DIRTY = "visitor die dirty"
-      BAD_KEYWORDS = "keywords are bad"
-    end
+  class Visitor
+    #----------------------------------------------------------------------------------------------------------------
+    # include class
+    #----------------------------------------------------------------------------------------------------------------
+    include Errors
+    include Geolocations
+    include Nationalities
+    include Browsers
+    include Visits::Referrers
+    include Visits::Advertisings
 
     #----------------------------------------------------------------------------------------------------------------
     # Message exception
     #----------------------------------------------------------------------------------------------------------------
-    REFERRER_NOT_DISPLAY_START_PAGE = "referrer not display start page"
-    REFERRER_NOT_FOUND_LANDING_PAGE = "referrer not found landing page"
-    REFERRAL_NOT_FOUND_LANDING_LINK = "referral not found landing link in referral page"
-    SEARCH_NOT_FOUND_LANDING_LINK = "search not found landing link in results page"
-    PARAM_NOT_DEFINE = "some parameter not define"
-    CANNOT_SURF = "cannot suf"
-    PARAM_BROWSER_MISTAKEN = "param browser mistaken"
+    class VisitorError < Error
+    end
+    ARGUMENT_UNDEFINE = 600
+    VISITOR_NOT_CREATE = 601 # à remonter en code retour de statupbot
+    SEARCH_NOT_FOUND_LANDING_LINK = 602 # à remonter en code retour de statupbot
+    VISITOR_NOT_BORN = 603 # à remonter en code retour de statupbot
+    VISITOR_NOT_BROWSE_LANDING_PAGE = 604 # à remonter en code retour de statupbot
+    VISITOR_NOT_BROWSE_REFERRAL_PAGE = 605 # à remonter en code retour de statupbot
+    VISITOR_NOT_FOUND_LANDING_LINK = 606 # à remonter en code retour de statupbot
+    VISITOR_NOT_CLICK_ON_LANDING = 607 # à remonter en code retour de statupbot
+    VISITOR_NOT_BROWSE_SEARCH_PAGE = 608 # à remonter en code retour de statupbot
+    VISITOR_NOT_INHUME = 609 # à remonter en code retour de statupbot
+    NO_MORE_RESULT_PAGE = 610
+    VISIT_NOT_COMPLETE = 611
+    CANNOT_CLICK_ON_LINK_OF_NEXT_PAGE = 612
+    VISITOR_NOT_CLOSE = 613
+    VISITOR_NOT_DIE = 614
+    NONE_KEYWORDS_FIND_LANDING_LINK = 615
+    VISITOR_NOT_OPEN = 616
 
+
+    #----------------------------------------------------------------------------------------------------------------
+    # constants
+    #----------------------------------------------------------------------------------------------------------------
     DIR_VISITORS = Pathname(File.join(File.dirname(__FILE__), '..', '..', 'visitors')).realpath
+    #----------------------------------------------------------------------------------------------------------------
+    # attributs
+    #----------------------------------------------------------------------------------------------------------------
     attr_accessor :id,
                   :browser,
                   :home, #repertoire d'execution du visitor
@@ -66,142 +71,173 @@ module Visitors
                   :geolocation # webdriver : utilise la geolocation car il n'y a pas de proxy,
     # sahi : n'utilise pas geolocation car pris en charge par le proxy sahi
 
-    #  include CustomGifRequest
+
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
     def self.build(visitor_details)
       #exist_pub_in_visit = true si il existe une pub dans la visit alors on utilise un browser de type webdriver
       #sinon un browser de type sahi
-      @@logger.an_event.debug "begin build visitor"
-      @@logger.an_event.debug "visitor detail #{visitor_details}"
+      @@logger.an_event.debug "BEGIN Visitor.build"
+      @@logger.an_event.debug "visitor_details #{visitor_details}"
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "visitor_details undefine" if visitor_details.nil?
 
       begin
         # Pour le moment on ne travaille qu'avec SAHI
         return Visitor.new(visitor_details, :sahi)
-        @@logger.an_event.info "visitor is built"
-
       rescue Exception => e
-        @@logger.an_event.debug e.message
+        @@logger.an_event.debug "END Visitor.build"
         raise e
       end
-      @@logger.an_event.info "visitor #{visitor_details[:id]} is born"
-      @@logger.an_event.debug "end build visitor"
+      @@logger.an_event.debug "END Visitor.build"
     end
 
-#----------------------------------------------------------------------------------------------------------------
-# instance methods
-#----------------------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------------------
-# initialize
-#----------------------------------------------------------------------------------------------------------------
-# crée un visitor :
-# - crée le visitor, le browser, la geolocation
-#----------------------------------------------------------------------------------------------------------------
-# input :
-# une visite qui est une ligne du flow : published-visits_label_date_hour.json, sous forme de hash
-#["return_visitor", "true"]
-#["browser", "Firefox"]
-#["browser_version", "16.0"]
-#["operating_system", "Windows"]
-#["operating_system_version", "7"]
-#["flash_version", "11.4 r402"]
-#["java_enabled", "No"]
-#["screens_colors", "24-bit"]
-#["screen_resolution", "1366x768"]
-#----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
+    # instance methods
+    #----------------------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------------------------
+    # born
+    #-----------------------------------------------------------------------------------------------------------------
+    # input : none
+    # output : none
+    # exception :
+    # StandardError :
+    #
+    #-----------------------------------------------------------------------------------------------------------------
+    #  demarre le proxy sahi qui fait office de visitor
+    #-----------------------------------------------------------------------------------------------------------------
+    def born
+      @@logger.an_event.debug "BEGIN Visitor.born"
+      begin
+        @proxy.start
+
+        @@logger.an_event.info "visitor #{@id} born"
+
+      rescue Browsers::Error, Exception => e
+        @@logger.an_event.error "visitor #{@id} not born : #{e.message}"
+        raise VisitorError.new(VISITOR_NOT_BORN, e), "visitor #{@id} not born"
+      ensure
+        @@logger.an_event.debug "END Visitor.born"
+      end
+    end
+
+
+    #----------------------------------------------------------------------------------------------------------------
+    # initialize
+    #----------------------------------------------------------------------------------------------------------------
+    # crée un visitor :
+    # - crée le visitor, le browser, la geolocation
+    #----------------------------------------------------------------------------------------------------------------
+    # input :
+    # une visite qui est une ligne du flow : published-visits_label_date_hour.json, sous forme de hash
+    #["return_visitor", "true"]
+    #["browser", "Firefox"]
+    #["browser_version", "16.0"]
+    #["operating_system", "Windows"]
+    #["operating_system_version", "7"]
+    #["flash_version", "11.4 r402"]
+    #["java_enabled", "No"]
+    #["screens_colors", "24-bit"]
+    #["screen_resolution", "1366x768"]
+    #----------------------------------------------------------------------------------------------------------------
     def initialize(visitor_details, browser_type)
-      @@logger.an_event.debug "begin initialize visitor"
-      raise FunctionalError, "visitor details is not define" if visitor_details.nil?
+      @@logger.an_event.debug "BEGIN Visitor.initialize"
+
+      @@logger.an_event.debug "visitor detail #{visitor_details}"
+      @@logger.an_event.debug "browser type #{browser_type}"
+
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "visitor_details undefine" if visitor_details.nil?
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "browser_type undefine" if browser_type.nil? or browser_type == ""
 
       @id = visitor_details[:id]
 
       if browser_type == :sahi
         @home = File.join(DIR_VISITORS, @id)
-        @@logger.an_event.info "visitor #{@id} create runtime directory #{@home}"
+
         begin
+          #------------------------------------------------------------------------------------------------------------
+          #
           # on fait du nettoyage pour eviter de perturber le proxy avec un paramètrage bancal
+          # creation du repertoitre d'execution du visitor
+          #
+          #------------------------------------------------------------------------------------------------------------
+
           if File.exist?(@home)
             FileUtils.rm_r(@home, :force => true) if File.exist?(@home)
             @@logger.an_event.debug "clean config files visitor dir #{@home}"
           end
           FileUtils.mkdir_p(@home)
-        rescue Exception => e
-          @@logger.an_event.fatal e
-          raise TechnicalError, "visitor #{@id} cannot create runtime directory #{@home}"
-          @@logger.an_event.debug "end initialize visitor"
-        end
-        #------------------------------------------------------------------------------------------------------------
-        #
-        #Configure SAHI PROXY
-        #
-        #------------------------------------------------------------------------------------------------------------
-        begin
+
+          @@logger.an_event.debug "visitor #{@id} create runtime directory #{@home}"
+
+          #------------------------------------------------------------------------------------------------------------
+          #
+          #Configure SAHI PROXY
+          #
+          #------------------------------------------------------------------------------------------------------------
+
           @proxy = Browsers::SahiCoIn::Proxy.new(@home,
                                                  visitor_details[:browser][:listening_port_proxy],
                                                  visitor_details[:browser][:proxy_ip],
                                                  visitor_details[:browser][:proxy_port],
                                                  visitor_details[:browser][:proxy_user],
                                                  visitor_details[:browser][:proxy_pwd])
-          @@logger.an_event.info "visitor #{@id} configure sahi proxy on listening port = #{@proxy.listening_port_proxy}"
-        rescue Browsers::FunctionalError => e
-          @@logger.an_event.debug e.message
-          raise FunctionalError, "configuration of proxy sahi of visitor #{@id} is mistaken"
-          @@logger.an_event.debug "end initialize visitor"
 
-        rescue Browsers::TechnicalError => e
-          @@logger.an_event.debug e.message
-          raise TechnicalError, "cannot build proxy sahi of visitor #{@id}"
-          @@logger.an_event.debug "end initialize visitor"
-        end
+          @@logger.an_event.debug "visitor #{@id} configure sahi proxy on listening port = #{@proxy.listening_port_proxy}"
 
-        #------------------------------------------------------------------------------------------------------------
-        #
-        # configure Browser
-        #
-        #------------------------------------------------------------------------------------------------------------
-        begin
+          #------------------------------------------------------------------------------------------------------------
+          #
+          # configure Browser
+          #
+          #------------------------------------------------------------------------------------------------------------
           @browser = Browsers::SahiCoIn::Browser.build(@home,
                                                        visitor_details[:browser])
-          @@logger.an_event.info "visitor #{@id} configure browser #{@browser.name} #{@browser.id}"
-        rescue FunctionalError => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.debug "end initialize visitor"
-          raise FunctionalError, PARAM_BROWSER_MISTAKEN
 
-        rescue TechnicalError => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.debug "end initialize visitor"
-          raise TechnicalError, e.message
+          @@logger.an_event.debug "visitor #{@id} configure browser #{@browser.name} #{@browser.id}"
+
+          @browser.deploy_properties(@home) if @browser.is_a?(Browsers::SahiCoIn::Opera)
+
+          @@logger.an_event.debug "visitor #{@id} create"
+
+          @@logger.an_event.info "visitor #{@id} create runtime directory, config his proxy Sahi, config his browser"
+        rescue Exception, Browsers::Error => e
+          @@logger.an_event.error "visitor #{@id} not create : #{e.message}"
+          raise VisitorError.new(VISITOR_NOT_CREATE, e), "visitor #{@id} not create"
+
+        ensure
+          @@logger.an_event.debug "END Visitor.initialize"
         end
 
-        #------------------------------------------------------------------------------------------------------------
-        #
-        # start SAHI PROXY
-        #
-        #------------------------------------------------------------------------------------------------------------
-        begin
-          @proxy.start #demarrage du proxy sahi
-          @@logger.an_event.info "visitor #{@id} start sahi proxy pid = #{@proxy.pid}"
-        rescue TechnicalError => e
-          @@logger.an_event.debug e.message
-          raise TechnicalError, "cannot start proxy sahi of visitor #{@id}"
-          @@logger.an_event.debug "end initialize visitor"
-        end
 
-        @browser.deploy_properties(@home) if @browser.is_a?(Browsers::SahiCoIn::Opera)
       else
-        #@geolocation = Geolocation.build() #TODO a revisiter avec la mise en oeuvre des web proxy d'internet
-        #                                   #TODO peut on partager les proxy entre visiteur de site different ?
-        #@browser = Browsers::Webdriver::Browser.build(visitor_details[:browser])
-        #@browser.profile = @geolocation.update_profile(@browser.profile)
+#@geolocation = Geolocation.build() #TODO a revisiter avec la mise en oeuvre des web proxy d'internet
+#                                   #TODO peut on partager les proxy entre visiteur de site different ?
+#@browser = Browsers::Webdriver::Browser.build(visitor_details[:browser])
+#@browser.profile = @geolocation.update_profile(@browser.profile)
       end
+
     end
 
+    #----------------------------------------------------------------------------------------------------------------
+    # initialize
+    #----------------------------------------------------------------------------------------------------------------
+    # demarre un proxy :
+    # inputs
+
+    # output
+    # StandardError
+    # StandardError
+    #----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------------------------------
     def browse(referrer)
-      @@logger.an_event.debug "begin browse referrer"
-      raise FunctionalError::REFERRER_NOT_DEFINE if referrer.nil?
-      #TODO à checker
+      @@logger.an_event.debug "BEGIN Visitor.browse"
+      @@logger.an_event.debug "referrer #{referrer.inspect}"
+
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "referrer landing url undefine" if referrer.landing_url.nil?
+
+
       landing_page = nil
 
       case referrer
@@ -213,12 +249,18 @@ module Visitors
         when Direct
           begin
             landing_page = @browser.display_start_page(referrer.landing_url, @id)
-            @@logger.an_event.info "visitor #{@id} browse start page"
-          rescue Exception => e
-            @@logger.an_event.debug e.message
-            @@logger.an_event.debug "end browse referrer"
-            raise FunctionalError, REFERRER_NOT_DISPLAY_START_PAGE
+
+            @@logger.an_event.info "visitor #{@id} browse landing page #{referrer.landing_url.to_s}"
+
+          rescue Browsers::Error, Exception => e
+            @@logger.an_event.error "visitor #{@id} not browse landing url #{referrer.landing_url.to_s} : #{e.message}"
+            raise VisitorError.new(VISITOR_NOT_BROWSE_LANDING_PAGE, e), "visitor #{@id} not browse landing page #{referrer.landing_url.to_s}"
+          else
+            return landing_page
+          ensure
+            @@logger.an_event.debug "END Visitor.browse"
           end
+
 
         #---------------------------------------------------------------------------------------------------------------
         #
@@ -226,37 +268,46 @@ module Visitors
         #
         #---------------------------------------------------------------------------------------------------------------
         when Referral
+          raise VisitorError.new(ARGUMENT_UNDEFINE), "referral page url undefine" if referrer.page_url.nil?
           referral_page = nil
           landing_link = nil
           begin
-            referral_page = @browser.display_start_page(referrer.page_url, @id)
-            @@logger.an_event.info "visitor #{@id} browse start page"
-          rescue Exception => e
-            @@logger.an_event.debug e.message
-            @@logger.an_event.debug "end browse referrer"
-            raise FunctionalError, REFERRER_NOT_DISPLAY_START_PAGE
-          end
 
-          @@logger.an_event.info "visitor #{@id} found referral page #{referral_page.url.to_s}"
-          referral_page.duration = referrer.duration
-          read(referral_page)
+            referral_page = @browser.display_start_page(referrer.page_url, @id)
+
+            @@logger.an_event.info "visitor #{@id} browse referral page #{referral_page.url.to_s}"
+
+            referral_page.duration = referrer.duration
+            read(referral_page)
+
+          rescue Browsers::Error, Exception => e
+            @@logger.an_event.error "visitor #{@id} not browse referral url #{referrer.page_url.to_s} : #{e.message}"
+            @@logger.an_event.debug "END Visitor.browse"
+            raise VisitorError.new(VISITOR_NOT_BROWSE_REFERRAL_PAGE, e), "visitor #{@id} not browse referral url #{referrer.page_url.to_s}"
+          end
 
           begin
             landing_link = referral_page.link_by_url(referrer.landing_url)
-          rescue Exception => e
-            @@logger.an_event.debug e.message
-            @@logger.an_event.debug "end browse referrer"
-            raise FunctionalError, REFERRAL_NOT_FOUND_LANDING_LINK
+
+          rescue Pages::Error => e
+            @@logger.an_event.error "visitor #{@id} not found landing link #{referrer.landing_url.to_s} in referral page #{referral_page.url.to_s} : #{e.message}"
+            @@logger.an_event.debug "END Visitor.browse"
+            raise VisitorError.new(VISITOR_NOT_FOUND_LANDING_LINK, e), "visitor #{@id} not found landing link #{referrer.landing_url.to_s} in referral page #{referral_page.url.to_s}"
           end
 
+          @@logger.an_event.info "visitor #{@id} found landing link #{referrer.landing_url.to_s} in referral page #{referral_page.url.to_s}"
 
           begin
             landing_page = @browser.click_on(landing_link)
-            @@logger.an_event.info "visitor #{@id} click on landing url #{landing_link.url.to_s}"
-          rescue Exception => e
-            @@logger.an_event.debug e.message
-            @@logger.an_event.debug "end browse referrer"
-            raise TechnicalError, REFERRER_NOT_FOUND_LANDING_PAGE
+            @@logger.an_event.info "visitor #{@id} click on landing link #{landing_link.url.to_s}"
+
+          rescue Browsers::Error, Exception => e
+            @@logger.an_event.error "visitor #{@id} not click on landing url #{landing_link.url.to_s} : #{e.message}"
+            raise VisitorError.new(VISITOR_NOT_CLICK_ON_LANDING, e), "visitor #{@id} not click on landing url #{landing_link.url.to_s}"
+          else
+            return landing_page
+          ensure
+            @@logger.an_event.debug "END Visitor.browse"
           end
 
         #---------------------------------------------------------------------------------------------------------------
@@ -265,149 +316,165 @@ module Visitors
         #
         #---------------------------------------------------------------------------------------------------------------
         when Search
+          raise VisitorError.new(ARGUMENT_UNDEFINE), "referrer landing url undefine" if referrer.keywords.nil?
+
           referrer.keywords = [referrer.keywords] if referrer.keywords.is_a?(String)
           begin
             @browser.display_start_page(referrer.engine_search.page_url, @id)
-            @@logger.an_event.info "visitor #{@id} browse start page"
-          rescue Exception => e
-            @@logger.an_event.debug e.message
-            @@logger.an_event.debug "end browse referrer"
-            raise FunctionalError, REFERRER_NOT_DISPLAY_START_PAGE
+
+            @@logger.an_event.info "visitor #{@id} browse engine search page #{referrer.engine_search.page_url}"
+
+          rescue Browsers::Error, Exception => e
+            @@logger.an_event.error "visitor #{@id} not browse engine search url #{referrer.engine_search.page_url.to_s} : #{e.message}"
+            @@logger.an_event.debug "END Visitor.browse"
+            raise VisitorError.new(VISITOR_NOT_BROWSE_SEARCH_PAGE, e), "visitor #{@id} not browse engine search url #{referrer.engine_search.page_url.to_s}"
           end
+
 
           begin
             landing_link = many_search(referrer)
-            @@logger.an_event.info "visitor #{@id} see link of landing url"
+
+            @@logger.an_event.info "visitor #{@id} found landing link #{landing_link.url.to_s} in results search pages"
+
           rescue Exception => e
-            @@logger.an_event.debug e.message
-            raise FunctionalError, SEARCH_NOT_FOUND_LANDING_LINK
+            @@logger.an_event.error "visitor #{@id} not found landing link #{referrer.landing_url.to_s} in results search pages : #{e.message}"
+            @@logger.an_event.debug "END Visitor.browse"
+            raise VisitorError.new(VISITOR_NOT_FOUND_LANDING_LINK, e), "visitor #{@id} not found landing link #{referrer.landing_url.to_s} in results search pages"
           end
 
           begin
             landing_page = @browser.click_on(landing_link)
+
             @@logger.an_event.info "visitor #{@id} click on landing url #{landing_link.url.to_s}"
-          rescue Exception => e
-            @@logger.an_event.debug e.message
-            @@logger.an_event.debug "end browse referrer"
-            raise TechnicalError, REFERRER_NOT_FOUND_LANDING_PAGE
+
+          rescue Browsers::Error, Exception => e
+            @@logger.an_event.error "visitor #{@id} not click on landing link #{landing_link.url.to_s} : #{e.message}"
+            raise VisitorError.new(VISITOR_NOT_CLICK_ON_LANDING, e), "visitor #{@id} not click on landing link #{landing_link.url.to_s}"
+          else
+            return landing_page
+          ensure
+            @@logger.an_event.debug "END Visitor.browse"
           end
       end
-      @@logger.an_event.debug "end browse referrer"
-      landing_page
+
+
     end
 
+    #----------------------------------------------------------------------------------------------------------------
+    # initialize
+    #----------------------------------------------------------------------------------------------------------------
+    # demarre un proxy :
+    # inputs
+
+    # output
+    # StandardError
+    # StandardError
+    #----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------------------------------
 
     def close_browser
-      @@logger.an_event.debug "begin visitor close browser"
+      @@logger.an_event.debug "BEGIN Visitor.close "
       begin
         @browser.quit
-        @@logger.an_event.info "visitor #{@id} close his browser #{@browser.name} #{@browser.id}"
-      rescue TechnicalError => e
-        @@logger.an_event.error e.message
-        raise TechnicalError, "visitor #{@id} cannot close browser #{@browser.name} #{@browser.id}"
+        @@logger.an_event.info "visitor #{@id} close his browser #{@browser.name}"
+      rescue Browsers::Error => e
+        @@logger.an_event.error "visitor #{@id} not close his browser #{@browser.name} #{@browser.id} : #{e.message}"
+        raise VisitorError.new(VISITOR_NOT_CLOSE, e), "visitor #{@id} not close his browser #{@browser.name} #{@browser.id}"
       ensure
-        @@logger.an_event.debug "end visitor close browser"
+        @@logger.an_event.debug "END Visitor.close"
       end
     end
 
+#----------------------------------------------------------------------------------------------------------------
+# initialize
+#----------------------------------------------------------------------------------------------------------------
+# demarre un proxy :
+# inputs
 
+# output
+# StandardError
+# StandardError
+#----------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------
+#
+#----------------------------------------------------------------------------------------------------------------
     def die
-      @@logger.an_event.debug "begin visitor die"
+      @@logger.an_event.debug "BEGIN Visitor.die"
       begin
         @proxy.stop
-        @@logger.an_event.info "visitor #{@id} is dead"
-      rescue TechnicalError => e
-        @@logger.an_event.error e.message
-        raise TechnicalError, "visitor #{@id} cannot die"
+        @@logger.an_event.info "visitor #{@id} die"
+      rescue Browsers::Error => e
+        @@logger.an_event.error "visitor #{@id} not die : #{e.message}"
+        raise VisitorError.new(VISITOR_NOT_DIE, e), "visitor #{@id} not die"
       ensure
-        @@logger.an_event.debug "end visitor die"
+        @@logger.an_event.debug "END Visitor.die"
       end
     end
 
-    def execute_save(visit)
-      begin
-        landing_page = browse(visit.referrer)
-        page = surf(visit.durations, landing_page, visit.around)
-        if !visit.advertising.is_a?(NoAdvertising)
-          advertiser = visit.advertising.advertiser
-          advert_link = visit.advertising.advert_on(page)
-          if advert_link.nil?
-            @@logger.an_event.warn "advertising #{visit.advertising.class} not found on page #{page.url}"
-          else
-            advertiser_page = @browser.click_on(advert_link)
-            page = surf(advertiser.durations, advertiser_page, advertiser.arounds)
-          end
-        end
-      rescue Exception => e
-        #TODO si erreur tehcnique irrémediable => nettoyage complet et remonté une exception spéciale
-        #TODO si erruer fonctionnelle => pas de nettoyage et remonté de lerreur fontionnelle
-        @@logger.an_event.debug e
-        raise e
-      end
-    end
+#----------------------------------------------------------------------------------------------------------------
+# initialize
+#----------------------------------------------------------------------------------------------------------------
+# demarre un proxy :
+# inputs
 
-    def execute(visit)
-      @@logger.an_event.debug "begin execute visit"
-      raise FunctionalError::VISIT_NOT_DEFINE if visit.nil?
-
-      landing_page = nil
-      begin
-        landing_page = browse(visit.referrer)
-      rescue FunctionalError::CANNOT_DISPLAY_START_PAGE => e
-        @@logger.an_event.debug e.message
-        @@logger.an_event.error "visitor #{@id} cannot browser start page"
-        @@logger.an_event.debug "end execute visit"
-        raise e
-      rescue Exception => e
-        @@logger.an_event.error "visitor #{@id} not found landing page"
-        @@logger.an_event.debug "end execute visit"
-        raise FunctionalError::LANDING_PAGE_NOT_FOUND
-      end
-
-
-      @@logger.an_event.debug "end execute visit"
-    end
-
+# output
+# StandardError
+# StandardError
+#----------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------
+#
+#----------------------------------------------------------------------------------------------------------------
     def inhume()
-      @@logger.an_event.debug "begin visitor inhume"
+      @@logger.an_event.debug "BEGIN Visitor.inhume"
       try_count = 0
       max_try_count = 3
       begin
         @proxy.delete_config
         FileUtils.rm_r(@home) if File.exist?(@home)
-        @@logger.an_event.info "visitor #{@id} is inhume"
+        @@logger.an_event.info "visitor #{@id} inhume"
       rescue Exception => e
-        @@logger.an_event.debug "visitor #{@id} is not inhume, try #{try_count}"
+        @@logger.an_event.debug "visitor #{@id} not inhume, try #{try_count}"
         sleep (1)
         try_count +=1
         retry if try_count < max_try_count
-        @@logger.an_event.debug e.message
-        raise TechnicalError, "visitor #{@id} is not inhume"
+        @@logger.an_event.debug "visitor #{@id} not inhume : #{e.message}"
+        raise VisitorError.new(VISITOR_NOT_INHUME, e), "visitor #{@id} not inhume"
       ensure
-        @@logger.an_event.debug "end visitor inhume"
+        @@logger.an_event.debug "END Visitor.inhume"
       end
     end
 
-    #-----------------------------------------------------------------------------------------------------------------
-    # many_search
-    #-----------------------------------------------------------------------------------------------------------------
-    # input : objet Referrer
-    # output : un objet Page
-    # exception :
-    # FunctionalError :
-    # si Referrer n'est pas defini
-    # si landing_link not found dans les pages de resultats de toutes les recherches
-    #-----------------------------------------------------------------------------------------------------------------
-    # permet de realiser plusieurs recherche avec à chaque fois une list de mot clé différent
-    # cette liste de mot clé sera calculé par scraperbot en fonction d'un paramètage de statupweb
-    # cela permetra par exemple de realisé des recherches qui échouent
-    #-----------------------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------------------
+# many_search
+#-----------------------------------------------------------------------------------------------------------------
+# input : objet Referrer
+# output : un objet Page
+# exception :
+# StandardError :
+# si Referrer n'est pas defini
+# si landing_link not found dans les pages de resultats de toutes les recherches
+#-----------------------------------------------------------------------------------------------------------------
+# permet de realiser plusieurs recherche avec à chaque fois une list de mot clé différent
+# cette liste de mot clé sera calculé par scraperbot en fonction d'un paramètage de statupweb
+# cela permetra par exemple de realisé des recherches qui échouent
+#-----------------------------------------------------------------------------------------------------------------
     def many_search(referrer)
-      @@logger.an_event.debug "begin many_search avec referrer"
+      @@logger.an_event.debug "BEGIN Visitor.many_search"
       #TODO meo plusieurs methodes pour saisir les mots clés et les choisir aléatoirement :
       #TODO afficher la page google.fr, comme c'est le cas actuellement
       #TODO dans la derniere page des resultats, saisir les nouveaux mot clés dans la zone idoine.
-      raise FunctionalError::REFERRER_NOT_DEFINE if referrer.nil?
+      @@logger.an_event.debug "keywords #{referrer.keywords}"
+      @@logger.an_event.debug "engine_search #{referrer.engine_search}"
+      @@logger.an_event.debug "durations #{referrer.durations}"
+      @@logger.an_event.debug "landing_url #{referrer.landing_url}"
+
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "referrer keywords undefine" if referrer.keywords.nil?
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "referrer engine_search undefine" if referrer.engine_search.nil?
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "referrer durations undefine" if referrer.durations.nil?
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "referrer landing_url undefine" if referrer.landing_url.nil?
+
       i = 0
       landing_link = nil
       begin
@@ -415,38 +482,69 @@ module Visitors
                               referrer.engine_search,
                               referrer.durations.map { |d| d },
                               referrer.landing_url)
+      rescue Browsers::Error => e
+        #erreur technique remonté par le browser lors de la recherche
+        raise e
       rescue Exception => e
-        @@logger.an_event.debug e.message
         i+=1
         if i < referrer.keywords.size
           retry
         else
-          @@logger.an_event.debug "end many_search avec referrer"
-          raise FunctionalError::NONE_SEARCH_NOT_FOUND_LANDING_LINK
+          raise VisitorError.new(NONE_KEYWORDS_FIND_LANDING_LINK), "visitor  #{@id} not found landing link"
         end
-
+      else
+        return landing_link
+      ensure
+        @@logger.an_event.debug "END Visitor.many_search"
       end
-      @@logger.an_event.debug "end many_search avec referrer"
-      landing_link
     end
 
+    #----------------------------------------------------------------------------------------------------------------
+    # initialize
+    #----------------------------------------------------------------------------------------------------------------
+    # demarre un proxy :
+    # inputs
 
+    # output
+    # StandardError
+    # StandardError
+    #----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------------------------------
     def open_browser
-      @@logger.an_event.debug "begin visitor open browser"
+      @@logger.an_event.debug "BEGIN Visitor.open_browser"
       begin
         @browser.open
-        @@logger.an_event.info "visitor #{@id} open browser #{@browser.name} #{@browser.id}"
-      rescue TechnicalError => e
-        @@logger.an_event.error e.message
-        raise TechnicalError, "visitor #{@id} cannot open browser #{@browser.name} #{@browser.id}"
+        @@logger.an_event.info "visitor #{@id} open his browser #{@browser.name}"
+      rescue Browsers::Error => e
+        @@logger.an_event.error "visitor #{@id} not open his browser #{@browser.name} #{@browser.id} : #{e.message}"
+        raise VisitorError.new(VISITOR_NOT_OPEN, e), "visitor #{@id} not open his browser #{@browser.name} #{@browser.id}"
       ensure
-        @@logger.an_event.debug "end visitor open browser"
+        @@logger.an_event.debug "END Visitor.open_browser"
       end
     end
 
+#----------------------------------------------------------------------------------------------------------------
+# initialize
+#----------------------------------------------------------------------------------------------------------------
+# demarre un proxy :
+# inputs
+
+# output
+# StandardError
+# StandardError
+#----------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------
+#
+#----------------------------------------------------------------------------------------------------------------
     def read(page)
-      @@logger.an_event.info "visitor #{@id} read page #{page.url} during #{page.sleeping_time}s (= #{page.duration} - #{page.duration_search_link})"
+      @@logger.an_event.debug "BEGIN Visitor.read"
+      @@logger.an_event.debug "page #{page.to_s}"
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "page undefine" if page.nil?
+      @@logger.an_event.info "visitor #{@id} read #{page.url.to_s} during #{page.sleeping_time}s"
       @browser.wait_on(page)
+      @@logger.an_event.debug "END Visitor.read"
     end
 
     #-----------------------------------------------------------------------------------------------------------------
@@ -459,7 +557,7 @@ module Visitors
     # landing_url : l'url recherchée dans chaque page de résultat
     # output : un objet Page
     # exception :
-    # FunctionalError :
+    # StandardError :
     # si keywords n'est pas defini
     # si engine_search n'est pas défini
     # di durations n'est pas défini
@@ -469,16 +567,31 @@ module Visitors
     #
     #-----------------------------------------------------------------------------------------------------------------
     def search(keywords, engine_search, durations, landing_url)
-      @@logger.an_event.debug "begin search keyword with engine search"
+      @@logger.an_event.debug "BEGIN Visitor.search"
+
+      @@logger.an_event.debug "keywords #{keywords}"
+      @@logger.an_event.debug "engine search #{engine_search}"
+      @@logger.an_event.debug "durations #{durations}"
+      @@logger.an_event.debug "landing url #{landing_url}"
+
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "keywords undefine" if keywords.nil? or keywords == ""
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "engine search undefine" if engine_search.nil?
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "durations undefine" if durations.nil? or durations.size == 0
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "landing url undefine" if landing_url.nil?
       #---------------------------------------------------------------------------------------------------------------
       #
       # search keyword in engine
       #
       #---------------------------------------------------------------------------------------------------------------
       begin
-        @@logger.an_event.info "visitor #{@id} search landing page #{landing_url} with keywords #{keywords} on #{engine_search.class}"
         results_page = @browser.search(keywords, engine_search)
+
+        @@logger.an_event.info "visitor #{@id} browse first results page with keywords #{keywords} on #{engine_search.class}"
+
       rescue Exception => e
+        @@logger.an_event.error "visitor #{@id} not browse first results page with keywords #{keywords} on #{engine_search.class} : #{e.message}"
+        @@logger.an_event.debug "END Visitor.search"
+        raise e
       end
       #---------------------------------------------------------------------------------------------------------------
       #
@@ -498,45 +611,46 @@ module Visitors
             next_page_link = engine_search.next_page_link(results_page, i + 1)
           rescue Exception => e
             # le nombre de page de resultat est inférieur au nombre de pages attendues
-            @@logger.an_event.debug e.message
-            @@logger.an_event.debug "end search keyword with engine search"
-            raise FunctionalError::NO_MORE_RESULT_PAGE
+            @@logger.an_event.warn "there no more results page : #{e.message}"
+            @@logger.an_event.debug "END Visitor.search"
+            raise VisitorError.new(NO_MORE_RESULT_PAGE), "there no more results page"
           end
 
           begin
             results_page = @browser.click_on(next_page_link)
-          rescue Exception => e
+            @@logger.an_event.info "visitor #{@id} click on next link #{next_page_link.url.to_s}"
+          rescue Browsers::Error, Pages::Error => e
             #un erreur survient lors du click sur le lien de la page suivante.
-            @@logger.an_event.debug e.message
-            @@logger.an_event.debug "end search keyword with engine search"
-            raise TechnicalError::CANNOT_CLICK_ON_LINK_OF_NEXT_PAGE
+            @@logger.an_event.error "visitor #{@id} not click on next link #{next_page_link.url.to_s}"
+            @@logger.an_event.debug "END Visitor.search"
+            raise VisitorError.new(CANNOT_CLICK_ON_LINK_OF_NEXT_PAGE, e), "visitor #{@id} not click on next link #{next_page_link.url.to_s}"
           end
           retry # on recommence le begin
         else
           #toutes les pages ont été passées en revue et le landing link n'a pas été trouvé
-          @@logger.an_event.debug "end search keyword with engine search"
-          raise FunctionalError::SEARCH_NOT_FOUND_LANDING_LINK
+          @@logger.an_event.debug "END Visitor.search"
+          raise VisitorError.new(SEARCH_NOT_FOUND_LANDING_LINK), "visitor #{@id} not found landing link"
         end
+      else
+        return landing_link
+      ensure
+        @@logger.an_event.debug "END Visitor.search"
       end
-      # on a trouvé le landing_link
-      @@logger.an_event.debug "landing_url is found "
-      @@logger.an_event.debug "end search keyword with engine search"
-      landing_link
     end
 
-    #-----------------------------------------------------------------------------------------------------------------
-    # surf
-    #-----------------------------------------------------------------------------------------------------------------
-    # input :
-    # durations : un tableau de durée de lecture de chaucne des pages
-    # page : la page de départ
-    # around : un tableau de périmètre de sélection des link pour chaque page
-    # output : un objet Page : la derniere
-    # exception :
-    # FunctionalError :
-    #-----------------------------------------------------------------------------------------------------------------
-    #
-    #-----------------------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------------------
+# surf
+#-----------------------------------------------------------------------------------------------------------------
+# input :
+# durations : un tableau de durée de lecture de chaucne des pages
+# page : la page de départ
+# around : un tableau de périmètre de sélection des link pour chaque page
+# output : un objet Page : la derniere
+# exception :
+# StandardError :
+#-----------------------------------------------------------------------------------------------------------------
+#
+#-----------------------------------------------------------------------------------------------------------------
 
     def surf(durations, page, around)
       # le surf sur le website prend en entrée un around => arounds est rempli avec cette valeur
@@ -545,12 +659,11 @@ module Visitors
       @@logger.an_event.debug "page #{page.to_s}"
       @@logger.an_event.debug "arounds #{around.inspect}"
 
-      raise FunctionalError, PARAM_NOT_DEFINE if durations.nil? or
-          durations.size == 0 or
-          page.nil? or
-          around.nil? or
-          around.size == 0
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "durations undefine" if durations.nil? or durations.size == 0
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "page undefine" if  page.nil?
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "around undefine" if around.nil? or around.size == 0
 
+      link = nil
       begin
         arounds = (around.is_a?(Array)) ? around : Array.new(durations.size, around)
         durations.each_index { |i|
@@ -559,15 +672,16 @@ module Visitors
           if i < durations.size - 1
             link = page.link_by_around(arounds[i])
             page = @browser.click_on(link)
+            @@logger.an_event.info "visitor #{@id} click on link #{link.url.to_s}"
           end # on ne clique pas quand on est sur la denriere page
         }
         page
-      rescue TechnicalError, Exception => e
-        @@logger.an_event.debug e.message
-        @@logger.an_event.error "visitor #{@id} stop surf at page #{page.url}"
-        raise FunctionalError, CANNOT_SURF
+      rescue Browsers::Error, Pages::Error, Exception => e
+        @@logger.an_event.error "visitor #{@id} not click on link #{link.url.to_s} : #{e.message}"
+        raise VisitorError.new(VISIT_NOT_COMPLETE, e), "visitor #{@id} not click on link #{link.url.to_s}"
       end
     end
+
   end
 
 

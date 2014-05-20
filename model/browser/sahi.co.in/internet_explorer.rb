@@ -4,7 +4,7 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       # message exception
       #----------------------------------------------------------------------------------------------------------------
-      IE_NOT_CREATE = "internet explorer not create"
+
       #----------------------------------------------------------------------------------------------------------------
       # include class
       #----------------------------------------------------------------------------------------------------------------
@@ -21,31 +21,34 @@ module Browsers
       #["operating_system_version", "7"]
       def initialize(visitor_dir, browser_details)
         @@logger.an_event.debug "BEGIN InternetExplorer.initialize"
-        raise StandardError, PARAM_NOT_DEFINE if browser_details[:name].nil? or browser_details[:name] == "" or
-            browser_details[:version].nil? or browser_details[:version] == "" or
-            browser_details[:proxy_system].nil? or browser_details[:proxy_system] == "" or
-            visitor_dir.nil? or visitor_dir == ""
-
         @@logger.an_event.debug "name #{browser_details[:name]}"
         @@logger.an_event.debug "version #{browser_details[:version]}"
         @@logger.an_event.debug "proxy system #{browser_details[:proxy_system]}"
         @@logger.an_event.debug "visitor_dir #{visitor_dir}"
 
+        raise ArgumentError, "browser name undefine" if browser_details[:name].nil? or browser_details[:name] == ""
+        raise ArgumentError, "browser version undefine" if browser_details[:version].nil? or browser_details[:version] == ""
+        raise ArgumentError, "visitor_dir undefine" if visitor_dir.nil? or visitor_dir == ""
+        raise ArgumentError, "browser proxy system undefine" if browser_details[:proxy_system].nil? or browser_details[:proxy_system] == ""
+
+
         begin
           super(browser_details,
-               "#{browser_details[:name]}_#{browser_details[:version]}" + (browser_details[:proxy_system] ? "" : "_#{@listening_port_proxy}"),
+                "#{browser_details[:name]}_#{browser_details[:version]}" + (browser_details[:proxy_system] ? "" : "_#{@listening_port_proxy}"),
                 DATA_URI,
                 visitor_dir)
         rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.error "cannot create internet explorer"
-          raise StandardError, IE_NOT_CREATE
+          raise e
         ensure
           @@logger.an_event.debug "END InternetExplorer.initialize"
         end
       end
 
       def customize_properties(visitor_dir)
+        @@logger.an_event.debug "BEGIN InternetExplorer.customize_properties"
+        @@logger.an_event.debug "visitor_dir #{visitor_dir}"
+
+        raise ArgumentError, "visitor_dir undefine" if visitor_dir.nil? or visitor_dir == ""
         # id_visitor\proxy\tools\proxy.properties :
         # le port d'ecoute du proxy pour internet explorer
         file_name = File.join(visitor_dir, 'proxy', 'tools', 'proxy.properties')
@@ -69,6 +72,7 @@ module Browsers
         file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
         file_custom.gsub!(/tool_sandboxing_browser_runtime_path/, Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib', 'sahi.in.co', 'tools', 'sandboxing_browser.rb')).realpath.to_s)
         File.write(file_name, file_custom)
+        @@logger.an_event.debug "END InternetExplorer.customize_properties"
       end
 
       #----------------------------------------------------------------------------------------------------------------
@@ -104,10 +108,12 @@ module Browsers
 #TODO variabiliser le num de port
 #TODO la size du browser nest pas gerer car window.open dans le self
         @@logger.an_event.debug "BEGIN InternetExplorer.display_start_page"
-        raise StandardError, PARAM_NOT_DEFINE if start_url.nil? or start_url =="" or visitor_id.nil?
 
         @@logger.an_event.debug "start_url : #{start_url}"
         @@logger.an_event.debug "visitor_id : #{visitor_id}"
+
+        raise ArgumentError, "start_url undefine" if start_url.nil? or start_url ==""
+        raise ArgumentError, "visitor_id undefine" if visitor_id.nil? or visitor_id == ""
 
 
         window_parameters = "width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0"
@@ -116,9 +122,15 @@ module Browsers
         cmd = "_sahi.open_start_page_ie(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")"
 
         @@logger.an_event.debug "cmd : #{cmd}"
-        page = super(cmd)
-        @@logger.an_event.debug "END InternetExplorer.display_start_page"
-        page
+        begin
+          page = super(cmd)
+        rescue Exception => e
+          raise e
+        else
+          return page
+        ensure
+          @@logger.an_event.debug "END Firefox.display_start_page"
+        end
       end
 
       #-----------------------------------------------------------------------------------------------------------------

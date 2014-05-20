@@ -1,5 +1,7 @@
+require_relative '../visit'
 module Visits
   module Referrers
+
     class Referrer
       #----------------------------------------------------------------------------------------------------------
       # Source : chaque site référent a une origine ou source. Les sources possibles sont les suivantes :
@@ -39,11 +41,25 @@ module Visits
       # Pour cela la sélection est réalisé lors de la recuperation des données de GA
       #
       #------------------------------------------------------------------------------------------------------------
-      attr :landing_url
+      #----------------------------------------------------------------------------------------------------------------
+      # include class
+      #----------------------------------------------------------------------------------------------------------------
+      include Errors
+
       #----------------------------------------------------------------------------------------------------------------
       # Message exception
       #----------------------------------------------------------------------------------------------------------------
+      class ReferrerError < Error
+      end
+      ARGUMENT_UNDEFINE = 800
+      REFERRER_NOT_CREATE = 801
       MEDIUM_UNKNOWN = "medium is unknown"
+
+      #----------------------------------------------------------------------------------------------------------------
+      # attribut
+      #----------------------------------------------------------------------------------------------------------------
+      attr :landing_url
+
       #----------------------------------------------------------------------------------------------------------------
       # class methods
       #----------------------------------------------------------------------------------------------------------------
@@ -65,7 +81,7 @@ module Visits
       #["medium", "(none)"]
       #["keyword", "(not set)"]
       def self.build(referer_details, landing_page)
-        @@logger.an_event.debug "begin build referrer"
+        @@logger.an_event.debug "BEGIN Referrer.build"
 
         begin
           case referer_details[:medium]
@@ -79,20 +95,14 @@ module Visits
                                   landing_page)
             else
               @@logger.an_event.debug "medium #{referer_details[:medium]} unknown"
-              raise raise FunctionalError, MEDIUM_UNKNOWN
+              raise ReferrerError.new(MEDIUM_UNKNOWN), "medium #{referer_details[:medium]} unknown"
           end
-        rescue FunctionalError => e
+        rescue Exception => e
           @@logger.an_event.debug e.message
-          @@logger.an_event.debug "end build referrer"
           raise e
-        rescue TechnicalError, Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.debug "end build referrer"
-          raise TechnicalError, "referrer #{referer_details[:medium]} has some bad properties"
-
+        ensure
+          @@logger.an_event.debug "END Referrer.build"
         end
-
-        @@logger.an_event.debug "end build referrer"
       end
 
       def initialize(landing_url)

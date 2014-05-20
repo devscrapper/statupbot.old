@@ -2,11 +2,6 @@ require 'csv'
 require 'yaml'
 module VisitorFactory
   class BrowserTypes
-    class TechnicalError < StandardError
-    end
-
-    class FunctionalError < StandardError
-    end
     STAGING = 0
     OS = 1
     OS_VERSION = 2
@@ -21,7 +16,7 @@ module VisitorFactory
     #staging;os;os_version;browser;browser_version;runtime_path;sandbox;multi_instance_proxy_compatible;start_listening_port_proxy;count_proxy
     #development;Windows;7;Chrome;33.0.1750.117;C:\Users\ET00752\AppData\Local\Google\Chrome\Application\chrome.exe;false;true;9908;10
     def initialize(filename)
-      raise TechnicalError, "file #{filename} not found" unless File.exist?(filename)
+      raise StandardError, "file #{filename} not found" unless File.exist?(filename)
 
       rows = CSV.read(filename)
       title = rows.shift
@@ -75,7 +70,7 @@ module VisitorFactory
       begin
         @hash[os][os_version][browser][browser_version]["proxy_system"]=="true"
       rescue Exception => e
-        raise FunctionalError, "#{os} #{os_version} #{browser} #{browser_version} not define in browser type"
+        raise StandardError, "#{os} #{os_version} #{browser} #{browser_version} not define in browser type"
       ensure
       end
     end
@@ -84,7 +79,7 @@ module VisitorFactory
       begin
         @hash[os][os_version][browser][browser_version]["listening_port_proxy"]
       rescue Exception => e
-        raise FunctionalError, "#{os} #{os_version} #{browser} #{browser_version} not define in browser type"
+        raise StandardError, "#{os} #{os_version} #{browser} #{browser_version} not define in browser type"
       ensure
       end
     end

@@ -3,12 +3,11 @@ module Visits
 
     class Direct < Referrer
 
-      class DirectException < StandardError
-      end
-
 
       def initialize(landing_page)
+        @@logger.an_event.debug "BEGIN Direct.initialize"
         super(landing_page)
+        @@logger.an_event.debug "END Direct.initialize"
       end
 
     end

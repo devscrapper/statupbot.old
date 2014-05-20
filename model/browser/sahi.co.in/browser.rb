@@ -5,42 +5,48 @@ require 'json'
 require 'csv'
 require 'pathname'
 require 'os'
+
 require_relative '../../page/link'
 require_relative '../../page/page'
-require_relative 'driver'
-require_relative 'proxy'
+require_relative '../../error'
 
 module Browsers
-  #----------------------------------------------------------------------------------------------------------------
-  # Exception message
-  #----------------------------------------------------------------------------------------------------------------
-  PARAM_NOT_DEFINE = "parameter are not define"
 
   module SahiCoIn
     class Browser
       #----------------------------------------------------------------------------------------------------------------
-      # Exception message
-      #----------------------------------------------------------------------------------------------------------------
-      BROWSER_UNKNOWN = "browser unknown"
-      NO_LINK_FOUND = "not link found"
-      PROPERTIES_PAGE_NOT_FOUND = "properties page not found"
-      CANNOT_CLICK_ON_LINK = "cannot click on link"
-      CANNOT_DISPLAY_PAGE = "cannot display page"
-      BROWSER_NOT_OPEN = "browser not open"
-      BROWSER_NOT_CLOSE = "browser not close"
-      BROWSER_NOT_CREATE = "browser not create"
-      CANNOT_SEARCH = "cannot search"
-      LINK_NOT_EXIST = "link not exist in current page"
-      #----------------------------------------------------------------------------------------------------------------
       # include class
       #----------------------------------------------------------------------------------------------------------------
+      include Errors
       include Pages
 
-      #VISITORS_DIR = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'visitors')).realpath
-      #LOG_DIR = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'log')).realpath
+      #----------------------------------------------------------------------------------------------------------------
+      # Exception message
+      #----------------------------------------------------------------------------------------------------------------
+      class BrowserError < Error
+
+      end
+
+      ARGUMENT_UNDEFINE = 300
+      BROWSER_NOT_CREATE = 301 # à remonter en code retour de statupbot
+      BROWSER_UNKNOWN = 302 # à remonter en code retour de statupbot
+      BROWSER_NOT_FOUND_LINK = 303 # à remonter en code retour de statupbot
+      BROWSER_NOT_DISPLAY_PAGE = 304 # à remonter en code retour de statupbot
+      BROWSER_NOT_CLICK = 305
+      BROWSER_NOT_OPEN = 306
+      BROWSER_NOT_CLOSE = 307
+      BROWSER_NOT_SEARCH = 308
+
+      #----------------------------------------------------------------------------------------------------------------
+      # constant
+      #----------------------------------------------------------------------------------------------------------------
       TMP_DIR = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'tmp')).realpath
       NO_REFERER = "noreferrer"
       DATA_URI = "datauri"
+
+      #----------------------------------------------------------------------------------------------------------------
+      # attribut
+      #----------------------------------------------------------------------------------------------------------------
       attr_accessor :driver,
                     :listening_port_proxy
 
@@ -51,10 +57,6 @@ module Browsers
                   :pids,
                   :method_start_page,
                   :version
-
-
-      #TODO meo le monitoring de l'activité du browser
-      #TODO suivre les cookies du browser : s'assurer qu'il sont vide et alimenté quand il faut hahahahaha
 
       #----------------------------------------------------------------------------------------------------------------
       # class methods
@@ -79,10 +81,11 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       def self.build(visitor_dir, browser_details)
         @@logger.an_event.debug "BEGIN Browser.build"
-        raise StandardError, PARAM_NOT_DEFINE if browser_details[:name].nil? or
-            browser_details[:name] == ""
 
-        @@logger.an_event.debug "browser #{browser_details[:name]}"
+        @@logger.an_event.debug "visitor_dir #{visitor_dir}"
+        @@logger.an_event.debug "browser_details #{browser_details}"
+
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "browser_details undefine" if browser_details.nil?
 
         begin
           case browser_details[:name]
@@ -103,7 +106,7 @@ module Browsers
             #  return Opera.new(visitor_dir, browser_details)
             else
               @@logger.an_event.warn "browser <#{browser_details[:name]}> unknown"
-              raise StandardError, BROWSER_UNKNOWN
+              raise BrowserError.new(BROWSER_UNKNOWN), "browser <#{browser_details[:name]}> unknown"
           end
         rescue Exception => e
           @@logger.an_event.debug e.message
@@ -139,15 +142,16 @@ module Browsers
       #-----------------------------------------------------------------------------------------------------------------
       def initialize(browser_details, browser_type, method_start_page, visitor_dir)
         @@logger.an_event.debug "BEGIN Browser.initialize"
-        @@logger.an_event.debug "listening port proxy #{browser_details[:listening_port_proxy]}"
-        @@logger.an_event.debug "screen resolution #{browser_details[:screen_resolution]}"
+        @@logger.an_event.debug "browser_details #{browser_details}"
         @@logger.an_event.debug "browser_type #{browser_type}"
         @@logger.an_event.debug "method_start_page #{method_start_page}"
+        @@logger.an_event.debug "visitor_dir #{visitor_dir}"
 
-        raise StandardError, PARAM_NOT_DEFINE if browser_details[:listening_port_proxy].nil? or
-            browser_details[:screen_resolution].nil? or browser_details[:screen_resolution] == "" or
-            browser_type.nil? or browser_type == "" or
-            method_start_page.nil? or method_start_page == ""
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "listening port proxy undefine" if browser_details[:listening_port_proxy].nil? or browser_details[:listening_port_proxy] == ""
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "screen resolution undefine" if browser_details[:screen_resolution].nil? or browser_details[:screen_resolution] == ""
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "browser_type undefine" if browser_type.nil? or browser_type == ""
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "method_start_page undefine" if method_start_page.nil? or method_start_page == ""
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "visitor_dir undefine" if visitor_dir.nil? or visitor_dir == ""
 
 
         @id = UUID.generate
@@ -160,14 +164,8 @@ module Browsers
                                                    @listening_port_proxy)
           customize_properties (visitor_dir)
         rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.error "cannot create browser"
-          case e.message
-            when PARAM_NOT_DEFINE, Driver::BROWSER_TYPE_NOT_EXIST
-              raise StandardError, PARAM_NOT_DEFINE
-            else
-              raise StandardError, BROWSER_NOT_CREATE
-          end
+          @@logger.an_event.fatal "browser #{@id} not create : #{e.message}"
+          raise BrowserError.new(BROWSER_NOT_CREATE, e), "browser #{@id} not create"
         ensure
           @@logger.an_event.debug "END Browser.initialize"
         end
@@ -189,43 +187,40 @@ module Browsers
       #-----------------------------------------------------------------------------------------------------------------
       def click_on(link)
         @@logger.an_event.debug "BEGIN Browser.click_on"
-        raise StandardError, PARAM_NOT_DEFINE if link.nil?
         @@logger.an_event.debug "link #{link.to_s}"
 
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "link undefine" if link.nil?
 
-        #if !link.exists?
-        #  @@logger.an_event.error "link #{link.to_s} not found"
-        #  raise StandardError, LINK_NOT_EXIST
-        #end
+        if !link.exists?
+          @@logger.an_event.fatal "browser #{name} #{@id} not found link #{link.to_s}"
+          raise BrowserError.new(BROWSER_NOT_FOUND_LINK), "browser #{name} #{@id} not found link #{link.to_s}"
+        end
+
+        @@logger.an_event.debug "browser #{name} #{@id} found link #{link.to_s}"
 
         begin
           link.click
-        rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.debug "END Browser.click_on"
-          raise StandardError, CANNOT_CLICK_ON_LINK
-        ensure
 
-        end
+          @@logger.an_event.debug "browser #{name} #{@id} click on url #{link.url.to_s} in window #{link.window_tab}"
 
-        @@logger.an_event.debug "browser #{name} #{@id} click on url #{link.url.to_s} in window #{link.window_tab}"
 
-        begin
           start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-          page_details = @driver.current_page_details
-        rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.debug "END Browser.click_on"
-          raise StandardError, PROPERTIES_PAGE_NOT_FOUND
+          page_details = @driver.get_details_current_page
+
+          @@logger.an_event.debug "browser #{name} #{@id} catch details page #{link.url.to_s}"
+
+          page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"], Time.now - start_time)
+
+          @@logger.an_event.debug "browser #{name} #{@id} create page #{page.to_s}"
+
+        rescue Pages::Error, Browsers::Error, Exception => e
+          @@logger.an_event.error "browser #{name} #{@id} not click on url #{link.url.to_s} in window #{link.window_tab} : #{e.message}"
+          raise BrowserError.new(BROWSER_NOT_CLICK, e), "browser #{name} #{@id} not click on url #{link.url.to_s} in window #{link.window_tab}"
+        else
+          return page
         ensure
-
+          @@logger.an_event.debug "END Browser.click_on"
         end
-
-        @@logger.an_event.debug "browser #{name} #{@id} catch details page #{link.url.to_s}"
-
-        page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"], Time.now - start_time)
-        @@logger.an_event.debug "END Browser.click_on"
-        page
       end
 
 
@@ -245,33 +240,32 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       def display_start_page (url_start_page)
         @@logger.an_event.debug "BEGIN Browser.display_start_page"
-        raise StandardError, PARAM_NOT_DEFINE if url_start_page.nil?
         @@logger.an_event.debug "url_start_page : #{url_start_page}"
+
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "url_start_page undefine" if url_start_page.nil? or url_start_page == ""
 
         begin
           @driver.fetch(url_start_page)
-        rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.debug "END Browser.display_start_page"
-          raise StandardError, CANNOT_DISPLAY_PAGE
-        ensure
 
-        end
+          @@logger.an_event.debug "browser #{name} #{@id} open start page #{url_start_page}"
 
-        @@logger.an_event.debug "browser #{name} #{@id} open start page"
-
-        begin
           start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-          page_details = @driver.current_page_details
-        rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.debug "END Browser.display_start_page"
-          raise StandardError, PROPERTIES_PAGE_NOT_FOUND
-        end
+          page_details = @driver.get_details_current_page
 
-        start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"], Time.now - start_time)
-        @@logger.an_event.debug "END Browser.display_start_page"
-        start_page
+          @@logger.an_event.debug "browser #{name} #{@id} catch details start page #{url_start_page}"
+
+          start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"], Time.now - start_time)
+
+          @@logger.an_event.debug "browser #{name} #{@id} create start page #{start_page.to_s}"
+
+        rescue Pages::Error, Browsers::Error, Exception => e
+          @@logger.an_event.fatal "browser #{name} #{@id} not open start page #{url_start_page} : #{e.message}"
+          raise BrowserError.new(BROWSER_NOT_DISPLAY_PAGE, e), "browser #{name} #{@id} not open start page #{url_start_page}"
+        else
+          return start_page
+        ensure
+          @@logger.an_event.debug "END Browser.display_start_page"
+        end
       end
 
 
@@ -287,6 +281,7 @@ module Browsers
       #-----------------------------------------------------------------------------------------------------------------
       # est utilisé pour recuperer le pid, pour tuer le browser si Sahi n'a pas réussi
       #-----------------------------------------------------------------------------------------------------------------
+=begin
       def get_pid(id_browser)
         @@logger.an_event.debug "begin get_pid"
         raise StandardError, "id browser is not defined" if id_browser.nil?
@@ -331,6 +326,7 @@ module Browsers
 
         pid_arr
       end
+=end
 
       #-----------------------------------------------------------------------------------------------------------------
       # kill
@@ -345,6 +341,7 @@ module Browsers
       #-----------------------------------------------------------------------------------------------------------------
       # est utilisé pour recuperer le pid, pour tuer le browser si Sahi n'a pas réussi
       #-----------------------------------------------------------------------------------------------------------------
+=begin
       def kill(pid_arr)
         @@logger.an_event.debug "begin kill"
         raise StandardError, "no pid" if pid_arr == []
@@ -369,6 +366,7 @@ module Browsers
           end
         }
       end
+=end
 
       #----------------------------------------------------------------------------------------------------------------
       # name
@@ -398,15 +396,21 @@ module Browsers
       #   3-recupere le pid du browser
       #-----------------------------------------------------------------------------------------------------------------
       def open
+        #TODO suivre les cookies du browser : s'assurer qu'il sont vide et alimenté quand il faut hahahahaha
         @@logger.an_event.debug "BEGIN Browser.open"
         begin
           @driver.open
-        rescue Exception => e
-          @@logger.an_event.debug e.message
+
+          @@logger.an_event.debug "browser #{name} #{@id} open"
+
+        rescue Browsers::Error, Exception => e
+          @@logger.an_event.error "browser #{name} #{@id} not open : #{e.message}"
+          raise BrowserError.new(BROWSER_NOT_OPEN, e), "browser #{name} #{@id} not open "
+
+        ensure
           @@logger.an_event.debug "END Browser.open"
-          raise StandardError, BROWSER_NOT_OPEN
         end
-        @@logger.an_event.debug "browser #{name} #{@id} is opened"
+
 =begin
         #----------------------------------------------------------------------------------------------------
         #
@@ -437,7 +441,7 @@ module Browsers
           @@logger.an_event.debug "end open browser"
         end
 =end
-        @@logger.an_event.debug "END Browser.open"
+
       end
 
 
@@ -458,10 +462,13 @@ module Browsers
         @@logger.an_event.debug "BEGIN Browser.quit"
         begin
           @driver.close
-          @@logger.an_event.debug "browser #{name} is closed"
-        rescue Exception => e
-          @@logger.an_event.debug e.message
-          raise StandardError, BROWSER_NOT_CLOSE
+          @@logger.an_event.debug "browser #{name} #{@id} close"
+
+        rescue Browsers::Error, Exception => e
+          @@logger.an_event.error "browser #{name} #{@id} not close : #{e.message}"
+          raise BrowserError.new(BROWSER_NOT_CLOSE, e), "browser #{name} #{@id} not close"
+        ensure
+          @@logger.an_event.debug "END Browser.quit"
 =begin
           #----------------------------------------------------------------------------------------------------
           #
@@ -480,7 +487,7 @@ module Browsers
           end
 =end
         end
-        @@logger.an_event.debug "END Browser.quit"
+
       end
 
       #-----------------------------------------------------------------------------------------------------------------
@@ -500,49 +507,37 @@ module Browsers
       #-----------------------------------------------------------------------------------------------------------------
       def search(keywords, engine_search)
         @@logger.an_event.debug "BEGIN Browser.search"
-        raise StandardError, PARAM_NOT_DEFINE if keywords.nil? or keywords==""
-        raise StandardError, PARAM_NOT_DEFINE if engine_search.nil?
-
         @@logger.an_event.debug "keywords #{keywords}"
         @@logger.an_event.debug "engine_search #{engine_search.class}"
 
-        page = nil
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "keywords undefine" if keywords.nil? or keywords==""
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "engine_search undefine" if engine_search.nil?
+
         begin
           @driver.search(keywords, engine_search)
+
           @@logger.an_event.debug "browser #{name} #{@id} submit search form #{engine_search.class}"
-        rescue Exception => e
-          @@logger.an_event.error "browser #{name} #{@id} cannot submit search form #{engine_search.class}"
-          @@logger.an_event.debug "END Browser.search"
-          raise e
-        end
 
-=begin
-        begin
-          @driver.textbox(engine_search.id_search).value = keywords
-          @@logger.an_event.debug "browser #{name} #{@id} enter keywords #{keywords} in search forma #{engine_search.class}"
-
-          @driver.submit(engine_search.label_search_button).click
-          @@logger.an_event.debug "browser #{name} #{@id} submit search form #{engine_search.class}"
-        rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.error "browser #{name} #{@id} cannot submit search form #{engine_search.class}"
-          @@logger.an_event.debug "END Browser.search"
-          raise StandardError, CANNOT_SEARCH
-        end
-=end
-
-        begin
           start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-          page_details = @driver.current_page_details
-        rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.debug "END Browser.search"
-          raise StandardError, PROPERTIES_PAGE_NOT_FOUND
-        end
-        page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"], Time.now - start_time)
-        @@logger.an_event.debug "END Browser.search"
+          page_details = @driver.get_details_current_page
 
-        page
+          @@logger.an_event.debug "browser #{name} #{@id} catch details search page"
+
+          search_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"], Time.now - start_time)
+
+          @@logger.an_event.debug "browser #{name} #{@id} create search page #{search_page.to_s}"
+
+        rescue Pages::Error, Browsers::Error, Exception => e
+          @@logger.an_event.error "browser #{name} #{@id} cannot submit search form #{engine_search.class} : #{e.message}"
+          @@logger.an_event.debug "END Browser.search"
+          raise BrowserError.new(BROWSER_NOT_SEARCH, e), "browser #{name} #{@id} cannot submit search form #{engine_search.class}"
+        else
+          return search_page
+        ensure
+          @@logger.an_event.debug "END Browser.search"
+
+        end
+
       end
 
       #-----------------------------------------------------------------------------------------------------------------
@@ -556,7 +551,9 @@ module Browsers
       #-----------------------------------------------------------------------------------------------------------------
       def wait_on(page)
         @@logger.an_event.debug "BEGIN Browser.wait_on"
-        raise StandardError, PARAM_NOT_DEFINE if page.nil?
+        @@logger.an_event.debug "page #{page.to_s}"
+
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "page undefine" if page.nil?
 
         @@logger.an_event.debug "browser #{name} #{@id} start waiting on page #{page.url}"
 
@@ -586,3 +583,5 @@ require_relative 'internet_explorer'
 require_relative 'chrome'
 require_relative 'safari'
 require_relative 'opera'
+require_relative 'driver'
+require_relative 'proxy'

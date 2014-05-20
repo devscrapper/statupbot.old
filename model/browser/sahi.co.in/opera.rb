@@ -2,9 +2,6 @@ require_relative '../../page/page'
 module Browsers
   module SahiCoIn
     class Opera < Browser
-      class OperaException < StandardError
-
-      end
       include Pages
       #----------------------------------------------------------------------------------------------------------------
       # class methods
@@ -67,7 +64,7 @@ module Browsers
         #TODO controler le noreferer pour opera
         #TODO variabiliser le num de port
         @@logger.an_event.debug "begin display_start_page"
-        raise FunctionalError, "start_url is not define" if start_url.nil? or start_url ==""
+        raise StandardError, "start_url is not define" if start_url.nil? or start_url ==""
         @@logger.an_event.debug "start_url : #{start_url}"
         window_parameters = "width=#{@width},height=#{@height},fullscreen=0,left=0,location=1,menubar=1,scrollbars=1,status=1,titlebar=1,top=0"
         @@logger.an_event.debug "windows parameters : #{window_parameters}"

@@ -1,17 +1,26 @@
 require 'pathname'
+
 module Browsers
   module SahiCoIn
     class Proxy
       #----------------------------------------------------------------------------------------------------------------
-      # message exception
-      #----------------------------------------------------------------------------------------------------------------
-      PROXY_NOT_CREATE = "proxy not create"
-      PROXY_NOT_START = "proxy not start"
-      PROXY_NOT_STOP = "proxy not stop"
-      CLEAN_NOT_COMPLETE = "cleaning config file not complete"
-      #----------------------------------------------------------------------------------------------------------------
       # include class
       #----------------------------------------------------------------------------------------------------------------
+      include Errors
+
+      #----------------------------------------------------------------------------------------------------------------
+      # message exception
+      #----------------------------------------------------------------------------------------------------------------
+      class ProxyError < Error
+
+      end
+      ARGUMENT_UNDEFINE = 100
+      PROXY_NOT_CREATE = 101 # à remonter en code retour de statupbot
+      PROXY_NOT_START = 102 # à remonter en code retour de statupbot
+      PROXY_NOT_STOP = 103 # à remonter en code retour de statupbot
+      CLEAN_NOT_COMPLETE = 104 # à remonter en code retour de statupbot
+
+
       #----------------------------------------------------------------------------------------------------------------
       # constant
       #----------------------------------------------------------------------------------------------------------------
@@ -73,8 +82,8 @@ module Browsers
       # user_geo_proxy, (option)
       # pwd_geo_proxy   (option)
       # output
-      # FunctionalError
-      # TechnicalError
+      # StandardError
+      # StandardError
       #----------------------------------------------------------------------------------------------------------------
       #----------------------------------------------------------------------------------------------------------------
       #
@@ -82,13 +91,6 @@ module Browsers
 
       def initialize(visitor_dir, listening_port_proxy, ip_geo_proxy, port_geo_proxy, user_geo_proxy, pwd_geo_proxy)
         @@logger.an_event.debug "BEGIN Proxy.initialize"
-        raise FunctionalError, PARAM_NOT_DEFINE if listening_port_proxy.nil? or
-            visitor_dir.nil? or visitor_dir == "" or
-
-            raise TechnicalError, "#{File.join(DIR_SAHI_TOOLS, 'pslist.exe')} not found" unless File.exist?(File.join(DIR_SAHI_TOOLS, 'pslist.exe'))
-        raise TechnicalError, "#{File.join(DIR_SAHI_TOOLS, 'pskill.exe')} not found" unless File.exist?(File.join(DIR_SAHI_TOOLS, 'pskill.exe'))
-
-
         @@logger.an_event.debug "visitor_dir #{visitor_dir}"
         @@logger.an_event.debug "listening_port_proxy #{listening_port_proxy}"
         @@logger.an_event.debug "ip_geo_proxy #{ip_geo_proxy}"
@@ -96,6 +98,18 @@ module Browsers
         @@logger.an_event.debug "user_geo_proxy #{user_geo_proxy}"
         @@logger.an_event.debug "pwd_geo_proxy #{pwd_geo_proxy}"
 
+        raise ProxyError.new(ARGUMENT_UNDEFINE), "visitor_dir undefine" if visitor_dir.nil? or visitor_dir == ""
+        raise ProxyError.new(ARGUMENT_UNDEFINE), "listening_port_proxy undefine" if listening_port_proxy.nil?
+
+
+        unless File.exist?(File.join(DIR_SAHI_TOOLS, 'pslist.exe'))
+          @@logger.an_event.fatal "#{File.join(DIR_SAHI_TOOLS, 'pslist.exe')} not found"
+          raise ProxyError.new(ARGUMENT_UNDEFINE), "#{File.join(DIR_SAHI_TOOLS, 'pslist.exe')} not found"
+        end
+        unless File.exist?(File.join(DIR_SAHI_TOOLS, 'pskill.exe'))
+          @@logger.an_event.fatal "#{File.join(DIR_SAHI_TOOLS, 'pskill.exe')} not found"
+          raise ProxyError.new(ARGUMENT_UNDEFINE), "#{File.join(DIR_SAHI_TOOLS, 'pskill.exe')} not found"
+        end
 
         @ip_geo_proxy = ip_geo_proxy
         @port_geo_proxy = port_geo_proxy
@@ -169,9 +183,8 @@ module Browsers
           File.write(file_name, file_custom)
           @@logger.an_event.debug "customize properties in #{file_name} with #{file_custom}"
         rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.error "config files proxy Sahi are not initialized"
-          raise TechnicalError, PROXY_NOT_CREATE
+          @@logger.an_event.fatal "config files proxy Sahi are not initialized : #{e.message}"
+          raise ProxyError.new(PROXY_NOT_CREATE), "proxy not create"
         ensure
           @@logger.an_event.debug "END Proxy.initialize"
         end
@@ -183,8 +196,8 @@ module Browsers
       # delete les fichiers de configuration et d'exécution du proxy :
       # inputs
       # output
-      # FunctionalError
-      # TechnicalError
+      # StandardError
+      # StandardError
       #----------------------------------------------------------------------------------------------------------------
       #----------------------------------------------------------------------------------------------------------------
       #
@@ -203,9 +216,8 @@ module Browsers
           sleep (1)
           try_count += 1
           retry if try_count < max_try_count
-          @@logger.an_event.debug e.message
-          @@logger.an_event.error "config files proxy Sahi are not completly deleted"
-          raise TechnicalError, CLEAN_NOT_COMPLETE
+          @@logger.an_event.error "config files proxy Sahi are not completly deleted : #{ e.message}"
+          raise ProxyError.new(CLEAN_NOT_COMPLETE), "cleaning config file not complete"
         ensure
           @@logger.an_event.debug "END Proxy.delete_config"
         end
@@ -218,8 +230,8 @@ module Browsers
       # inputs
 
       # output
-      # FunctionalError
-      # TechnicalError
+      # StandardError
+      # StandardError
       #----------------------------------------------------------------------------------------------------------------
       #----------------------------------------------------------------------------------------------------------------
       #
@@ -239,9 +251,8 @@ module Browsers
           @pid = Process.spawn(cmd, [:out, :err] => [sahi_proxy_log_file, "w"])
           @@logger.an_event.debug "proxy Sahi is started with pid #{@pid}"
         rescue Exception => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.error "proxy Sahi is not started"
-          raise TechnicalError, PROXY_NOT_START
+          @@logger.an_event.fatal "proxy Sahi not start : #{e.message}"
+          raise ProxyError.new(PROXY_NOT_START), "proxy Sahi not start"
         ensure
           @@logger.an_event.debug "END Proxy.start"
         end
@@ -253,8 +264,8 @@ module Browsers
       # stop un proxy :
       # inputs
       # output
-      # FunctionalError
-      # TechnicalError
+      # StandardError
+      # StandardError
       #----------------------------------------------------------------------------------------------------------------
       #----------------------------------------------------------------------------------------------------------------
       #
@@ -265,11 +276,10 @@ module Browsers
         begin
           Process.kill("KILL", @pid)
           Process.waitall
-          @@logger.an_event.debug "proxy Sahi #{@pid} is stopped"
+          @@logger.an_event.debug "proxy Sahi #{@pid} stop"
         rescue SignalException => e
-          @@logger.an_event.debug e.message
-          @@logger.an_event.error "proxy Sahi #{@pid} is not stopped"
-          raise TechnicalError, PROXY_NOT_STOP
+          @@logger.an_event.fatal "proxy Sahi #{@pid} not stop : #{e.message}"
+          raise ProxyError.new(PROXY_NOT_STOP), "proxy not stop"
         ensure
           @@logger.an_event.debug "END Proxy.stop"
         end

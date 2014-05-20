@@ -8,24 +8,6 @@ module VisitorFactory
   # return code Visitor_Bot
   #--------------------------------------------------------------------------------------------------------------------
   OK = 0
-  VISIT_NOT_BUILT = 10
-  VISIT_FILE_NOT_LOADED = 11
-  VISIT_MEDIUM_REFERER_UNKNOWN = 12
-  VISIT_ENGINE_REFERER_UNKNOWN = 13
-  VISIT_BAD_PROPERTIES = 14
-  VISITOR_IS_NOT_BORN = 20
-  VISITOR_IS_NOT_BORN_CONFIG_ERROR = 21
-  VISITOR_IS_NOT_BORN_TECHNICAL_ERROR = 22
-  VISITOR_NOT_OPEN_BROWSER = 30
-  VISITOR_NOT_EXECUTE_VISIT = 40
-  REFERRER_NOT_DISPLAY_START_PAGE = 41
-  REFERRER_NOT_FOUND_LANDING_PAGE = 42
-  REFERRAL_NOT_FOUND_LANDING_LINK = 43
-  SEARCH_NOT_FOUND_LANDING_LINK = 44
-  VISITOR_NOT_CLOSE_BROWSER = 50
-  VISITOR_NOT_DIE = 60
-  VISITOR_NOT_INHUME = 70
-
 
   #--------------------------------------------------------------------------------------------------------------------
   # Global variables
@@ -36,50 +18,6 @@ module VisitorFactory
   @@free_visitors = []
   @@sem_free_visitors = Mutex.new
   @@listening_port_proxy = 9999
-
-  #--------------------------------------------------------------------------------------------------------------------
-  # Statistics
-  #--------------------------------------------------------------------------------------------------------------------
-  @@statistics = []
-  STAT_COUNT_VISIT = 0
-  STAT_VISIT_SUCCESS = 1
-  STAT_VISIT_ERROR_NOT_LOADED = 2
-  STAT_VISIT_ERROR_NOT_BUILT = 3
-  STAT_VISIT_ERROR_BAD_PROPERTIES = 4
-  STAT_VISIT_ERROR_MEDIUM = 5
-  STAT_VISIT_ERROR_ENGINE = 6
-  STAT_VISIT_NOT_EXECUTE = 7
-  STAT_VISITOR_ERROR_NOT_BORN = 8
-  STAT_VISITOR_ERROR_NOT_OPEN_BROWSER = 9
-  STAT_REFERRER_NOT_DISPLAY_START_PAGE = 10
-  STAT_REFERRER_NOT_FOUND_LANDING_PAGE     = 11
-  STAT_REFERRAL_NOT_FOUND_LANDING_LINK =12
-  STAT_SEARCH_NOT_FOUND_LANDING_LINK =13
-  STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER = 14
-  STAT_VISITOR_ERROR_NOT_DIE = 15
-
-
-
-
-
-  @@statistics[STAT_COUNT_VISIT]=[0, []]
-  @@statistics[STAT_VISIT_SUCCESS]=[0, []]
-  @@statistics[STAT_VISIT_ERROR_NOT_LOADED]=[0, []]
-  @@statistics[STAT_VISIT_ERROR_NOT_BUILT]=[0, []]
-  @@statistics[STAT_VISIT_ERROR_BAD_PROPERTIES]=[0, []]
-  @@statistics[STAT_VISIT_ERROR_MEDIUM]=[0, []]
-  @@statistics[STAT_VISIT_ERROR_ENGINE]=[0, []]
-  @@statistics[STAT_VISIT_NOT_EXECUTE]=[0, []]
-  @@statistics[STAT_VISITOR_ERROR_NOT_BORN]=[0, []]
-  @@statistics[STAT_VISITOR_ERROR_NOT_OPEN_BROWSER]=[0, []]
-  @@statistics[STAT_REFERRER_NOT_DISPLAY_START_PAGE]=[0, []]
-  @@statistics[STAT_REFERRER_NOT_FOUND_LANDING_PAGE]=[0, []]
-  @@statistics[STAT_REFERRAL_NOT_FOUND_LANDING_LINK]=[0, []]
-  @@statistics[STAT_SEARCH_NOT_FOUND_LANDING_LINK]=[0, []]
-  @@statistics[STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER]=[0, []]
-  @@statistics[STAT_VISITOR_ERROR_NOT_DIE]=[0, []]
-
-
 
   #--------------------------------------------------------------------------------------------------------------------
   # CONNECTION
@@ -139,9 +77,6 @@ module VisitorFactory
           port_proxy = @browser_type_repository.listening_port_proxy(os, os_version, browser, browser_version)[0]
           @@logger.an_event.debug "port_proxy #{port_proxy}"
 
-          @@statistics[STAT_COUNT_VISIT][0] +=1
-          @@statistics[STAT_COUNT_VISIT][1] << id_visit
-
           execute_visit(filename_visit, port_proxy, port_visitor_bot, proxy_system, id_visitor, id_visit)
 
           @@sem_busy_visitors.synchronize {
@@ -177,79 +112,20 @@ module VisitorFactory
     begin
       cmd = "#{ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  #{visitor_bot} -v #{file_name} -t #{listening_port_sahi} -p #{proxy_system} #{geolocation}"
       sleep(2)
-      status = 0
+      status = OK
       pid = Process.spawn(cmd)
       pid, status = Process.wait2(pid, 0)
 
       @@sem_busy_visitors.synchronize {
         case status.exitstatus
-          when 0
-            @@statistics[STAT_VISIT_SUCCESS][0] +=1
-            @@statistics[STAT_VISIT_SUCCESS][1] << id_visit
+          when OK
             dir = Pathname(File.join(File.dirname(__FILE__), "..", '..', "log")).realpath
             files = File.join(dir, "visitor_bot_#{id_visitor}.{*}")
             FileUtils.rm_r(Dir.glob(files), :force => true)
-
-
-          when VISIT_FILE_NOT_LOADED
-            @@statistics[STAT_VISIT_ERROR_NOT_LOADED][0] +=1
-            @@statistics[STAT_VISIT_ERROR_NOT_LOADED][1] << id_visit
-          when VISIT_NOT_BUILT
-            @@statistics[STAT_VISIT_ERROR_NOT_BUILT][0] +=1
-            @@statistics[STAT_VISIT_ERROR_NOT_BUILT][1] << id_visit
-          when VISIT_BAD_PROPERTIES
-            @@statistics[STAT_VISIT_ERROR_BAD_PROPERTIES][0] +=1
-            @@statistics[STAT_VISIT_ERROR_BAD_PROPERTIES][1] << id_visit
-          when VISIT_MEDIUM_REFERER_UNKNOWN
-            @@statistics[STAT_VISIT_ERROR_MEDIUM][0] +=1
-            @@statistics[STAT_VISIT_ERROR_MEDIUM][1] << id_visit
-          when VISIT_ENGINE_REFERER_UNKNOWN
-            @@statistics[STAT_VISIT_ERROR_ENGINE][0] +=1
-            @@statistics[STAT_VISIT_ERROR_ENGINE][1] << id_visit
-          when VISITOR_IS_NOT_BORN
-            @@statistics[STAT_VISITOR_ERROR_NOT_BORN][0] +=1
-            @@statistics[STAT_VISITOR_ERROR_NOT_BORN][1] << id_visit
-          when VISITOR_NOT_OPEN_BROWSER
-            @@statistics[STAT_VISITOR_ERROR_NOT_OPEN_BROWSER][0] +=1
-            @@statistics[STAT_VISITOR_ERROR_NOT_OPEN_BROWSER][1] << id_visit
-          when REFERRER_NOT_DISPLAY_START_PAGE
-            @@statistics[STAT_REFERRER_NOT_DISPLAY_START_PAGE][0] +=1
-            @@statistics[STAT_REFERRER_NOT_DISPLAY_START_PAGE][1] << id_visit
-          when REFERRER_NOT_FOUND_LANDING_PAGE
-            @@statistics[STAT_REFERRER_NOT_FOUND_LANDING_PAGE][0] +=1
-            @@statistics[STAT_REFERRER_NOT_FOUND_LANDING_PAGE][1] << id_visit
-          when REFERRAL_NOT_FOUND_LANDING_LINK
-            @@statistics[STAT_REFERRAL_NOT_FOUND_LANDING_LINK][0] +=1
-            @@statistics[STAT_REFERRAL_NOT_FOUND_LANDING_LINK][1] << id_visit
-          when SEARCH_NOT_FOUND_LANDING_LINK
-            @@statistics[STAT_SEARCH_NOT_FOUND_LANDING_LINK][0] +=1
-            @@statistics[STAT_SEARCH_NOT_FOUND_LANDING_LINK][1] << id_visit
-          when VISITOR_NOT_EXECUTE_VISIT
-            @@statistics[STAT_VISIT_NOT_EXECUTE][0] +=1
-            @@statistics[STAT_VISIT_NOT_EXECUTE][1] << id_visit
-          when VISITOR_NOT_CLOSE_BROWSER
-            @@statistics[STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER][0] +=1
-            @@statistics[STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER][1] << id_visit
-          when VISITOR_NOT_DIE
-            @@statistics[STAT_VISITOR_ERROR_NOT_DIE][0] +=1
-            @@statistics[STAT_VISITOR_ERROR_NOT_DIE][1] << id_visit
+          else
+            @@logger.an_event.error "visit #{id_visit} code error : #{status.exitstatus}"
         end
-        @@logger.an_event.info "count visit                          => #{@@statistics[STAT_COUNT_VISIT][0]} | #{@@statistics[STAT_COUNT_VISIT][1]}"
-        @@logger.an_event.info "count visit success                  => #{@@statistics[STAT_VISIT_SUCCESS][0]} | #{@@statistics[STAT_VISIT_SUCCESS][1]}"
-        @@logger.an_event.info "count visit file not loaded          => #{@@statistics[STAT_VISIT_ERROR_NOT_LOADED][0]} | #{@@statistics[STAT_VISIT_ERROR_NOT_LOADED][1]}"
-        @@logger.an_event.info "count visit not built                => #{@@statistics[STAT_VISIT_ERROR_NOT_BUILT][0]} | #{@@statistics[STAT_VISIT_ERROR_NOT_BUILT][1]}"
-        @@logger.an_event.info "count bad properties in visit        => #{@@statistics[STAT_VISIT_ERROR_BAD_PROPERTIES][0]} | #{@@statistics[STAT_VISIT_ERROR_BAD_PROPERTIES][1]}"
-        @@logger.an_event.info "count medium unknown in visit        => #{@@statistics[STAT_VISIT_ERROR_MEDIUM][0]} | #{@@statistics[STAT_VISIT_ERROR_MEDIUM][1]}"
-        @@logger.an_event.info "count engine search unknown in visit => #{@@statistics[STAT_VISIT_ERROR_ENGINE][0]} | #{@@statistics[STAT_VISIT_ERROR_ENGINE][1]}"
-        @@logger.an_event.info "count visitor not born               => #{@@statistics[STAT_VISITOR_ERROR_NOT_BORN][0]} | #{@@statistics[STAT_VISITOR_ERROR_NOT_BORN][1]}"
-        @@logger.an_event.info "count visitor not open browser       => #{@@statistics[STAT_VISITOR_ERROR_NOT_OPEN_BROWSER][0]} | #{@@statistics[STAT_VISITOR_ERROR_NOT_OPEN_BROWSER][1]}"
-        @@logger.an_event.info "count referrer not display start page=> #{@@statistics[STAT_REFERRER_NOT_DISPLAY_START_PAGE][0]} | #{@@statistics[STAT_REFERRER_NOT_DISPLAY_START_PAGE][1]}"
-        @@logger.an_event.info "count referrer not found landing page=> #{@@statistics[STAT_REFERRER_NOT_FOUND_LANDING_PAGE][0]} | #{@@statistics[STAT_REFERRER_NOT_FOUND_LANDING_PAGE][1]}"
-        @@logger.an_event.info "count referral not found landing link=> #{@@statistics[STAT_REFERRAL_NOT_FOUND_LANDING_LINK][0]} | #{@@statistics[STAT_REFERRAL_NOT_FOUND_LANDING_LINK][1]}"
-        @@logger.an_event.info "count search not found landing link  => #{@@statistics[STAT_SEARCH_NOT_FOUND_LANDING_LINK][0]} | #{@@statistics[STAT_SEARCH_NOT_FOUND_LANDING_LINK][1]}"
-        @@logger.an_event.info "count visitor not execute visit      => #{@@statistics[STAT_VISIT_NOT_EXECUTE][0]} | #{@@statistics[STAT_VISIT_NOT_EXECUTE][1]}"
-        @@logger.an_event.info "count visitor not close browser      => #{@@statistics[STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER][0]} | #{@@statistics[STAT_VISITOR_ERROR_NOT_CLOSE_BROWSER][1]}"
-        @@logger.an_event.info "count visitor not die                => #{@@statistics[STAT_VISITOR_ERROR_NOT_DIE][0]} | #{@@statistics[STAT_VISITOR_ERROR_NOT_DIE][1]}"
+
       }
     rescue Exception => e
       @@logger.an_event.debug e
