@@ -213,7 +213,7 @@ module Browsers
 
           @@logger.an_event.debug "browser #{name} #{@id} create page #{page.to_s}"
 
-        rescue Pages::Error, Browsers::Error, Exception => e
+        rescue Error, Exception => e
           @@logger.an_event.error "browser #{name} #{@id} not click on url #{link.url.to_s} in window #{link.window_tab} : #{e.message}"
           raise BrowserError.new(BROWSER_NOT_CLICK, e), "browser #{name} #{@id} not click on url #{link.url.to_s} in window #{link.window_tab}"
         else
@@ -258,7 +258,7 @@ module Browsers
 
           @@logger.an_event.debug "browser #{name} #{@id} create start page #{start_page.to_s}"
 
-        rescue Pages::Error, Browsers::Error, Exception => e
+        rescue Error, Exception => e
           @@logger.an_event.fatal "browser #{name} #{@id} not open start page #{url_start_page} : #{e.message}"
           raise BrowserError.new(BROWSER_NOT_DISPLAY_PAGE, e), "browser #{name} #{@id} not open start page #{url_start_page}"
         else
@@ -403,7 +403,7 @@ module Browsers
 
           @@logger.an_event.debug "browser #{name} #{@id} open"
 
-        rescue Browsers::Error, Exception => e
+        rescue Error, Exception => e
           @@logger.an_event.error "browser #{name} #{@id} not open : #{e.message}"
           raise BrowserError.new(BROWSER_NOT_OPEN, e), "browser #{name} #{@id} not open "
 
@@ -464,7 +464,7 @@ module Browsers
           @driver.close
           @@logger.an_event.debug "browser #{name} #{@id} close"
 
-        rescue Browsers::Error, Exception => e
+        rescue Error, Exception => e
           @@logger.an_event.error "browser #{name} #{@id} not close : #{e.message}"
           raise BrowserError.new(BROWSER_NOT_CLOSE, e), "browser #{name} #{@id} not close"
         ensure
@@ -527,7 +527,7 @@ module Browsers
 
           @@logger.an_event.debug "browser #{name} #{@id} create search page #{search_page.to_s}"
 
-        rescue Pages::Error, Browsers::Error, Exception => e
+        rescue Error, Exception => e
           @@logger.an_event.error "browser #{name} #{@id} cannot submit search form #{engine_search.class} : #{e.message}"
           @@logger.an_event.debug "END Browser.search"
           raise BrowserError.new(BROWSER_NOT_SEARCH, e), "browser #{name} #{@id} cannot submit search form #{engine_search.class}"

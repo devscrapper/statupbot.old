@@ -34,7 +34,7 @@ module Visits
           @engine_search = EngineSearch.build(referer_details[:source])
           @@logger.an_event.debug "referrer #{self.class} create"
 
-        rescue EngineSearches::Error => e
+        rescue Error => e
           @@logger.an_event.error "referrer #{self.class} not create : #{e.message}"
           raise ReferrerError.new(REFERRER_NOT_CREATE, e), "referrer #{self.class} not create"
 

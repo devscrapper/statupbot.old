@@ -113,7 +113,7 @@ module Visitors
 
         @@logger.an_event.info "visitor #{@id} born"
 
-      rescue Browsers::Error, Exception => e
+      rescue Error, Exception => e
         @@logger.an_event.error "visitor #{@id} not born : #{e.message}"
         raise VisitorError.new(VISITOR_NOT_BORN, e), "visitor #{@id} not born"
       ensure
@@ -200,7 +200,7 @@ module Visitors
           @@logger.an_event.debug "visitor #{@id} create"
 
           @@logger.an_event.info "visitor #{@id} create runtime directory, config his proxy Sahi, config his browser"
-        rescue Exception, Browsers::Error => e
+        rescue Error => e
           @@logger.an_event.error "visitor #{@id} not create : #{e.message}"
           raise VisitorError.new(VISITOR_NOT_CREATE, e), "visitor #{@id} not create"
 
@@ -252,7 +252,7 @@ module Visitors
 
             @@logger.an_event.info "visitor #{@id} browse landing page #{referrer.landing_url.to_s}"
 
-          rescue Browsers::Error, Exception => e
+          rescue Error, Exception => e
             @@logger.an_event.error "visitor #{@id} not browse landing url #{referrer.landing_url.to_s} : #{e.message}"
             raise VisitorError.new(VISITOR_NOT_BROWSE_LANDING_PAGE, e), "visitor #{@id} not browse landing page #{referrer.landing_url.to_s}"
           else
@@ -280,7 +280,7 @@ module Visitors
             referral_page.duration = referrer.duration
             read(referral_page)
 
-          rescue Browsers::Error, Exception => e
+          rescue Error, Exception => e
             @@logger.an_event.error "visitor #{@id} not browse referral url #{referrer.page_url.to_s} : #{e.message}"
             @@logger.an_event.debug "END Visitor.browse"
             raise VisitorError.new(VISITOR_NOT_BROWSE_REFERRAL_PAGE, e), "visitor #{@id} not browse referral url #{referrer.page_url.to_s}"
@@ -289,7 +289,7 @@ module Visitors
           begin
             landing_link = referral_page.link_by_url(referrer.landing_url)
 
-          rescue Pages::Error => e
+          rescue Error => e
             @@logger.an_event.error "visitor #{@id} not found landing link #{referrer.landing_url.to_s} in referral page #{referral_page.url.to_s} : #{e.message}"
             @@logger.an_event.debug "END Visitor.browse"
             raise VisitorError.new(VISITOR_NOT_FOUND_LANDING_LINK, e), "visitor #{@id} not found landing link #{referrer.landing_url.to_s} in referral page #{referral_page.url.to_s}"
@@ -301,7 +301,7 @@ module Visitors
             landing_page = @browser.click_on(landing_link)
             @@logger.an_event.info "visitor #{@id} click on landing link #{landing_link.url.to_s}"
 
-          rescue Browsers::Error, Exception => e
+          rescue Error, Exception => e
             @@logger.an_event.error "visitor #{@id} not click on landing url #{landing_link.url.to_s} : #{e.message}"
             raise VisitorError.new(VISITOR_NOT_CLICK_ON_LANDING, e), "visitor #{@id} not click on landing url #{landing_link.url.to_s}"
           else
@@ -324,7 +324,7 @@ module Visitors
 
             @@logger.an_event.info "visitor #{@id} browse engine search page #{referrer.engine_search.page_url}"
 
-          rescue Browsers::Error, Exception => e
+          rescue Error, Exception => e
             @@logger.an_event.error "visitor #{@id} not browse engine search url #{referrer.engine_search.page_url.to_s} : #{e.message}"
             @@logger.an_event.debug "END Visitor.browse"
             raise VisitorError.new(VISITOR_NOT_BROWSE_SEARCH_PAGE, e), "visitor #{@id} not browse engine search url #{referrer.engine_search.page_url.to_s}"
@@ -347,7 +347,7 @@ module Visitors
 
             @@logger.an_event.info "visitor #{@id} click on landing url #{landing_link.url.to_s}"
 
-          rescue Browsers::Error, Exception => e
+          rescue Error, Exception => e
             @@logger.an_event.error "visitor #{@id} not click on landing link #{landing_link.url.to_s} : #{e.message}"
             raise VisitorError.new(VISITOR_NOT_CLICK_ON_LANDING, e), "visitor #{@id} not click on landing link #{landing_link.url.to_s}"
           else
@@ -379,7 +379,7 @@ module Visitors
       begin
         @browser.quit
         @@logger.an_event.info "visitor #{@id} close his browser #{@browser.name}"
-      rescue Browsers::Error => e
+      rescue Error => e
         @@logger.an_event.error "visitor #{@id} not close his browser #{@browser.name} #{@browser.id} : #{e.message}"
         raise VisitorError.new(VISITOR_NOT_CLOSE, e), "visitor #{@id} not close his browser #{@browser.name} #{@browser.id}"
       ensure
@@ -405,7 +405,7 @@ module Visitors
       begin
         @proxy.stop
         @@logger.an_event.info "visitor #{@id} die"
-      rescue Browsers::Error => e
+      rescue Error => e
         @@logger.an_event.error "visitor #{@id} not die : #{e.message}"
         raise VisitorError.new(VISITOR_NOT_DIE, e), "visitor #{@id} not die"
       ensure
@@ -482,7 +482,7 @@ module Visitors
                               referrer.engine_search,
                               referrer.durations.map { |d| d },
                               referrer.landing_url)
-      rescue Browsers::Error => e
+      rescue Error => e
         #erreur technique remonté par le browser lors de la recherche
         raise e
       rescue Exception => e
@@ -517,7 +517,7 @@ module Visitors
       begin
         @browser.open
         @@logger.an_event.info "visitor #{@id} open his browser #{@browser.name}"
-      rescue Browsers::Error => e
+      rescue Error => e
         @@logger.an_event.error "visitor #{@id} not open his browser #{@browser.name} #{@browser.id} : #{e.message}"
         raise VisitorError.new(VISITOR_NOT_OPEN, e), "visitor #{@id} not open his browser #{@browser.name} #{@browser.id}"
       ensure
@@ -619,7 +619,7 @@ module Visitors
           begin
             results_page = @browser.click_on(next_page_link)
             @@logger.an_event.info "visitor #{@id} click on next link #{next_page_link.url.to_s}"
-          rescue Browsers::Error, Pages::Error => e
+          rescue Error => e
             #un erreur survient lors du click sur le lien de la page suivante.
             @@logger.an_event.error "visitor #{@id} not click on next link #{next_page_link.url.to_s}"
             @@logger.an_event.debug "END Visitor.search"
@@ -676,7 +676,7 @@ module Visitors
           end # on ne clique pas quand on est sur la denriere page
         }
         page
-      rescue Browsers::Error, Pages::Error, Exception => e
+      rescue Error, Exception => e
         @@logger.an_event.error "visitor #{@id} not click on link #{link.url.to_s} : #{e.message}"
         raise VisitorError.new(VISIT_NOT_COMPLETE, e), "visitor #{@id} not click on link #{link.url.to_s}"
       end
