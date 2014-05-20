@@ -7,7 +7,7 @@ gem 'rvm-capistrano'
 gem "bundler"
 gem "eventmachine"
 #gem 'em-proxy'
-#gem 'em-http-server'
+gem 'em-http-server', '~> 0.1.8'
 gem 'certified'
 gem 'json'
 gem 'rufus-scheduler'
@@ -19,6 +19,7 @@ gem 'trollop'
 gem 'sahi'
 gem 'webrick'
 gem 'os'
+
 gem 'win32-process', '~> 0.7.4'
 # fin new gem
 

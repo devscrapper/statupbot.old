@@ -1,0 +1,11 @@
+
+development:
+  return_code_listening_port: 9230
+  http_server_listening_port: 8081
+  debugging:  true
+test:
+  return_code_listening_port: 9230
+  http_server_listening_port: 8081
+  debugging:  false
+
+production:

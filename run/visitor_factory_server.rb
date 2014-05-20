@@ -18,7 +18,7 @@ opts = Trollop::options do
 factory which execute visitor_bot with a visit
 
 Usage:
-       visitor_bot [options]
+       visitor_factory_server [options]
 where [options] are:
   EOS
   opt :proxy_type, "Type of geolocation proxy use (none|http|https|socks)", :type => :string, :default => "none"

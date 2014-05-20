@@ -1,9 +1,12 @@
 require_relative '../model/visitor/visitor'
 require_relative '../model/visit/visit'
 require_relative '../lib/logging'
+require_relative '../model/monitoring/public'
 require 'uri'
 require 'trollop'
 require 'eventmachine'
+
+
 include Visits
 include Visitors
 #bot which surf on website
@@ -84,15 +87,13 @@ Trollop::die :proxy_port, "is require with proxy" if opts[:proxy_type] != "none"
 
 
 OK = 0
-
+KO = 1
 
 def visitor_is_no_slave(opts)
   visit = nil
   visitor = nil
   landing_page = nil
   page = nil
-  cr = OK
-
 
   #---------------------------------------------------------------------------------------------------------------------
   # chargement du fichier definissant la visite
@@ -102,9 +103,10 @@ def visitor_is_no_slave(opts)
     visit_details = Visit.build(opts[:visit_file_name])
 
   rescue Exception => e
-    cr = e.code
-    p "return code from visitor_bot #{cr}"
-    return cr
+
+    Monitoring.send_return_code(e, opts[:visit_file_name], @@logger)
+    return KO
+
   end
 
   context = ["visit=#{visit_details[:id_visit]}"]
@@ -121,9 +123,10 @@ def visitor_is_no_slave(opts)
     visit = Visit.new(visit_details)
 
   rescue Exception => e
-    cr = e.code
-    p e.to_s
-    return cr
+
+    Monitoring.send_return_code(e, visit_details, @@logger)
+    return KO
+
   end
   #---------------------------------------------------------------------------------------------------------------------
   # Creation du visitor
@@ -141,9 +144,10 @@ def visitor_is_no_slave(opts)
     visitor = Visitor.build(visitor_details)
 
   rescue Exception => e
-    cr = e.code
-    p e.to_s
-    return cr
+
+    Monitoring.send_return_code(e, visit_details, @@logger)
+    return KO
+
   end
 
   #---------------------------------------------------------------------------------------------------------------------
@@ -154,9 +158,10 @@ def visitor_is_no_slave(opts)
     visitor.born
 
   rescue Exception => e
-    cr = e.code
-    p e.to_s
-    return cr
+
+    Monitoring.send_return_code(e, visit_details, @@logger)
+    return KO
+
   end
 
   #---------------------------------------------------------------------------------------------------------------------
@@ -167,10 +172,11 @@ def visitor_is_no_slave(opts)
     visitor.open_browser
 
   rescue Exception => e
-    cr = e.code
+
+    Monitoring.send_return_code(e, visit_details, @@logger)
     visitor.die
-    p e.to_s
-    return cr
+    return KO
+
   end
 
   #---------------------------------------------------------------------------------------------------------------------
@@ -181,11 +187,12 @@ def visitor_is_no_slave(opts)
     landing_page = visitor.browse(visit.referrer)
 
   rescue Exception => e
-    cr = e.code
+
+    Monitoring.send_return_code(e, visit_details, @@logger)
     visitor.close_browser
     visitor.die
-    p e.to_s
-    return cr
+    return KO
+
   end
 
   #---------------------------------------------------------------------------------------------------------------------
@@ -196,11 +203,12 @@ def visitor_is_no_slave(opts)
     page = visitor.surf(visit.durations, landing_page, visit.around)
 
   rescue Exception => e
-    cr = e.code
+
+    Monitoring.send_return_code(e, visit_details, @@logger)
     visitor.close_browser
     visitor.die
-    p e.to_s
-    return cr
+    return KO
+
   end
 
   #---------------------------------------------------------------------------------------------------------------------
@@ -211,10 +219,11 @@ def visitor_is_no_slave(opts)
     visitor.close_browser
 
   rescue Exception => e
-    cr = e.code
+
+    Monitoring.send_return_code(e, visit_details, @@logger)
     visitor.die
-    p e.to_s
-    return cr
+    return KO
+
   end
 
   #---------------------------------------------------------------------------------------------------------------------
@@ -225,9 +234,10 @@ def visitor_is_no_slave(opts)
     visitor.die
 
   rescue Exception => e
-    cr = e.code
-    p e.to_s
-    return cr
+
+    Monitoring.send_return_code(e, visit_details, @@logger)
+    return KO
+
   end
 
   #---------------------------------------------------------------------------------------------------------------------
@@ -238,9 +248,10 @@ def visitor_is_no_slave(opts)
     visitor.inhume
 
   rescue Exception => e
-    cr = e.code
-    p e.to_s
-    return cr
+
+    Monitoring.send_return_code(e, visit_details, @@logger)
+    return KO
+
   end
 
 
