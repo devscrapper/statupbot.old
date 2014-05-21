@@ -148,10 +148,7 @@ module VisitorFactory
 
       @@logger.an_event.debug "geolocation #{geolocation}"
 
-      #TODO déterminer la localisation du runtime ruby par parametrage ou automatiquement
       #TODO assurer que le port d'ecoute de sahi n'est pas occupé par une exécution du proxy non terminé (ou planté) si c'est le cas lors utilisé un autre numero de port issue d'un pool de secours
-
-      #ruby = File.join("d:", "ruby193", "bin", "ruby.exe")
 
       @@logger.an_event.debug "runtime ruby #{runtime_ruby}"
 
