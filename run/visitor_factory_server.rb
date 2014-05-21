@@ -13,7 +13,7 @@ include VisitorFactory
 
 
 opts = Trollop::options do
-  version "test 0.1 (c) 2013 Dave Scrapper"
+  version "test 0.2 (c) 2013 Dave Scrapper"
   banner <<-EOS
 factory which execute visitor_bot with a visit
 
@@ -46,10 +46,7 @@ VisitorFactory.logger(logger)
 logger.a_log.info "parameters of visitor factory server :"
 logger.a_log.info "geolocation is : #{opts[:proxy_type]}"
 logger.a_log.info "assign new visitor listening port : #{VisitorFactory.assign_new_visitor_listening_port}"
-logger.a_log.info "assign return visitor listening port : #{VisitorFactory.assign_return_visitor_listening_port}"
-logger.a_log.info "firefox path : #{VisitorFactory.firefox_path}"
-logger.a_log.info "debug outbound queries : #{VisitorFactory.debug_outbound_queries}"
-logger.a_log.info "home : #{VisitorFactory.home}"
+logger.a_log.info "runtime ruby : #{VisitorFactory.runtime_ruby}"
 logger.a_log.info "debugging : #{$debugging}"
 logger.a_log.info "staging : #{$staging}"
 
@@ -65,17 +62,12 @@ logger.a_log.info "generation of win64.xml browser type file"
 bt.to_win64(Pathname.new(File.join(File.dirname(__FILE__),'..', 'lib', 'sahi.in.co' ,'config', 'browser_types', 'win64.xml')).realpath)
 
 EventMachine.run {
-  #timer = EventMachine::PeriodicTimer.new(60) do
-  #  VisitorFactory.garbage_free_visitors
-  #end
 
   Signal.trap("INT") { EventMachine.stop ;  }
   Signal.trap("TERM") { EventMachine.stop ; }
 
-  EventMachine.add_periodic_timer( 5*60 ) { VisitorFactory.garbage_free_visitors }
-
   logger.a_log.info "visitor factory server is starting"
-  EventMachine.start_server "127.0.0.1", VisitorFactory.assign_new_visitor_listening_port, VisitorFactory::AssignNewVisitorConnection, bt, logger, opts
+  EventMachine.start_server "127.0.0.1", VisitorFactory.assign_new_visitor_listening_port, VisitorFactory::AssignNewVisitorConnection, bt, VisitorFactory.runtime_ruby, logger, opts
 
 }
 logger.a_log.info "visitor factory server stopped"

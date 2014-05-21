@@ -35,7 +35,7 @@ module Monitoring
         send_object @data
         @logger.an_event.info "send return code #{@data[:return_code].code} and details of visit to monitoring server"
       rescue Exception => e
-        @logger.an_event.error "#{e.message}"
+        @logger.an_event.error "not send return code #{@data[:return_code].code} and details of visit to monitoring server : #{e.message}"
       end
     end
 

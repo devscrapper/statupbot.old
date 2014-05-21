@@ -1,17 +1,11 @@
 
 development:
-  firefox_path: 'D:/FirefoxPortable/App/Firefox/Firefox.exe'
-  home: false
-  debug_outbound_queries: false
+  runtime_ruby: ["d:", "ruby193", "bin", "ruby.exe"]
   assign_new_visitor_listening_port: 9220
-  assign_return_visitor_listening_port: 9221
   debugging:  true
 test:
-  firefox_path:
-  home: false
-  debug_outbound_queries: false
+  runtime_ruby: ["d:", "ruby193", "bin", "ruby.exe"]
   assign_new_visitor_listening_port: 9220
-  assign_return_visitor_listening_port: 9221
   debugging:  false
 
 production:
