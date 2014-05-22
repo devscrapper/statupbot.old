@@ -48,6 +48,13 @@ module Browsers
         @@logger.an_event.debug "visitor_dir #{visitor_dir}"
 
         raise BrowserError.new(ARGUMENT_UNDEFINE), "visitor_dir undefine" if visitor_dir.nil? or visitor_dir == ""
+        # id_visitor\proxy\config\sahi.properties
+        # Time (in milliseconds) delay between steps
+        # script.time_between_steps=wait_time
+        file_name = File.join(visitor_dir, 'proxy', 'config', 'sahi.properties')
+        file_custom = File.read(file_name)
+        file_custom.gsub!(/wait_time/, 100.to_s)
+        File.write(file_name, file_custom)
 
         # id_visitor\proxy\config\browser_types\win64.xml :
         # le port d'ecoute du proxy pour chrome
