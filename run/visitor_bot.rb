@@ -276,8 +276,8 @@ def load_parameter
     @@debug_outbound_queries = params[$staging]["debug_outbound_queries"] unless params[$staging]["debug_outbound_queries"].nil? #geolocation
     @@home = params[$staging]["home"] unless params[$staging]["home"].nil? #geolocation
     @@firefox_path = params[$staging]["firefox_path"] unless params[$staging]["firefox_path"].nil?
-    $java_runtime_path = params[$staging]["java_runtime_path"] unless params[$staging]["java_runtime_path"].nil?
-    $java_key_tool_path = params[$staging]["java_key_tool_path"] unless params[$staging]["java_key_tool_path"].nil?
+    $java_runtime_path = params[$staging]["java_runtime_path"].join(File::SEPARATOR) unless params[$staging]["java_runtime_path"].nil?
+    $java_key_tool_path = params[$staging]["java_key_tool_path"].join(File::SEPARATOR).gsub(/\\/,"\\" ) unless params[$staging]["java_key_tool_path"].nil?
 
     $debugging = params[$staging]["debugging"] unless params[$staging]["debugging"].nil?
   rescue Exception => e

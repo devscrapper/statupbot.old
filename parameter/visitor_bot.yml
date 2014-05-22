@@ -1,6 +1,7 @@
 development:
-  java_runtime_path: '"C:/Program Files (x86)/Java/jre6/bin/java"'
-  java_key_tool_path: 'C:\\Program Files\\Java\\jre6\\bin\\keytool.exe'
+  java_runtime_path: ["\"c:", "Program Files (x86)", "Java", "jre6", "bin", "java.exe\""]
+  java_key_tool_path: ["\"C:", "Program Files", "Java", "jre6", "bin", "keytool.exe\""]
+  java_key_tool_path_old: 'C:\\Program Files\\Java\\jre6\\bin\\keytool.exe'
   home: false
   debugging:  true
 test:
