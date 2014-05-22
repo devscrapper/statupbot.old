@@ -280,7 +280,7 @@ module Browsers
           openssl_dir = ""
           if OS.windows?
             openssl_dir = "opennssl.win32" if ENV["ProgramFiles(x86)"].nil?
-            openssl_dir = "openssl.win32" unless ENV["ProgramFiles(x86)"].nil?
+            openssl_dir = "openssl.win64" unless ENV["ProgramFiles(x86)"].nil?
           end
           openssl_dir = "openss.mac" if OS.mac?
           openssl_dir = "openssl.linux" if OS.linux?
