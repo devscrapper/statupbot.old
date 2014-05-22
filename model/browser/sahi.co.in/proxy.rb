@@ -19,7 +19,7 @@ module Browsers
       PROXY_NOT_START = 102 # à remonter en code retour de statupbot
       PROXY_NOT_STOP = 103 # à remonter en code retour de statupbot
       CLEAN_NOT_COMPLETE = 104 # à remonter en code retour de statupbot
-
+      RUNTIME_OPENSSL_NOT_SELECT = 105
 
       #----------------------------------------------------------------------------------------------------------------
       # constant
@@ -182,6 +182,8 @@ module Browsers
 
           File.write(file_name, file_custom)
           @@logger.an_event.debug "customize properties in #{file_name} with #{file_custom}"
+
+          select_openssl_runtime
         rescue Exception => e
           @@logger.an_event.fatal "config files proxy Sahi are not initialized : #{e.message}"
           raise ProxyError.new(PROXY_NOT_CREATE), "proxy not create"
@@ -258,6 +260,43 @@ module Browsers
         end
       end
 
+       #----------------------------------------------------------------------------------------------------------------
+      # select_openssl_runtime
+      #----------------------------------------------------------------------------------------------------------------
+      # stop un proxy :
+      # inputs
+      # output
+      # StandardError
+      # StandardError
+      #----------------------------------------------------------------------------------------------------------------
+      #----------------------------------------------------------------------------------------------------------------
+      #
+      #----------------------------------------------------------------------------------------------------------------
+
+      def select_openssl_runtime
+        @@logger.an_event.debug "BEGIN Proxy.select_openssl_runtime"
+        begin
+          require 'os'
+          openssl_dir = ""
+          if OS.windows?
+            openssl_dir = "opennssl.win32" if ENV["ProgramFiles(x86)"].nil?
+            openssl_dir = "openssl.win32" unless ENV["ProgramFiles(x86)"].nil?
+          end
+          openssl_dir = "openss.mac" if OS.mac?
+          openssl_dir = "openssl.linux" if OS.linux?
+
+          @@logger.an_event.debug "openssl dir #{File.join(@home, 'certgen', openssl_dir)}"
+
+          FileUtils.cp_r(Dir.glob(File.join(@home, 'certgen', openssl_dir,'*.*')), File.join(@home, 'certgen'))
+
+          @@logger.an_event.debug "runtime openssl select"
+        rescue Exception => e
+          @@logger.an_event.fatal "runtime openssl not select : #{e.message}"
+          raise ProxyError.new(RUNTIME_OPENSSL_NOT_SELECT), "runtime openssl not select"
+        ensure
+          @@logger.an_event.debug "END Proxy.select_openssl_runtime"
+        end
+      end
       #----------------------------------------------------------------------------------------------------------------
       # stop
       #----------------------------------------------------------------------------------------------------------------
