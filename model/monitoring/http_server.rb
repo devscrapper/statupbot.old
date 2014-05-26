@@ -11,12 +11,15 @@ class Hash
   end
 end
 
+
 class HTTPHandler < EM::HttpServer::Server
-  attr :return_codes
+  attr :return_codes, :count_success,:count_visits
 
 
-  def initialize(return_codes)
+  def initialize(return_codes, count_success, count_visits)
     @return_codes = return_codes
+    @count_visits = count_visits
+    @count_success = count_success
     super
   end
 
@@ -29,6 +32,9 @@ class HTTPHandler < EM::HttpServer::Server
                 <HTML>
                  <HEAD>
                   <BODY>
+                    <h1>count visits #{@count_visits[0]}</h1>
+                    <h1>success #{@count_success[0]} (#{(@count_success[0] * 100/@count_visits[0]).to_i if @count_visits[0] > 0}%)</h1>
+                    <h1> error visit</h1
                     #{@return_codes.to_html}
                   <BODY
                 </HEAD>

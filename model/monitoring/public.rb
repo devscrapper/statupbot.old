@@ -1,3 +1,4 @@
+require_relative '../error'
 require 'rubygems' # if you use RubyGems
 require 'socket'
 require 'eventmachine'
@@ -61,6 +62,18 @@ module Monitoring
     end
   end
 
+  def send_success(logger)
+    begin
+
+      load_parameter()
+      EventMachine.run {
+        EM.connect '127.0.0.1', @return_code_listening_port, ReturnCodeClient, Errors::Error.new(0), {}, logger
+      }
+    rescue Exception => e
+      logger.an_event.error "not sent success code to monitoring server : #{e.message}"
+    end
+  end
+
   def load_parameter
     @listening_port = 9230 # port d'ecoute
     begin
@@ -85,6 +98,7 @@ module Monitoring
   end
 
   module_function :send_return_code
+  module_function :send_success
   module_function :return_code_listening_port
   module_function :http_server_listening_port
   module_function :load_parameter

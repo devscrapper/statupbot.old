@@ -1,3 +1,4 @@
+require_relative '../../model/monitoring/public'
 require 'rubygems' # if you use RubyGems
 require 'socket'
 require 'eventmachine'
@@ -162,6 +163,7 @@ module VisitorFactory
       pid, status = Process.wait2(pid, 0)
 
       raise "visitor_bot send an error to monitoring" unless status.exitstatus == OK
+      Monitoring.send_success(@@logger)
 
     rescue Exception => e
 

@@ -43,15 +43,17 @@ logger.a_log.info "staging : #{$staging}"
 #--------------------------------------------------------------------------------------------------------------------
 
 @@return_codes = {}
+@@count_visits = [0]
+@@count_success = [0]
 EventMachine.run {
 
   Signal.trap("INT") { EventMachine.stop ;  }
   Signal.trap("TERM") { EventMachine.stop ; }
 
   logger.a_log.info "monitoring server is starting"
-  EventMachine.start_server "0.0.0.0", Monitoring.return_code_listening_port, Monitoring::ReturnCodeConnection, @@return_codes, logger, opts
+  EventMachine.start_server "0.0.0.0", Monitoring.return_code_listening_port, Monitoring::ReturnCodeConnection, @@return_codes,@@count_visits,@@count_success, logger, opts
   logger.a_log.info "monitoring server http is starting"
-  EventMachine.start_server "0.0.0.0", Monitoring.http_server_listening_port, HTTPHandler, @@return_codes
+  EventMachine.start_server "0.0.0.0", Monitoring.http_server_listening_port, HTTPHandler, @@return_codes , @@count_success, @@count_visits
 
 }
 logger.a_log.info "visitor factory server stopped"
