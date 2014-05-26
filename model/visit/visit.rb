@@ -115,8 +115,7 @@ module Visits
         @start_date_time = visit_details[:start_date_time]
         @durations = visit_details[:durations]
         @around = (visit_details[:website][:many_hostname] == :true and visit_details[:website][:many_account_ga] == :no) ? :inside_hostname : :inside_fqdn
-        @landing_url = URI.join(visit_details[:landing][:fqdn].start_with?("http") ? visit_details[:landing][:fqdn] : "http://#{visit_details[:landing][:fqdn]}",
-                                visit_details[:landing][:page_path])
+        @landing_url = URI.join(visit_details[:landing][:fqdn].start_with?("http") ? visit_details[:landing][:fqdn] : "http://#{visit_details[:landing][:fqdn]}",visit_details[:landing][:page_path])
         @referrer = Referrer.build(visit_details[:referrer], @landing_url)
         @advertising = Advertising.build(visit_details[:advert])
 
@@ -125,6 +124,9 @@ module Visits
       rescue Error => e
         @@logger.an_event.error "visit #{visit_details[:id_visit]} not create #{e.message}"
         raise VisitError.new(VISIT_NOT_CREATE, e), "visit #{visit_details[:id_visit]} not create"
+      rescue Exception => e
+        @@logger.an_event.error "visit #{visit_details[:id_visit]} not create #{e.message}"
+        raise VisitError.new(VISIT_NOT_CREATE), "visit #{visit_details[:id_visit]} not create"
       ensure
         @@logger.an_event.debug "END Visit.initialize"
       end

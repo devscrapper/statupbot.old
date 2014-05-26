@@ -10,7 +10,8 @@ module Visits
       def initialize(referer_details, landing_page)
         @@logger.an_event.debug "BEGIN Referral.initialize"
 
-        raise ReferrerError.new(ARGUMENT_UNDEFINE), "referral_path undefine" if landing_page[:referral_path].nil?
+        raise ReferrerError.new(ARGUMENT_UNDEFINE), "landing page undefine" if landing_page.nil?
+        raise ReferrerError.new(ARGUMENT_UNDEFINE), "referral_path undefine" if referer_details[:referral_path].nil?
         raise ReferrerError.new(ARGUMENT_UNDEFINE), "durations undefine" if referer_details[:duration].nil?
         raise ReferrerError.new(ARGUMENT_UNDEFINE), "source undefine" if referer_details[:source].nil?
 
