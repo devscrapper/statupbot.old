@@ -127,18 +127,6 @@ module Browsers
         @@logger.an_event.debug "log_properties #{@log_properties}"
 
         begin
-          # on precise le path de localisation de pslist et de pskill avant de copier vers userdata car
-          # les path sont identiques pour tous les userdata
-          # DIR_SAHI\config\os.properties   avec :
-          # le path de pslist
-          # le path de pskill
-          file_name = File.join(DIR_SAHI, 'config', 'os.properties')
-          file_custom = File.read(file_name)
-          file_custom.gsub!(/path_pslist/, File.join(DIR_SAHI_TOOLS, 'pslist.exe'))
-          file_custom.gsub!(/path_pskill/, File.join(DIR_SAHI_TOOLS, 'pskill.exe'))
-          File.write(file_name, file_custom)
-          @@logger.an_event.debug "customize path of pskill and pslist in #{file_name} with #{file_custom}"
-
           # on fait du nettoyage pour eviter de perturber le proxy avec un paramètrage bancal
           if File.exist?(@home)
             FileUtils.rm_r(@home, :force => true) if File.exist?(@home)
@@ -182,6 +170,17 @@ module Browsers
 
           File.write(file_name, file_custom)
           @@logger.an_event.debug "customize properties in #{file_name} with #{file_custom}"
+
+          # id_visitor\proxy\config\os.properties   avec :
+          # le path de pslist
+          # le path de pskill
+          file_name = File.join(@home, 'config', 'os.properties')
+          file_custom = File.read(file_name)
+          file_custom.gsub!(/path_pslist/, File.join(@home, 'tools', 'pslist.exe'))
+          file_custom.gsub!(/path_pskill/, File.join(@home, 'tools', 'pskill.exe'))
+          File.write(file_name, file_custom)
+          @@logger.an_event.debug "customize path of pskill and pslist in #{file_name} with #{file_custom}"
+
 
           select_openssl_runtime
         rescue Exception => e
