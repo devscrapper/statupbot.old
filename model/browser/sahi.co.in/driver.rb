@@ -240,13 +240,14 @@ module Browsers
           @@logger.an_event.debug "param #{param}"
           exec_command("launchPreconfiguredBrowser", param)
           i = 0
-          while (i < 500)
+          while (i < 500 and !is_ready?)
             i+=1
-            break if is_ready?
+           # break if
             sleep(0.1)
           end
 
-          @@logger.an_event.debug "driver #{@browser_type} open"
+          @@logger.an_event.debug "driver #{@browser_type} open" if is_ready?
+          raise "driver #{@browser_type} not ready" unless is_ready?
 
         rescue Exception => e
           @@logger.an_event.fatal "driver #{@browser_type} not open : #{e.message}"
