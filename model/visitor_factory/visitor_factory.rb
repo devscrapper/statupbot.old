@@ -121,11 +121,17 @@ module VisitorFactory
                                                                   browser_details[:version])[0]
       @@logger.an_event.debug "port_proxy #{port_proxy}"
 
+      runtime_path = @browser_type_repository.runtime_path(browser_details[:operating_system],
+                                                                        browser_details[:operating_system_version],
+                                                                        browser_details[:name],
+                                                                        browser_details[:version])
+
+      @@logger.an_event.debug "runtime_path #{runtime_path}"
+
+      raise "runtime path browser #{runtime_path} not found" unless File.exist?(runtime_path)
     rescue Exception => e
-
-      @@logger.an_event.error "browser not belong to repository browser type : #{e.message}"
-      raise "browser not belong to repository browser type"
-
+      @@logger.an_event.error "#{e.message}"
+        raise "browser type repository has an error"
     else
 
       return [proxy_system, port_proxy]
@@ -163,6 +169,7 @@ module VisitorFactory
       pid, status = Process.wait2(pid, 0)
 
       raise "visitor_bot send an error to monitoring" unless status.exitstatus == OK
+
       Monitoring.send_success(@@logger)
 
     rescue Exception => e

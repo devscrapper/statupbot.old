@@ -1,0 +1,16 @@
+staging;os;os_version;browser;browser_version;runtime_path;proxy_system;start_listening_port_proxy;count_proxy
+development;Windows;XP;Internet Explorer;6.0;C:\Program Files\Internet Explorer\iexplore.exe;true;10000;1
+development;Windows;XP;Internet Explorer;7.0;C:\Sandbox\Eleve\ie7\drive\C\Program Files\Internet Explorer\iexplore.exe;false;9999;2
+development;Windows;XP;Internet Explorer;8.0;C:\Sandbox\Eleve\ie8\drive\C\Program Files\Internet Explorer\iexplore.exe;false;9997;2
+development;Windows;XP;Firefox;18.0;C:\Program Files\Mozilla Firefox\18.0\firefox.exe;false;9995;2
+development;Windows;XP;Firefox;19.0;C:\Program Files\Mozilla Firefox\19.0\firefox.exe;false;9993;2
+development;Windows;XP;Chrome;33.0.1750.117;C:\Sandbox\Eleve\ch33\user\current\Local Settings\Application Data\Google\Chrome\Application\chrome.exe;false;9991;2
+development;Windows;XP;Chrome;34.0.1847.11;C:\Sandbox\Eleve\ch34\user\current\Local Settings\Application Data\Google\Chrome\Application\chrome.exe;false;9989;2
+development;Windows;XP;Chrome;35.0.1862.2;C:\Sandbox\Eleve\ch35\user\current\Local Settings\Application Data\Google\Chrome\Application\chrome.exe;false;9987;2
+development;Windows;7;Internet Explorer;9.0;C:\Program Files (x86)\Internet Explorer\iexplore.exe;true;9985;1
+development;Windows;7;Firefox;24.0;D:\FirefoxPortable\App\Firefox\firefox.ex;false;9984;2
+development;Windows;7;Firefox;3.6;C:\Program Files (x86)\Mozilla Firefox\firefox.exe;false;9982;2
+development;Windows;7;Chrome;33.0.1750.117;C:\Users\ET00752\AppData\Local\Google\Chrome\Application\chrome.exe;false;9980;2
+development;Windows;VISTA;Internet Explorer;9.0;C:\Program Files\Internet Explorer\iexplore.exe;true;9978;1
+development;Windows;VISTA;Firefox;28.0;C:\Program Files\Mozilla Firefox\firefox.exe;false;9977;2
+development;Windows;VISTA;Chrome;33.0.1750.117;C:\Program Files\Google\Chrome\Application\chrome.exe;false;9975;2

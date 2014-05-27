@@ -1,7 +1,23 @@
+require_relative '../error'
 require 'csv'
 require 'yaml'
 module VisitorFactory
   class BrowserTypes
+    #----------------------------------------------------------------------------------------------------------------
+    # include class
+    #----------------------------------------------------------------------------------------------------------------
+    include Errors
+
+        #----------------------------------------------------------------------------------------------------------------
+    # Message exception
+    #----------------------------------------------------------------------------------------------------------------
+    class BrowserTypeError < Error
+    end
+
+    BROWSER_TYPE_NOT_DEFINE = 901
+    #----------------------------------------------------------------------------------------------------------------
+    # constants
+    #----------------------------------------------------------------------------------------------------------------
     STAGING = 0
     OS = 1
     OS_VERSION = 2
@@ -12,9 +28,17 @@ module VisitorFactory
     START_LISTENING_PORT_PROXY = 7
     COUNT_PROXY = 8
 
+    #----------------------------------------------------------------------------------------------------------------
+    # attributs
+    #----------------------------------------------------------------------------------------------------------------
+
     attr :hash
     #staging;os;os_version;browser;browser_version;runtime_path;sandbox;multi_instance_proxy_compatible;start_listening_port_proxy;count_proxy
     #development;Windows;7;Chrome;33.0.1750.117;C:\Users\ET00752\AppData\Local\Google\Chrome\Application\chrome.exe;false;true;9908;10
+
+    #----------------------------------------------------------------------------------------------------------------
+    # class methods
+    #----------------------------------------------------------------------------------------------------------------
     def initialize(filename)
       raise StandardError, "file #{filename} not found" unless File.exist?(filename)
 
@@ -42,6 +66,9 @@ module VisitorFactory
       }
     end
 
+    #----------------------------------------------------------------------------------------------------------------
+    # instance methods
+    #----------------------------------------------------------------------------------------------------------------
     def os
       os_arr = []
       @hash.each_key { |os| os_arr << os }
@@ -70,7 +97,7 @@ module VisitorFactory
       begin
         @hash[os][os_version][browser][browser_version]["proxy_system"]=="true"
       rescue Exception => e
-        raise StandardError, "#{os} #{os_version} #{browser} #{browser_version} not define in browser type"
+        raise BrowserTypeError.new(BROWSER_TYPE_NOT_DEFINE, e), "#{os} #{os_version} #{browser} #{browser_version} not define in browser type"
       ensure
       end
     end
@@ -79,7 +106,16 @@ module VisitorFactory
       begin
         @hash[os][os_version][browser][browser_version]["listening_port_proxy"]
       rescue Exception => e
-        raise StandardError, "#{os} #{os_version} #{browser} #{browser_version} not define in browser type"
+        raise BrowserTypeError.new(BROWSER_TYPE_NOT_DEFINE, e), "#{os} #{os_version} #{browser} #{browser_version} not define in browser type"
+      ensure
+      end
+    end
+
+    def runtime_path(os, os_version, browser, browser_version)
+      begin
+        @hash[os][os_version][browser][browser_version]["runtime_path"]
+      rescue Exception => e
+        raise BrowserTypeError.new(BROWSER_TYPE_NOT_DEFINE, e), "#{os} #{os_version} #{browser} #{browser_version} not define in browser type"
       ensure
       end
     end
@@ -209,7 +245,7 @@ module VisitorFactory
       data = <<-_end_of_xml_
 <browserTypes>
 #{browsers(@hash["Windows"]["XP"])}
-#{browsers(@hash["Windows"]["VISTA"])}
+      #{browsers(@hash["Windows"]["VISTA"])}
 </browserTypes>
       _end_of_xml_
       data
@@ -223,7 +259,7 @@ module VisitorFactory
       data = <<-_end_of_xml_
 <browserTypes>
  #{browsers(@hash["Windows"]["7"])}
- #{browsers(@hash["Windows"]["8"])}
+      #{browsers(@hash["Windows"]["8"])}
 </browserTypes>
       _end_of_xml_
       f = File.new(out_filename, "w+")
