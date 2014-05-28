@@ -19,12 +19,12 @@ module Monitoring
   class ReturnCodeClient < EventMachine::Connection
     include EM::Protocols::ObjectProtocol
     attr_accessor :data
-    attr :logger
+    attr :logger, :stop
 
-    def initialize(return_code, visit_details, logger)
+    def initialize(return_code, visit_details, logger, stop)
       begin
         @data = {:return_code => return_code, :visit_details => visit_details}
-
+        @stop = stop
         @logger = logger
       rescue Exception => e
         @logger.an_event.error "#{e.message}"
@@ -41,7 +41,7 @@ module Monitoring
     end
 
     def unbind
-      EM.stop
+      EM.stop if @stop
     end
 
   end
@@ -54,9 +54,20 @@ module Monitoring
     begin
 
       load_parameter()
-      EventMachine.run {
-        EM.connect '127.0.0.1', @return_code_listening_port, ReturnCodeClient, return_code.to_super, visit_details, logger
-      }
+      stop_EM = false
+      EM.connect '127.0.0.1', @return_code_listening_port, ReturnCodeClient, return_code.to_super, visit_details, logger, stop_EM
+
+    rescue RuntimeError => e
+      case e.message
+        # la mahcine EM n'est pas démarrée
+        when "eventmachine not initialized: evma_connect_to_server"
+          EventMachine.run {
+            stop_EM = true
+            EM.connect '127.0.0.1', @return_code_listening_port, ReturnCodeClient, return_code.to_super, visit_details, logger, stop_EM
+          }
+        else
+          logger.an_event.error "not sent success code to monitoring server : #{e.message}"
+      end
     rescue Exception => e
       logger.an_event.error "not sent return code #{return_code.code} and details of visit #{visit_details[:id_visit]} to monitoring server : #{e.message}"
     end
@@ -64,13 +75,28 @@ module Monitoring
 
   def send_success(logger)
     begin
-
       load_parameter()
-      EventMachine.run {
-        EM.connect '127.0.0.1', @return_code_listening_port, ReturnCodeClient, Errors::Error.new(0), {}, logger
-      }
+      # par defaut on considere que EM est déjà actif => stop_EM = false
+      # cas d'usage  : visitor_factory_server ; il ne faut pas stoper la boucle EM avec EM.stop localisé dans unbind (ci-dessus)
+      stop_EM = false
+      EM.connect '127.0.0.1', @return_code_listening_port, ReturnCodeClient, Errors::Error.new(0), {}, logger, stop_EM
+
+    rescue RuntimeError => e
+      case e.message
+        # la mahcine EM n'est pas démarrée
+        when "eventmachine not initialized: evma_connect_to_server"
+          # EM n'est pas actif ; une exception a été levée alors on lance EM => stop_EM = true
+          # cas d'usage : visitor_bot ; il faut arrter la boucle EM au moyen del 'EM.stop localisé dans unbind(ci-dessus)
+          EM.run {
+            stop_EM = true
+            EM.connect '127.0.0.1', @return_code_listening_port, ReturnCodeClient, Errors::Error.new(0), {}, logger, stop_EM
+          }
+        else
+          logger.an_event.error "not sent success code to monitoring server : #{e.message}"
+      end
     rescue Exception => e
       logger.an_event.error "not sent success code to monitoring server : #{e.message}"
+
     end
   end
 
