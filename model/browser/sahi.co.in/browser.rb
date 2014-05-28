@@ -4,7 +4,7 @@ require 'sahi'
 require 'json'
 require 'csv'
 require 'pathname'
-require 'os'
+
 
 require_relative '../../page/link'
 require_relative '../../page/page'

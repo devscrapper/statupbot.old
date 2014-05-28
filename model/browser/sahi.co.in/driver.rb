@@ -1,4 +1,4 @@
-
+require_relative '../../os'
 module Browsers
   module SahiCoIn
     class Driver < Sahi::Browser
@@ -165,7 +165,6 @@ module Browsers
         #-----------------------------------------------------------------------------------------------------------------
         #  check si browser type est defini dans les fichiers *.xml
         #-----------------------------------------------------------------------------------------------------------------
-        require 'os'
         browser_type_file = ""
         if OS.windows?
           browser_type_file = "win32.xml" if ENV["ProgramFiles(x86)"].nil?

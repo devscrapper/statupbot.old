@@ -1,4 +1,5 @@
 require 'pathname'
+require_relative '../../os'
 
 module Browsers
   module SahiCoIn
@@ -275,7 +276,6 @@ module Browsers
       def select_openssl_runtime
         @@logger.an_event.debug "BEGIN Proxy.select_openssl_runtime"
         begin
-          require 'os'
           openssl_dir = ""
           if OS.windows?
             openssl_dir = "openssl.win32" if ENV["ProgramFiles(x86)"].nil?
