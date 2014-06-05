@@ -1,212 +1,260 @@
-require_relative '../../model/monitoring/public'
-require 'rubygems' # if you use RubyGems
-require 'socket'
+require 'trollop'
 require 'eventmachine'
-require 'pathname'
+require 'em/threaded_resource'
+require_relative '../../lib/flow'
+require_relative '../../lib/logging'
+require_relative '../../model/monitoring/public'
+require_relative '../../lib/error'
 
-module VisitorFactory
-  #--------------------------------------------------------------------------------------------------------------------
+class VisitorFactory
+  #----------------------------------------------------------------------------------------------------------------
+  # include class
+  #----------------------------------------------------------------------------------------------------------------
+  include EM::Deferrable
+  include Errors
+  #----------------------------------------------------------------------------------------------------------------
+  # Exception message
+  #----------------------------------------------------------------------------------------------------------------
+  class VisitorFactoryError < Error
+
+  end
+
+  ARGUMENT_UNDEFINE = 1000
+
+  #----------------------------------------------------------------------------------------------------------------
   # constant
-  #--------------------------------------------------------------------------------------------------------------------
+  #----------------------------------------------------------------------------------------------------------------
+  PARAMETERS = File.dirname(__FILE__) + "/../../parameter/visitor_factory_server.yml"
+  ENVIRONMENT= File.dirname(__FILE__) + "/../../parameter/environment.yml"
+  $staging = "production"
+  $debugging = false
   VISITOR_BOT = Pathname(File.join(File.dirname(__FILE__), "..", "..", "run", "visitor_bot.rb")).realpath
-  #--------------------------------------------------------------------------------------------------------------------
-  # return code Visitor_Bot
-  #--------------------------------------------------------------------------------------------------------------------
-  OK = 0
-
-  #--------------------------------------------------------------------------------------------------------------------
-  # Global variables
-  #--------------------------------------------------------------------------------------------------------------------
-  @@logger = nil
-
-  #--------------------------------------------------------------------------------------------------------------------
-  # CONNECTION
-  #--------------------------------------------------------------------------------------------------------------------
-  class AssignNewVisitorConnection < EventMachine::Connection
-    include EM::Protocols::ObjectProtocol
-    # geolocalisation par defaut globale à toutes les visites, qui permet de tester derriere un proxy entreprise (:proxy_type == :http) ou à la maison (:proxy_type == :none)
-    # Pour adapter la geolocalisation à chaque visit il faut
-    # soit developper un module de geolocation utilisé par VisitorFactory,
-    # soit apporté ces informations dans le fichier décrivant la visit
-    attr :default_ip_geo,
-         :default_port_geo,
-         :default_user_geo,
-         :default_pwd_geo,
-         :default_type_geo,
-         :browser_type_repository,
-         :runtime_ruby
+  TMP = Pathname(File.join(File.dirname(__FILE__), "..","..", "tmp")).realpath
 
 
-    def initialize(browser_type_repository, runtime_ruby, logger, geolocation)
-      @@logger = logger
-      @default_type_geo = geolocation[:proxy_type]
-      @browser_type_repository = browser_type_repository
-      @runtime_ruby = runtime_ruby
-      if @default_type_geo != "none"
-        @default_ip_geo = geolocation[:proxy_ip]
-        @default_port_geo = geolocation[:proxy_port]
-        @default_user_geo = geolocation[:proxy_user]
-        @default_pwd_geo = geolocation[:proxy_pwd]
-      end
-    end
+  #----------------------------------------------------------------------------------------------------------------
+  # attribut
+  #----------------------------------------------------------------------------------------------------------------
+  attr :pattern,
+       :use_proxy_system,
+       :port_proxy_sahi,
+       :runtime_ruby,
+       :default_ip_geo,
+       :default_port_geo,
+       :default_user_geo,
+       :default_pwd_geo,
+       :default_type_geo,
+       :logger
 
+  #----------------------------------------------------------------------------------------------------------------
+  # class methods
+  #----------------------------------------------------------------------------------------------------------------
 
-    def receive_object(filename_visit)
-      @@logger.an_event.debug "BEGIN AssignNewVisitorConnection.receive_object"
-      @@logger.an_event.debug "filename_visit #{filename_visit}"
-
-      close_connection
-
-      begin
-        raise "visit file undefine" if filename_visit == ""
-
-        filename_visit = Pathname(filename_visit).realpath
-        @@logger.an_event.debug "filename #{filename_visit}"
-
-        visit_file = File.open(filename_visit, "r:BOM|UTF-8:-")
-        visit_details = YAML::load(visit_file.read)
-
-        @@logger.an_event.debug "visit file #{filename_visit} load"
-
-        id_visitor ||= visit_details[:visitor][:id]
-        id_visit ||= visit_details[:id_visit]
-
-        @@logger.an_event.debug "id_visitor #{id_visitor}"
-        @@logger.an_event.debug "id_visit #{id_visit}"
-
-        proxy_system, port_proxy = browser_belongs_to_repository(visit_details[:visitor][:browser])
-
-        @@logger.an_event.debug "browser belong to repository"
-
-        execute_visit(filename_visit, port_proxy, proxy_system, @runtime_ruby)
-
-        @@logger.an_event.info "visit #{id_visit} execute"
-
-        delete_log_files_visitor(id_visitor)
-
-        @@logger.an_event.debug "delete log file visitor id  #{id_visitor}"
-
-      rescue Exception => e
-
-        @@logger.an_event.error "Visitor Factory not execute visit #{id_visit} : #{e.message}"
-
-      else
-
-      ensure
-
-        @@logger.an_event.debug "END AssignNewVisitorConnection.receive_object"
-      end
-    end
-  end
-
-  def browser_belongs_to_repository(browser_details)
-    @@logger.an_event.debug "BEGIN browser_belongs_to_repository"
-    @@logger.an_event.debug "os #{browser_details[:operating_system]}"
-    @@logger.an_event.debug "os_version #{browser_details[:operating_system_version]}"
-    @@logger.an_event.debug "browser #{browser_details[:name]}"
-    @@logger.an_event.debug "browser_version #{browser_details[:version]}"
-
-
+  #----------------------------------------------------------------------------------------------------------------
+  # build
+  #----------------------------------------------------------------------------------------------------------------
+  # crée un geolocation :
+  #----------------------------------------------------------------------------------------------------------------
+  # input :
+  # une visite qui est une ligne du flow : published-visits_label_date_hour.json, sous forme de hash
+  #["flash_version", "11.4 r402"]
+  #["java_enabled", "No"]
+  #["screens_colors", "24-bit"]
+  #["screen_resolution", "1366x768"]
+  # mot clé utulisés pour les requetes de scraping de google analitycs :
+  # Browser : "Chrome", "Firefox", "Internet Explorer", "Safari"
+  # operatingSystem:  "Windows", "Linux", "Macintosh"
+  #----------------------------------------------------------------------------------------------------------------
+  #         #Les navigateurs disponibles sont definis dans le fichier d:\sahi\userdata\config\browser_types.xml
+  #----------------------------------------------------------------------------------------------------------------
+  def self.load_parameter
     begin
-
-      proxy_system = @browser_type_repository.proxy_system?(browser_details[:operating_system],
-                                                            browser_details[:operating_system_version],
-                                                            browser_details[:name],
-                                                            browser_details[:version]) == true ? "yes" : "no"
-      @@logger.an_event.debug "proxy_system #{proxy_system}"
-
-      port_proxy = @browser_type_repository.listening_port_proxy(browser_details[:operating_system],
-                                                                  browser_details[:operating_system_version],
-                                                                  browser_details[:name],
-                                                                  browser_details[:version])[0]
-      @@logger.an_event.debug "port_proxy #{port_proxy}"
-
-      runtime_path = @browser_type_repository.runtime_path(browser_details[:operating_system],
-                                                                        browser_details[:operating_system_version],
-                                                                        browser_details[:name],
-                                                                        browser_details[:version])
-
-      @@logger.an_event.debug "runtime_path #{runtime_path}"
-
-      raise "runtime path browser #{runtime_path} not found" unless File.exist?(runtime_path)
+      environment = YAML::load(File.open(ENVIRONMENT), "r:UTF-8")
+      $staging = environment["staging"] unless environment["staging"].nil?
+      $current_os = environment["os"] unless environment["os"].nil?
+      $current_os_version = environment["os_version"] unless environment["os_version"].nil?
     rescue Exception => e
-      @@logger.an_event.error "#{e.message}"
-        raise "browser type repository has an error"
-    else
+      STDERR << "loading parameter file #{ENVIRONMENT} failed : #{e.message}"
+    end
 
-      return [proxy_system, port_proxy]
-
-    ensure
-      @@logger.an_event.debug "END browser_belongs_to_repository"
+    begin
+      params = YAML::load(File.open(PARAMETERS), "r:UTF-8")
+      $delay_periodic_scan = params[$staging]["delay_periodic_scan"] unless params[$staging]["delay_periodic_scan"].nil?
+      $runtime_ruby = params[$staging]["runtime_ruby"].join(File::SEPARATOR) unless params[$staging]["runtime_ruby"].nil?
+      $debugging = params[$staging]["debugging"] unless params[$staging]["debugging"].nil?
+    rescue Exception => e
+      STDERR << "loading parameters file #{PARAMETERS} failed : #{e.message}"
     end
   end
 
+  #----------------------------------------------------------------------------------------------------------------
+  # instance methods
+  #----------------------------------------------------------------------------------------------------------------
 
-  def execute_visit(file_name, listening_port_sahi, proxy_system, runtime_ruby)
-    @@logger.an_event.debug "BEGIN execute_visit"
-    @@logger.an_event.debug "listening_port_sahi #{listening_port_sahi}"
-    @@logger.an_event.debug "filename #{file_name}"
-    @@logger.an_event.debug "proxy_system #{proxy_system}"
+  #-----------------------------------------------------------------------------------------------------------------
+  # initialize
+  #-----------------------------------------------------------------------------------------------------------------
+  # input : hash decrivant les propriétés du browser de la visit
+  # :name : Internet Explorer
+  # :version : '9.0'
+  # :operating_system : Windows
+  # :operating_system_version : '7'
+  # :flash_version : 11.7 r700   -- not use
+  # :java_enabled : 'Yes'        -- not use
+  # :screens_colors : 32-bit     -- not use
+  # :screen_resolution : 1600 x900
+  # output : un objet Browser
+  # exception :
+  # StandardError :
+  # si le listening_port_proxy n'est pas defini
+  # si la resoltion d'ecran du browser n'est pas definie
+  #-----------------------------------------------------------------------------------------------------------------
+  #
+  #-----------------------------------------------------------------------------------------------------------------
+  def initialize(browser, version, use_proxy_system, port_proxy_sahi, runtime_ruby, delay_periodic_scan, default_geolocation, logger)
+    @use_proxy_system = use_proxy_system
+    @port_proxy_sahi = port_proxy_sahi
+    @runtime_ruby = runtime_ruby
+    @pattern = "#{browser} #{version}" # ne pas supprimer le blanc
+    @pool = EM::Pool.new
+    @visit_file = nil
+    @delay_periodic_scan = delay_periodic_scan
+    @default_type_geo = default_geolocation[:proxy_type]
+    @logger = logger
 
+    if @default_type_geo != "none"
+      @default_ip_geo = default_geolocation[:proxy_ip]
+      @default_port_geo = default_geolocation[:proxy_port]
+      @default_user_geo = default_geolocation[:proxy_user]
+      @default_pwd_geo = default_geolocation[:proxy_pwd]
+    end
 
+    @port_proxy_sahi.each { |port|
+      visitor_instance = EM::ThreadedResource.new do
+        {:pattern => @pattern, :port_proxy_sahi => port}
+      end
+      @pool.add visitor_instance
+    }
+    @logger.an_event.info "ressource #{@pattern} is on"
+  end
+
+  #-----------------------------------------------------------------------------------------------------------------
+  # initialize
+  #-----------------------------------------------------------------------------------------------------------------
+  # input : hash decrivant les propriétés du browser de la visit
+  # :name : Internet Explorer
+  # :version : '9.0'
+  # :operating_system : Windows
+  # :operating_system_version : '7'
+  # :flash_version : 11.7 r700   -- not use
+  # :java_enabled : 'Yes'        -- not use
+  # :screens_colors : 32-bit     -- not use
+  # :screen_resolution : 1600 x900
+  # output : un objet Browser
+  # exception :
+  # StandardError :
+  # si le listening_port_proxy n'est pas defini
+  # si la resoltion d'ecran du browser n'est pas definie
+  #-----------------------------------------------------------------------------------------------------------------
+  #
+  #-----------------------------------------------------------------------------------------------------------------
+  def scan_visit_file
     begin
-      geolocation = "" if @default_type_geo == "none"
-      geolocation = "-r #{@default_type_geo} -o #{@default_ip_geo} -x #{@default_port_geo} -y #{@default_user_geo} -w #{@default_pwd_geo}" unless @default_type_geo == "none"
+      EM::PeriodicTimer.new(@delay_periodic_scan) do
+        @logger.an_event.info "scan visit file for #{@pattern} in #{TMP}"
+        tmp_flow_visit = Flow.first(TMP, {:type_flow => @pattern, :ext => "yml"})
 
-      @@logger.an_event.debug "geolocation #{geolocation}"
+        if !tmp_flow_visit.nil?
+          @visit_file = tmp_flow_visit.absolute_path
+          @pool.perform do |dispatcher|
+            dispatcher.dispatch do |details|
+              start_visitor_bot(details)
+            end
+          end
+        end
+      end
+    rescue Exception => e
+      @logger.an_event.error "scan visit file for #{@pattern} catch exception : #{e.message} => restarting"
+      retry
+    end
+  end
 
-      #TODO assurer que le port d'ecoute de sahi n'est pas occupé par une exécution du proxy non terminé (ou planté) si c'est le cas lors utilisé un autre numero de port issue d'un pool de secours
+  #-----------------------------------------------------------------------------------------------------------------
+  # initialize
+  #-----------------------------------------------------------------------------------------------------------------
+  # input : hash decrivant les propriétés du browser de la visit
+  # :name : Internet Explorer
+  # :version : '9.0'
+  # :operating_system : Windows
+  # :operating_system_version : '7'
+  # :flash_version : 11.7 r700   -- not use
+  # :java_enabled : 'Yes'        -- not use
+  # :screens_colors : 32-bit     -- not use
+  # :screen_resolution : 1600 x900
+  # output : un objet Browser
+  # exception :
+  # StandardError :
+  # si le listening_port_proxy n'est pas defini
+  # si la resoltion d'ecran du browser n'est pas definie
+  #-----------------------------------------------------------------------------------------------------------------
+  #
+  #-----------------------------------------------------------------------------------------------------------------
+  def start_visitor_bot(details)
+    begin
+      @logger.an_event.info "start visitor_bot with browser #{details[:pattern]} and visit file #{@visit_file}"
+      cmd = "#{@runtime_ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  #{VISITOR_BOT} -v #{@visit_file} -t #{details[:port_proxy_sahi]} -p #{@use_proxy_system} #{geolocation}"
+      @logger.an_event.debug "cmd start visitor_bot #{cmd}"
 
-      @@logger.an_event.debug "runtime ruby #{runtime_ruby}"
-
-      cmd = "#{runtime_ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  #{VISITOR_BOT} -v #{file_name} -t #{listening_port_sahi} -p #{proxy_system} #{geolocation}"
-
-      @@logger.an_event.debug "cmd visitor_bot #{cmd}"
-
-      sleep(2)
-      status = OK
       pid = Process.spawn(cmd)
       pid, status = Process.wait2(pid, 0)
-
-      raise "visitor_bot send an error to monitoring" unless status.exitstatus == OK
-
-      Monitoring.send_success(@@logger)
-
     rescue Exception => e
-
-      @@logger.an_event.error "visitor factory not execute visitor_bot : #{e.message}"
-      raise "visitor factory not execute visitor_bot"
-
-    ensure
-      @@logger.an_event.debug "END execute_visit"
+      @logger.an_event.error "start visitor_bot with browser #{details[:pattern]} and visit file #{@visit_file} failed : #{e.message}"
+    else
+      unless status.exitstatus == OK
+        @@logger.an_event.error "visitor_bot  browser #{details[:pattern]} port #{details[:port_proxy_sahi]} send an error to monitoring"
+      end
+      if status.exitstatus == OK
+        Monitoring.send_success(@logger)
+      end
     end
   end
 
-  def delete_log_files_visitor(id_visitor)
-    @@logger.an_event.debug "BEGIN delete_log_files_visitor"
-    begin
-
-      dir = Pathname(File.join(File.dirname(__FILE__), "..", '..', "log")).realpath
-      files = File.join(dir, "visitor_bot_#{id_visitor}.{*}")
-      FileUtils.rm_r(Dir.glob(files), :force => true)
-
-    rescue Exception => e
-
-      @@logger.an_event.error "not delete log file visitor #{id_visitor} : #{e.message}"
-      raise "not delete log file visitor #{id_visitor}"
-
-    ensure
-      @@logger.an_event.debug "END delete_log_files_visitor"
+  #-----------------------------------------------------------------------------------------------------------------
+  # initialize
+  #-----------------------------------------------------------------------------------------------------------------
+  # input : hash decrivant les propriétés du browser de la visit
+  # :name : Internet Explorer
+  # :version : '9.0'
+  # :operating_system : Windows
+  # :operating_system_version : '7'
+  # :flash_version : 11.7 r700   -- not use
+  # :java_enabled : 'Yes'        -- not use
+  # :screens_colors : 32-bit     -- not use
+  # :screen_resolution : 1600 x900
+  # output : un objet Browser
+  # exception :
+  # StandardError :
+  # si le listening_port_proxy n'est pas defini
+  # si la resoltion d'ecran du browser n'est pas definie
+  #-----------------------------------------------------------------------------------------------------------------
+  #
+  #-----------------------------------------------------------------------------------------------------------------
+  def geolocation
+    #TODO reviser le calcul de la geolocation avec les proxy furtur ; pour le moment soit pas de geolocation soit une seule
+    # si @default_type_geo == "none" => aucun proxy
+    # si @default_type_geo <> "none" => proxy
+    #     si @default_ip_geo == nil et @default_port_geo == nil alors il faut calculer un proxy de geolocation
+    #     sinon utilise le proxy de l'entreprise passé en paramètre
+    #geolocation = "-r http -o muz11-wbsswsg.ca-technologies.fr -x 8080 -y ET00752 -w Bremb@07"
+    case @default_type_geo
+      when "none"
+        return ""
+      else
+        if @default_ip_geo.nil? and @default_port_geo.nil?
+          #TODO recupere un proxy de geolocation
+        else
+          return "-r #{@default_type_geo} -o #{@default_ip_geo} -x #{@default_port_geo} -y #{@default_user_geo} -w #{@default_pwd_geo}"
+        end
     end
   end
-
-  def logger(logger)
-    @@logger = logger
-  end
-
-
-  module_function :browser_belongs_to_repository
-  module_function :delete_log_files_visitor
-  module_function :execute_visit
-  module_function :logger
 end

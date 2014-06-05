@@ -254,8 +254,24 @@ def visitor_is_no_slave(opts)
 
   end
 
+  #TODO delete log files visitor_bot qd tout est ok et si on est là alors tout est ok
+
+  #---------------------------------------------------------------------------------------------------------------------
+  # Visitor delete log
+  #---------------------------------------------------------------------------------------------------------------------
+  begin
+
+    visitor.delete_log
+
+  rescue Exception => e
+
+    Monitoring.send_return_code(e, visit_details, @@logger)
+    return KO
+
+  end
 
 end
+
 
 PARAMETERS = File.dirname(__FILE__) + "/../parameter/visitor_bot.yml"
 ENVIRONMENT= File.dirname(__FILE__) + "/../parameter/environment.yml"
@@ -277,7 +293,7 @@ def load_parameter
     @@home = params[$staging]["home"] unless params[$staging]["home"].nil? #geolocation
     @@firefox_path = params[$staging]["firefox_path"] unless params[$staging]["firefox_path"].nil?
     $java_runtime_path = params[$staging]["java_runtime_path"].join(File::SEPARATOR) unless params[$staging]["java_runtime_path"].nil?
-    $java_key_tool_path = params[$staging]["java_key_tool_path"].join(File::SEPARATOR).gsub(/\\/,"\\" ) unless params[$staging]["java_key_tool_path"].nil?
+    $java_key_tool_path = params[$staging]["java_key_tool_path"].join(File::SEPARATOR).gsub(/\\/, "\\") unless params[$staging]["java_key_tool_path"].nil?
 
     $debugging = params[$staging]["debugging"] unless params[$staging]["debugging"].nil?
   rescue Exception => e

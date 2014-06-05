@@ -1,4 +1,4 @@
-require_relative '../../os'
+require_relative '../../../lib/os'
 module Browsers
   module SahiCoIn
     class Driver < Sahi::Browser

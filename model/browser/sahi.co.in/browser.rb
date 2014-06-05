@@ -8,7 +8,7 @@ require 'pathname'
 
 require_relative '../../page/link'
 require_relative '../../page/page'
-require_relative '../../error'
+require_relative '../../../lib/error'
 
 module Browsers
 

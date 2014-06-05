@@ -1,5 +1,5 @@
 require_relative '../../model/building/inputs'
-require_relative '../flow'
+require_relative '../../lib/flow'
 
 module Flowing
   class Flowlist
@@ -18,10 +18,9 @@ module Flowing
       @input_flow.get(data["ip_ftp_server"], data["port_ftp_server"], data["user"], data["pwd"])
     end
 
-    def published_visits()
-      execute { Inputs.new.scheduling_visits(@input_flow) } if @last_volume
+    def visit_flow
+      execute { Inputs.new.send_to_visitor_factory(@input_flow) }
     end
-
 
     private
     def execute (&block)

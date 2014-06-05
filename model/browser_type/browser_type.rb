@@ -1,23 +1,34 @@
-require_relative '../error'
+require_relative '../../lib/error'
 require 'csv'
 require 'yaml'
-module VisitorFactory
+
   class BrowserTypes
     #----------------------------------------------------------------------------------------------------------------
     # include class
     #----------------------------------------------------------------------------------------------------------------
     include Errors
 
-        #----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
     # Message exception
     #----------------------------------------------------------------------------------------------------------------
     class BrowserTypeError < Error
     end
-
+    ARGUMENT_NOT_DEFINE = 900
     BROWSER_TYPE_NOT_DEFINE = 901
+    BROWSER_VERSION_NOT_DEFINE = 902
+    BROWSER_TYPE_EMPTY = 903
+    OS_VERSION_UNKNOWN = 904
+    OS_UNKNOWN = 905
+    BROWSER_TYPE_NOT_PUBLISH = 906
     #----------------------------------------------------------------------------------------------------------------
     # constants
     #----------------------------------------------------------------------------------------------------------------
+    BROWSER_TYPE = Pathname.new(File.join(File.dirname(__FILE__), 'browser_type.csv')).realpath
+    WIN32_XML = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'sahi.in.co', 'config', 'browser_types', 'win32.xml')).realpath
+    WIN64_XML = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'sahi.in.co', 'config', 'browser_types', 'win64.xml')).realpath
+    LINUX_XML = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'sahi.in.co', 'config', 'browser_types', 'linux.xml')).realpath
+    MAC_XML = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'sahi.in.co', 'config', 'browser_types', 'mac.xml')).realpath
+
     STAGING = 0
     OS = 1
     OS_VERSION = 2
@@ -32,23 +43,30 @@ module VisitorFactory
     # attributs
     #----------------------------------------------------------------------------------------------------------------
 
-    attr :hash
+    attr :browsers,
+         :current_os,
+         :current_os_version
     #staging;os;os_version;browser;browser_version;runtime_path;sandbox;multi_instance_proxy_compatible;start_listening_port_proxy;count_proxy
     #development;Windows;7;Chrome;33.0.1750.117;C:\Users\ET00752\AppData\Local\Google\Chrome\Application\chrome.exe;false;true;9908;10
 
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
-    def initialize(filename)
-      raise StandardError, "file #{filename} not found" unless File.exist?(filename)
+    def initialize(current_os, current_os_version)
 
-      rows = CSV.read(filename)
-      title = rows.shift
+      raise BrowserTypeError.new(BROWSER_TYPE_NOT_DEFINE), "file #{BROWSER_TYPE} not found" unless File.exist?(BROWSER_TYPE)
+      raise BrowserTypeError.new(ARGUMENT_NOT_DEFINE) if current_os.nil?
+      raise BrowserTypeError.new(ARGUMENT_NOT_DEFINE) if current_os_version.nil?
+      @current_os = current_os
+      @current_os_version = current_os_version
+
+      rows = CSV.read(BROWSER_TYPE)
       rows.each { |row|
         elt_arr = row[0].split(/;/)
-        if elt_arr[STAGING] == $staging
-          os = elt_arr[OS]
-          os_version = elt_arr[OS_VERSION]
+        if elt_arr[STAGING] == $staging and
+            elt_arr[OS].to_sym == @current_os and
+            elt_arr[OS_VERSION].to_sym == @current_os_version
+
           browser = elt_arr[BROWSER]
           browser_version = elt_arr[BROWSER_VERSION]
           data = {
@@ -57,11 +75,9 @@ module VisitorFactory
               "listening_port_proxy" => Array.new(elt_arr[COUNT_PROXY].to_i) { |index| -1 * (index - elt_arr[START_LISTENING_PORT_PROXY].to_i) }
           }
 
-          @hash = {os => {os_version => {browser => {browser_version => data}}}} if @hash.nil?
-          @hash[os] = {os_version => {browser => {browser_version => data}}} if @hash[os].nil?
-          @hash[os][os_version] = {browser => {browser_version => data}} if @hash[os][os_version].nil?
-          @hash[os][os_version][browser] = {browser_version => data} if @hash[os][os_version][browser].nil?
-          @hash[os][os_version][browser][browser_version] = data if @hash[os][os_version][browser][browser_version].nil?
+          @browsers = {browser => {browser_version => data}} if @browsers.nil?
+          @browsers[browser] = {browser_version => data} if @browsers[browser].nil?
+          @browsers[browser][browser_version] = data if @browsers[browser][browser_version].nil?
         end
       }
     end
@@ -69,61 +85,90 @@ module VisitorFactory
     #----------------------------------------------------------------------------------------------------------------
     # instance methods
     #----------------------------------------------------------------------------------------------------------------
-    def os
-      os_arr = []
-      @hash.each_key { |os| os_arr << os }
-      os_arr
+    def publish_to_sahi
+      raise BrowserTypeError.new(BROWSER_TYPE_EMPTY), "browser type is empty" if @browsers.nil?
+# si la var envir "ProgramFiles(x86)" n'existe pas : XP, Vista
+      begin
+        data = <<-_end_of_xml_
+<browserTypes>
+#{publish_browsers}
+</browserTypes>
+        _end_of_xml_
+        data
+
+        case @current_os
+          when :windows
+            case @current_os_version
+              when :xp, :vista
+                out_filename = WIN32_XML
+              when :seven
+                out_filename = WIN64_XML
+              else
+                raise BrowserTypeError.new(OS_VERSION_UNKNOWN), "os version #{@current_os_version} unknown"
+            end
+          when :linux
+            out_filename = LINUX_XML
+          when :mac
+            out_filename = MAC_XML
+          else
+            raise BrowserTypeError.new(OS_UNKNOWN), "os #{@current_os} unknown"
+        end
+        f = File.new(out_filename, "w+")
+        f.write(data)
+        f.close
+      rescue Exception => e
+        raise BROWSER_TYPE_NOT_PUBLISH, "#{BROWSER_TYPE} not publish to sahi"
+      end
     end
 
-    def os_version(os)
-      os_version_arr = []
-      @hash[os].each_key { |os_version| os_version_arr << os_version }
-      os_version_arr
-    end
 
-    def browser(os, os_version)
+    def browser
       browser_arr = []
-      @hash[os][os_version].each_key { |browser| browser_arr << browser }
+      @browsers.each_key { |browser| browser_arr << browser }
       browser_arr
     end
 
-    def browser_version(os, os_version, browser)
+    def browser_version(browser)
       browser_version_arr = []
-      @hash[os][os_version][browser].each_key { |browser_version| browser_version_arr << browser_version }
+      @browsers[browser].each_key { |browser_version| browser_version_arr << browser_version }
       browser_version_arr
     end
 
-    def proxy_system?(os, os_version, browser, browser_version)
+    def proxy_system?(browser, browser_version)
       begin
-        @hash[os][os_version][browser][browser_version]["proxy_system"]=="true"
+        @browsers[browser][browser_version]["proxy_system"]=="true"
       rescue Exception => e
-        raise BrowserTypeError.new(BROWSER_TYPE_NOT_DEFINE, e), "#{os} #{os_version} #{browser} #{browser_version} not define in browser type"
+        raise BrowserTypeError.new(BROWSER_VERSION_NOT_DEFINE, e), "#{@current_os} #{@current_os_version} #{browser} #{browser_version} not define in browser type"
       ensure
       end
     end
 
-    def listening_port_proxy(os, os_version, browser, browser_version)
+    def listening_port_proxy(browser, browser_version)
       begin
-        @hash[os][os_version][browser][browser_version]["listening_port_proxy"]
+        @browsers[browser][browser_version]["listening_port_proxy"]
       rescue Exception => e
-        raise BrowserTypeError.new(BROWSER_TYPE_NOT_DEFINE, e), "#{os} #{os_version} #{browser} #{browser_version} not define in browser type"
+        raise BrowserTypeError.new(BROWSER_VERSION_NOT_DEFINE, e), "#{@current_os} #{@current_os_version} #{browser} #{browser_version} not define in browser type"
       ensure
       end
     end
 
-    def runtime_path(os, os_version, browser, browser_version)
+    def runtime_path(browser, browser_version)
       begin
-        @hash[os][os_version][browser][browser_version]["runtime_path"]
+        @browsers[browser][browser_version]["runtime_path"]
       rescue Exception => e
-        raise BrowserTypeError.new(BROWSER_TYPE_NOT_DEFINE, e), "#{os} #{os_version} #{browser} #{browser_version} not define in browser type"
+        raise BrowserTypeError.new(BROWSER_VERSION_NOT_DEFINE, e), "#{@current_os} #{@current_os_version} #{browser} #{browser_version} not define in browser type"
       ensure
       end
     end
 
     def to_yaml
-      @hash
+      @browsers.to_yaml
     end
 
+    #----------------------------------------------------------------------------------------------------------------
+    # instance methods  private
+    #----------------------------------------------------------------------------------------------------------------
+    private
     def browser_type(name, display_name, icon, path, options, process_name, use_system_proxy)
 =begin
             <browserType>
@@ -225,9 +270,9 @@ module VisitorFactory
       # verifier que l'on peut appliquer la methode firefox, sinon sandboxing comme IE
     end
 
-    def browsers(browsers)
+    def publish_browsers
       res = ""
-      browsers.each { |browser|
+      @browsers.each { |browser|
         case browser[0]
           when "Internet Explorer"
             res += Internet_Explorer(browser[1])
@@ -240,51 +285,4 @@ module VisitorFactory
       res
     end
 
-    def to_win32(out_filename)
-      # si la var envir "ProgramFiles(x86)" n'existe pas : XP, quid de Vista, 8
-      data = <<-_end_of_xml_
-<browserTypes>
-#{browsers(@hash["Windows"]["XP"])}
-      #{browsers(@hash["Windows"]["VISTA"])}
-</browserTypes>
-      _end_of_xml_
-      data
-      f = File.new(out_filename, "w+")
-      f.write(data)
-      f.close
-    end
-
-    def to_win64 (out_filename)
-      # si la var envir "ProgramFiles(x86)" existe : Seven, quid de Vista, 8
-      data = <<-_end_of_xml_
-<browserTypes>
- #{browsers(@hash["Windows"]["7"])}
-      #{browsers(@hash["Windows"]["8"])}
-</browserTypes>
-      _end_of_xml_
-      f = File.new(out_filename, "w+")
-      f.write(data)
-      f.close
-    end
-
-    def to_mac (out_filename)
-      data = <<-_end_of_xml_
-                  <browserTypes>
-                   #{browsers(@hash["Windows"]["MAC"])}
-                  </browserTypes>
-      _end_of_xml_
-      p data
-      #  File.new(out_filename).write(data)
-    end
-
-    def to_linux(out_filename)
-      data = <<-_end_of_xml_
-                  <browserTypes>
-                   #{browsers(@hash["Windows"]["LINUX"])}
-                  </browserTypes>
-      _end_of_xml_
-      p data
-      #  File.new(out_filename).write(data)
-    end
   end
-end

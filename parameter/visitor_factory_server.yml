@@ -1,11 +1,10 @@
-
 development:
   runtime_ruby: ["d:", "ruby193", "bin", "ruby.exe"]
-  assign_new_visitor_listening_port: 9220
+  delay_periodic_scan: 5
   debugging:  true
 test:
   runtime_ruby: ["d:", "ruby193", "bin", "ruby.exe"]
-  assign_new_visitor_listening_port: 9220
+  delay_periodic_scan: 5
   debugging:  false
 
 production:

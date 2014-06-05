@@ -1,4 +1,4 @@
-require_relative '../error'
+require_relative '../../lib/error'
 require 'rubygems' # if you use RubyGems
 require 'socket'
 require 'eventmachine'
@@ -69,7 +69,7 @@ module Monitoring
           logger.an_event.error "not sent success code to monitoring server : #{e.message}"
       end
     rescue Exception => e
-      logger.an_event.error "not sent return code #{return_code.code} and details of visit #{visit_details[:id_visit]} to monitoring server : #{e.message}"
+      logger.an_event.error "not sent return code  and details of visit #{visit_details[:id_visit]} to monitoring server : #{e.message}"
     end
   end
 

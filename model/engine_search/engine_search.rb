@@ -1,4 +1,4 @@
- require_relative '../error'
+ require_relative '../../lib/error'
 
 module EngineSearches
   class EngineSearch

@@ -3,7 +3,7 @@
 require 'yaml'
 require_relative '../lib/logging'
 require_relative '../model/flowing/flow_connection'
-
+#TODO declarer le server comme un service windows
 
 #--------------------------------------------------------------------------------------------------------------------
 # INIT
@@ -43,12 +43,18 @@ include Flowing
 #--------------------------------------------------------------------------------------------------------------------
 # MAIN
 #--------------------------------------------------------------------------------------------------------------------
-EventMachine.run {
-  Signal.trap("INT") { EventMachine.stop }
-  Signal.trap("TERM") { EventMachine.stop }
+begin
+  EventMachine.run {
+    Signal.trap("INT") { EventMachine.stop }
+    Signal.trap("TERM") { EventMachine.stop }
 
-  logger.a_log.info "input flows server is starting"
-  EventMachine.start_server "0.0.0.0", listening_port, FlowConnection, logger
-}
+    logger.a_log.info "input flows server is starting"
+    EventMachine.start_server "0.0.0.0", listening_port, FlowConnection, logger
+  }
+rescue Exception => e
+  logger.a_log.fatal e.message
+  logger.a_log.warn "input flow server restart"
+  retry
+end
 logger.a_log.info "input flows server stopped"
 

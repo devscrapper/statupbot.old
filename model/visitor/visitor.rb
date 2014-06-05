@@ -4,7 +4,7 @@ require_relative '../../model/browser/webdriver/browser'
 require_relative '../../model/browser/sahi.co.in/browser'
 require_relative '../visit/referrer/referrer'
 require_relative '../visit/advertising/advertising'
-require_relative '../error'
+require_relative '../../lib/error'
 require 'pathname'
 
 #require_relative 'customize_queries_connection'
@@ -54,7 +54,7 @@ module Visitors
     VISITOR_NOT_DIE = 614
     NONE_KEYWORDS_FIND_LANDING_LINK = 615
     VISITOR_NOT_OPEN = 616
-
+    LOG_VISITOR_NOT_DELETE = 617
 
     #----------------------------------------------------------------------------------------------------------------
     # constants
@@ -413,19 +413,50 @@ module Visitors
       end
     end
 
-#----------------------------------------------------------------------------------------------------------------
-# initialize
-#----------------------------------------------------------------------------------------------------------------
-# demarre un proxy :
-# inputs
+    #----------------------------------------------------------------------------------------------------------------
+    # initialize
+    #----------------------------------------------------------------------------------------------------------------
+    # supprimer les fichier de log
+    # inputs
 
-# output
-# StandardError
-# StandardError
-#----------------------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------------------
-#
-#----------------------------------------------------------------------------------------------------------------
+    # output
+    # StandardError
+    # StandardError
+    #----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------------------------------
+    def delete_log
+      @@logger.an_event.debug "BEGIN Visitor.delete_log"
+
+      begin
+        dir = Pathname(File.join(File.dirname(__FILE__), "..", "log")).realpath
+        files = File.join(dir, "visitor_bot_#{@id}.{*}")
+        FileUtils.rm_r(Dir.glob(files), :force => true)
+
+      rescue Exception => e
+
+        @@logger.an_event.error "not delete log file visitor #{@id} : #{e.message}"
+        raise VisitorError.new(LOG_VISITOR_NOT_DELETE), "not delete log file visitor #{@id}"
+
+      ensure
+        @@logger.an_event.debug "END Visitor.delete_log"
+      end
+    end
+
+    #----------------------------------------------------------------------------------------------------------------
+    # initialize
+    #----------------------------------------------------------------------------------------------------------------
+    # demarre un proxy :
+    # inputs
+
+    # output
+    # StandardError
+    # StandardError
+    #----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------------------------------
     def inhume()
       @@logger.an_event.debug "BEGIN Visitor.inhume"
       try_count = 0

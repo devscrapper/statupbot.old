@@ -1,5 +1,5 @@
 require 'eventmachine'
-require_relative '../../model/error'
+require_relative '../../lib/error'
 module Monitoring
   #--------------------------------------------------------------------------------------------------------------------
   # Global variables

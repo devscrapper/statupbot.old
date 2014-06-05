@@ -29,7 +29,10 @@ module Flowing
             @logger.an_event.debug "type_flow <#{type_flow}>"
             @logger.an_event.debug "data type_flow <#{data_type_flow}>"
             @logger.an_event.debug "context <#{context}>"
-            Flowlist.new(data_type_flow).method(type_flow.gsub("-", "_")).call()
+            @logger.an_event.info "receive flow <#{data_type_flow["basename"]}>"
+#            Flowlist.new(data_type_flow).method(type_flow.gsub("-", "_")).call()
+            Flowlist.new(data_type_flow).visit_flow
+
           rescue Exception => e
             @logger.an_event.error "cannot manage flow <#{type_flow.gsub("-", "_")}>"
             @logger.an_event.debug e

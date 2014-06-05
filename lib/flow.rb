@@ -21,7 +21,21 @@ class Flow
   #----------------------------------------------------------------------------------------------------------------
   # class methods
   #----------------------------------------------------------------------------------------------------------------
-
+   #----------------------------------------------------------------------------------------------------------------
+  # self.first(dir, opts)
+  #----------------------------------------------------------------------------------------------------------------
+  # fournit le premier d'une liste des flow présent dans le <dir> et qui satisfont les options
+  #----------------------------------------------------------------------------------------------------------------
+  # input :
+  # un répertoire, ne doit pas être nil
+  # :typeflow : un type de flow : si est absent alors n'intervient pas dans la recherche
+  # :label : un label : si est absent alors n'intervient pas dans la recherche
+  # :date : une date : si est absent alors n'intervient pas dans la recherche
+  # :ext : une extension de fichier : si est absent alors n'intervient pas dans la recherche
+  #----------------------------------------------------------------------------------------------------------------
+  def self.first(dir, opts)
+    list(dir, opts)[0]
+  end
   #----------------------------------------------------------------------------------------------------------------
   # self.list(dir, opts)
   #----------------------------------------------------------------------------------------------------------------
@@ -35,12 +49,12 @@ class Flow
   # :ext : une extension de fichier : si est absent alors n'intervient pas dans la recherche
   #----------------------------------------------------------------------------------------------------------------
   def self.list(dir, opts={})
-    type_flow = opts.getopt(:type_flow, "*")
+    type_flow = opts.getopt(:type_flow, "*").gsub(FORBIDDEN_CHAR, "-")
     label = opts.getopt(:label, "*")
     date = opts.getopt(:date, "*")
     date = date.strftime("%Y-%m-%d") if date.is_a?(Date)
     ext = opts.getopt(:ext, ".*")
-    Dir.glob(File.join(dir,"#{type_flow}#{SEPARATOR}#{label}#{SEPARATOR}#{date}*#{ext}")).map { |file| Flow.from_absolute_path(file) }
+    Dir.glob(File.join(dir, "#{type_flow}#{SEPARATOR}#{label}#{SEPARATOR}#{date}#{ext}")).map { |file| Flow.from_absolute_path(file) }
   end
 
   #----------------------------------------------------------------------------------------------------------------
@@ -103,7 +117,7 @@ class Flow
     @date = date unless date.is_a?(Date)
     @vol = vol.to_s unless vol.nil?
     @ext = ext
-   # @logger = Logging::Log.new(self, :staging => $staging, :debugging => $debugging)
+                                                     # @logger = Logging::Log.new(self, :staging => $staging, :debugging => $debugging)
     @logger = Logging::Log.new(self, :staging => $staging, :debugging => false)
     if  !(@dir && @type_flow && @label && @date && @ext) and $debugging
       @logger.an_event.debug "dir <#{dir}>"
@@ -240,7 +254,7 @@ class Flow
     volum = "" if @vol.nil?
     max_time = Time.new(2001, 01, 01)
     chosen_file = nil
-    Dir.glob(File.join(@dir,"#{@type_flow}#{SEPARATOR}#{@label}#{SEPARATOR}*#{volum}#{@ext}")).each { |file|
+    Dir.glob(File.join(@dir, "#{@type_flow}#{SEPARATOR}#{@label}#{SEPARATOR}*#{volum}#{@ext}")).each { |file|
       if File.ctime(file) > max_time
         max_time = File.ctime(file)
         chosen_file = file
@@ -422,6 +436,15 @@ class Flow
     @descriptor.size
   end
 
+  def to_s
+    "dir : #{@dir}\n" +
+        "type flow : #{@type_flow}\n" +
+        "label : #{@label}\n" +
+        "date : #{@date}\n" +
+        "vol : #{@vol}\n" +
+        "ext : #{@ext}"
+  end
+
   def total_lines(eofline)
     #retourne le nombre de ligne de tous les volumes du flow
     total_lines = 0
@@ -468,12 +491,12 @@ class Flow
   end
 
   def volume_exist?(vol)
-  # verifie l'existence d'un volume du flow sur le disque
+    # verifie l'existence d'un volume du flow sur le disque
     Flow.new(@dir, @type_flow, @label, @date, vol, @ext).exist?
   end
 
   def volumes_exist?
-  # verifie que tous les volumes (>=1) du flow existent sur le disque
+    # verifie que tous les volumes (>=1) du flow existent sur le disque
     exist = true
     volumes.each { |vol| exist = exist && vol.exist? }
     exist

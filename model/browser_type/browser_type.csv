@@ -1,0 +1,21 @@
+staging;os;os_version;browser;browser_version;runtime_path;proxy_system;start_listening_port_proxy;count_proxy
+development;windows;xp;Internet Explorer;6.0;C:\Program Files\Internet Explorer\iexplore.exe;true;10000;1
+development;windows;xp;Internet Explorer;7.0;C:\Sandbox\Eleve\ie7\drive\C\Program Files\Internet Explorer\iexplore.exe;false;9999;1
+development;windows;xp;Internet Explorer;8.0;C:\Sandbox\Eleve\ie8\drive\C\Program Files\Internet Explorer\iexplore.exe;false;9997;1
+development;windows;xp;Firefox;18.0;C:\Program Files\Mozilla Firefox\18.0\firefox.exe;false;9995;1
+development;windows;xp;Firefox;28.0;C:\Program Files\Mozilla Firefox\18.0\firefox.exe;false;9993;1
+development;windows;xp;Firefox;19.0;C:\Program Files\Mozilla Firefox\19.0\firefox.exe;false;9991;1
+development;windows;xp;Chrome;33.0.1750.117;C:\Sandbox\Eleve\ch33\user\current\Local Settings\Application Data\Google\Chrome\Application\chrome.exe;false;9989;1
+development;windows;xp;Chrome;34.0.1847.11;C:\Sandbox\Eleve\ch34\user\current\Local Settings\Application Data\Google\Chrome\Application\chrome.exe;false;9987;1
+development;windows;xp;Chrome;35.0.1862.2;C:\Sandbox\Eleve\ch35\user\current\Local Settings\Application Data\Google\Chrome\Application\chrome.exe;false;9985;1
+development;windows;seven;Internet Explorer;9.0;C:\Program Files (x86)\Internet Explorer\iexplore.exe;true;9983;1
+development;windows;seven;Firefox;24.0;D:\FirefoxPortable\App\Firefox\firefox.exe;false;9982;1
+development;windows;seven;Firefox;3.6;C:\Program Files (x86)\Mozilla Firefox\firefox.exe;false;9980;1
+development;windows;seven;Firefox;19.0;C:\Program Files (x86)\Mozilla Firefox\firefox.exe;false;9978;1
+development;windows;seven;Chrome;33.0.1750.117;C:\Users\ET00752\AppData\Local\Google\Chrome\Application\chrome.exe;false;9976;1
+development;windows;seven;Chrome;23.0.1271.97;C:\Users\ET00752\AppData\Local\Google\Chrome\Application\chrome.exe;false;9974;1
+development;windows;vista;Internet Explorer;9.0;C:\Program Files\Internet Explorer\iexplore.exe;true;9972;1
+development;windows;vista;Firefox;28.0;C:\Program Files\Mozilla Firefox\firefox.exe;false;9971;1
+development;windows;vista;Firefox;19.0;C:\Program Files\Mozilla Firefox\firefox.exe;false;9969;1
+development;windows;vista;Chrome;33.0.1750.117;C:\Program Files\Google\Chrome\Application\chrome.exe;false;9967;1
+development;windows;vista;Chrome;23.0.1271.97;C:\Program Files\Google\Chrome\Application\chrome.exe;false;9965;1

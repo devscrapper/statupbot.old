@@ -3,7 +3,7 @@ require 'uri'
 require_relative '../../lib/logging'
 require_relative 'referrer/referrer'
 require_relative 'advertising/advertising'
-require_relative '../error'
+require_relative '../../lib/error'
 
 module Visits
 
@@ -26,6 +26,10 @@ module Visits
     VISIT_NOT_FOUND = 702
     VISIT_NOT_LOAD = 703
 
+    #----------------------------------------------------------------------------------------------------------------
+    # constant
+    #----------------------------------------------------------------------------------------------------------------
+    ARCHIVE = Pathname(File.join(File.dirname(__FILE__), "..", "..", "archive")).realpath
     #----------------------------------------------------------------------------------------------------------------
     # attribut
     #----------------------------------------------------------------------------------------------------------------
@@ -60,6 +64,7 @@ module Visits
         @@logger.an_event.error "visit file #{file_path} not load : #{e.message}"
         raise VisitError.new(VISIT_NOT_LOAD), "visit file #{file_path} not load"
       else
+        FileUtils.move(file_path,ARCHIVE)
         return visit_details
       ensure
         @@logger.an_event.debug "END Visit.build"
@@ -115,7 +120,7 @@ module Visits
         @start_date_time = visit_details[:start_date_time]
         @durations = visit_details[:durations]
         @around = (visit_details[:website][:many_hostname] == :true and visit_details[:website][:many_account_ga] == :no) ? :inside_hostname : :inside_fqdn
-        @landing_url = URI.join(visit_details[:landing][:fqdn].start_with?("http") ? visit_details[:landing][:fqdn] : "http://#{visit_details[:landing][:fqdn]}",visit_details[:landing][:page_path])
+        @landing_url = URI.join(visit_details[:landing][:fqdn].start_with?("http") ? visit_details[:landing][:fqdn] : "http://#{visit_details[:landing][:fqdn]}", visit_details[:landing][:page_path])
         @referrer = Referrer.build(visit_details[:referrer], @landing_url)
         @advertising = Advertising.build(visit_details[:advert])
 

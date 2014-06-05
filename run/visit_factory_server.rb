@@ -22,26 +22,21 @@ logger.a_log.info "staging : #{$staging}"
 # MAIN
 #--------------------------------------------------------------------------------------------------------------------
 
-stop=false
-while !stop
+
+EventMachine.run {
   begin
+  Signal.trap("INT") { EventMachine.stop }
+  Signal.trap("TERM") { EventMachine.stop }
 
-    EventMachine.run {
+  logger.a_log.info "visit factory server is starting"
 
-      Signal.trap("INT") { EventMachine.stop }
-      Signal.trap("TERM") { EventMachine.stop }
-
-      logger.a_log.info "visit factory server is starting"
-      EventMachine.start_server "127.0.0.1", VisitFactory.listening_port, VisitFactory::BuildVisitConnection,  logger
-      stop =true
-    }
-
+  EventMachine.start_server "0.0.0.0", VisitFactory.listening_port, VisitFactory::PlanVisitConnection, logger
   rescue Exception => e
-    logger.a_log.debug e
-    logger.a_log.fatal e.message
-    stop = false
-    logger.a_log.warn "visit factory server re-start"
-  end
-end
+    logger.an_event.error e.message
+    end
+
+}
+
+
 logger.a_log.info "visit factory server stopped"
 
