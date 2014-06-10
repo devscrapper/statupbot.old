@@ -1,4 +1,5 @@
 require_relative '../../lib/error'
+require_relative '../../lib/os'
 require 'csv'
 require 'yaml'
 
@@ -13,13 +14,13 @@ require 'yaml'
     #----------------------------------------------------------------------------------------------------------------
     class BrowserTypeError < Error
     end
-    ARGUMENT_NOT_DEFINE = 900
-    BROWSER_TYPE_NOT_DEFINE = 901
-    BROWSER_VERSION_NOT_DEFINE = 902
-    BROWSER_TYPE_EMPTY = 903
-    OS_VERSION_UNKNOWN = 904
-    OS_UNKNOWN = 905
-    BROWSER_TYPE_NOT_PUBLISH = 906
+    ARGUMENT_NOT_DEFINE = 1100
+    BROWSER_TYPE_NOT_DEFINE = 1101
+    BROWSER_VERSION_NOT_DEFINE = 1102
+    BROWSER_TYPE_EMPTY = 1103
+    OS_VERSION_UNKNOWN = 1104
+    OS_UNKNOWN = 1105
+    BROWSER_TYPE_NOT_PUBLISH = 1106
     #----------------------------------------------------------------------------------------------------------------
     # constants
     #----------------------------------------------------------------------------------------------------------------
@@ -30,8 +31,8 @@ require 'yaml'
     MAC_XML = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'sahi.in.co', 'config', 'browser_types', 'mac.xml')).realpath
 
     STAGING = 0
-    OS = 1
-    OS_VERSION = 2
+    OPERATING_SYSTEM = 1
+    OPERATING_SYSTEM_VERSION = 2
     BROWSER = 3
     BROWSER_VERSION = 4
     RUNTIME_PATH = 5
@@ -52,20 +53,18 @@ require 'yaml'
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
-    def initialize(current_os, current_os_version)
+    def initialize
 
       raise BrowserTypeError.new(BROWSER_TYPE_NOT_DEFINE), "file #{BROWSER_TYPE} not found" unless File.exist?(BROWSER_TYPE)
-      raise BrowserTypeError.new(ARGUMENT_NOT_DEFINE) if current_os.nil?
-      raise BrowserTypeError.new(ARGUMENT_NOT_DEFINE) if current_os_version.nil?
-      @current_os = current_os
-      @current_os_version = current_os_version
+      @current_os = OS.name
+      @current_os_version = OS.version
 
       rows = CSV.read(BROWSER_TYPE)
       rows.each { |row|
         elt_arr = row[0].split(/;/)
         if elt_arr[STAGING] == $staging and
-            elt_arr[OS].to_sym == @current_os and
-            elt_arr[OS_VERSION].to_sym == @current_os_version
+            elt_arr[OPERATING_SYSTEM].to_sym == @current_os and
+            elt_arr[OPERATING_SYSTEM_VERSION].to_sym == @current_os_version
 
           browser = elt_arr[BROWSER]
           browser_version = elt_arr[BROWSER_VERSION]

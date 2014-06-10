@@ -3,9 +3,12 @@
 require 'yaml'
 require 'trollop'
 require 'pathname'
+require 'eventmachine'
 require_relative '../lib/logging'
-require_relative '../model/visitor_factory/visitor_factory'
+require_relative '../lib/os'
+require_relative '../lib/parameter'
 require_relative '../model/browser_type/browser_type'
+require_relative '../model/visitor_factory/visitor_factory'
 
 #TODO declarer le server comme un service windows
 
@@ -36,7 +39,11 @@ Trollop::die :proxy_port, "is require with proxy" if opts[:proxy_type] != "none"
 #--------------------------------------------------------------------------------------------------------------------
 # LOAD PARAMETER
 #--------------------------------------------------------------------------------------------------------------------
-VisitorFactory.load_parameter
+parameters = Parameter.new(__FILE__)
+$staging = parameters.environment
+$debugging = parameters.debugging
+$runtime_ruby = parameters.runtime_ruby
+$delay_periodic_scan = parameters.delay_periodic_scan
 
 logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
 
@@ -44,8 +51,6 @@ logger.a_log.info "parameters of visitor factory server :"
 logger.a_log.info "geolocation is : #{opts[:proxy_type]}"
 logger.a_log.info "runtime ruby : #{$runtime_ruby}"
 logger.a_log.info "delay_periodic_scan : #{$delay_periodic_scan}"
-logger.a_log.info "os : #{$current_os}"
-logger.a_log.info "os version : #{$current_os_version}"
 logger.a_log.info "debugging : #{$debugging}"
 logger.a_log.info "staging : #{$staging}"
 
@@ -54,7 +59,7 @@ logger.a_log.info "staging : #{$staging}"
 # MAIN
 #--------------------------------------------------------------------------------------------------------------------
 logger.a_log.info "load browser type repository file : browser_type.csv"
-bt = BrowserTypes.new($current_os, $current_os_version)
+bt = BrowserTypes.new()
 logger.a_log.info "publish browser type to sahi"
 bt.publish_to_sahi
 

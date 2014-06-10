@@ -289,12 +289,11 @@ def load_parameter
   begin
     #TODO parametrer les répertoires contenant des fichiers d'exécution pour un usage avec virtualisation d'OS afin que les OS point sur les même executables
     params = YAML::load(File.open(PARAMETERS), "r:UTF-8")
-    @@debug_outbound_queries = params[$staging]["debug_outbound_queries"] unless params[$staging]["debug_outbound_queries"].nil? #geolocation
     @@home = params[$staging]["home"] unless params[$staging]["home"].nil? #geolocation
-    @@firefox_path = params[$staging]["firefox_path"] unless params[$staging]["firefox_path"].nil?
     $java_runtime_path = params[$staging]["java_runtime_path"].join(File::SEPARATOR) unless params[$staging]["java_runtime_path"].nil?
     $java_key_tool_path = params[$staging]["java_key_tool_path"].join(File::SEPARATOR).gsub(/\\/, "\\") unless params[$staging]["java_key_tool_path"].nil?
-
+    $start_page_server_ip = params[$staging]["start_page_server_ip"] unless params[$staging]["start_page_server_ip"].nil?
+    $start_page_server_port = params[$staging]["start_page_server_port"] unless params[$staging]["start_page_server_port"].nil?
     $debugging = params[$staging]["debugging"] unless params[$staging]["debugging"].nil?
   rescue Exception => e
     STDERR << "loading parameters file #{PARAMETERS} failed : #{e.message}"
@@ -307,6 +306,8 @@ visitor_id = YAML::load(File.read(opts[:visit_file_name]))[:visitor][:id]
 @@logger.an_event.debug "File Parameters begin------------------------------------------------------------------------------"
 @@logger.a_log.info "java runtime path : #{$java_runtime_path}"
 @@logger.a_log.info "java key tool path : #{$java_key_tool_path}"
+@@logger.a_log.info "start page server ip : #{$start_page_server_ip}"
+@@logger.a_log.info "start page server port: #{$start_page_server_port}"
 @@logger.a_log.info "home : #{@@home}"
 @@logger.a_log.info "debugging : #{$debugging}"
 @@logger.a_log.info "staging : #{$staging}"

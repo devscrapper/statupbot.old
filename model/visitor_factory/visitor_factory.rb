@@ -3,8 +3,9 @@ require 'eventmachine'
 require 'em/threaded_resource'
 require_relative '../../lib/flow'
 require_relative '../../lib/logging'
-require_relative '../../model/monitoring/public'
 require_relative '../../lib/error'
+require_relative '../../model/monitoring/public'
+
 
 class VisitorFactory
   #----------------------------------------------------------------------------------------------------------------
@@ -24,13 +25,9 @@ class VisitorFactory
   #----------------------------------------------------------------------------------------------------------------
   # constant
   #----------------------------------------------------------------------------------------------------------------
-  PARAMETERS = File.dirname(__FILE__) + "/../../parameter/visitor_factory_server.yml"
-  ENVIRONMENT= File.dirname(__FILE__) + "/../../parameter/environment.yml"
-  $staging = "production"
-  $debugging = false
   VISITOR_BOT = Pathname(File.join(File.dirname(__FILE__), "..", "..", "run", "visitor_bot.rb")).realpath
   TMP = Pathname(File.join(File.dirname(__FILE__), "..","..", "tmp")).realpath
-
+  OK = 0
 
   #----------------------------------------------------------------------------------------------------------------
   # attribut
@@ -50,42 +47,6 @@ class VisitorFactory
   # class methods
   #----------------------------------------------------------------------------------------------------------------
 
-  #----------------------------------------------------------------------------------------------------------------
-  # build
-  #----------------------------------------------------------------------------------------------------------------
-  # crée un geolocation :
-  #----------------------------------------------------------------------------------------------------------------
-  # input :
-  # une visite qui est une ligne du flow : published-visits_label_date_hour.json, sous forme de hash
-  #["flash_version", "11.4 r402"]
-  #["java_enabled", "No"]
-  #["screens_colors", "24-bit"]
-  #["screen_resolution", "1366x768"]
-  # mot clé utulisés pour les requetes de scraping de google analitycs :
-  # Browser : "Chrome", "Firefox", "Internet Explorer", "Safari"
-  # operatingSystem:  "Windows", "Linux", "Macintosh"
-  #----------------------------------------------------------------------------------------------------------------
-  #         #Les navigateurs disponibles sont definis dans le fichier d:\sahi\userdata\config\browser_types.xml
-  #----------------------------------------------------------------------------------------------------------------
-  def self.load_parameter
-    begin
-      environment = YAML::load(File.open(ENVIRONMENT), "r:UTF-8")
-      $staging = environment["staging"] unless environment["staging"].nil?
-      $current_os = environment["os"] unless environment["os"].nil?
-      $current_os_version = environment["os_version"] unless environment["os_version"].nil?
-    rescue Exception => e
-      STDERR << "loading parameter file #{ENVIRONMENT} failed : #{e.message}"
-    end
-
-    begin
-      params = YAML::load(File.open(PARAMETERS), "r:UTF-8")
-      $delay_periodic_scan = params[$staging]["delay_periodic_scan"] unless params[$staging]["delay_periodic_scan"].nil?
-      $runtime_ruby = params[$staging]["runtime_ruby"].join(File::SEPARATOR) unless params[$staging]["runtime_ruby"].nil?
-      $debugging = params[$staging]["debugging"] unless params[$staging]["debugging"].nil?
-    rescue Exception => e
-      STDERR << "loading parameters file #{PARAMETERS} failed : #{e.message}"
-    end
-  end
 
   #----------------------------------------------------------------------------------------------------------------
   # instance methods
@@ -245,7 +206,7 @@ class VisitorFactory
     # si @default_type_geo <> "none" => proxy
     #     si @default_ip_geo == nil et @default_port_geo == nil alors il faut calculer un proxy de geolocation
     #     sinon utilise le proxy de l'entreprise passé en paramètre
-    #geolocation = "-r http -o muz11-wbsswsg.ca-technologies.fr -x 8080 -y ET00752 -w Bremb@07"
+    #geolocation = "-r http -o muz11-wbsswsg.ca-technologies.fr -x 8080 -y ET00752 -w Bremb@08"
     case @default_type_geo
       when "none"
         return ""
