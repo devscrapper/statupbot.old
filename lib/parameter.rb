@@ -30,9 +30,20 @@ class Parameter
   # le nom du fichier du composant qui veut charge un fichier de paramètre  : toto.rb
   #----------------------------------------------------------------------------------------------------------------
   def initialize(file_name)
-    param_file_name = "#{File.basename(file_name, '.rb')}.yml"
-    @environment = YAML::load(File.open(ENVIRONMENT), "r:UTF-8")['staging']
-    @parameters = YAML::load(File.open(File.join(PARAMETER ,param_file_name)), "r:UTF-8")[@environment]
+    param_file_name = File.join(PARAMETER, "#{File.basename(file_name, '.rb')}.yml")
+
+    raise "environment file not found" unless File.exist?(ENVIRONMENT)
+    raise "parameter file not found" unless File.exist?(param_file_name)
+    begin
+      @environment = YAML::load(File.open(ENVIRONMENT), "r:UTF-8")['staging']
+    rescue Exception => e
+      raise "failed to load environment file #{e.message}"
+    end
+    begin
+      @parameters = YAML::load(File.open(param_file_name), "r:UTF-8")[@environment]
+    rescue Exception => e
+      raise "failed to load parameter file #{e.message}"
+    end
   end
 
   #----------------------------------------------------------------------------------------------------------------

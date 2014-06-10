@@ -1,7 +1,9 @@
 require_relative '../model/visitor/visitor'
 require_relative '../model/visit/visit'
-require_relative '../lib/logging'
 require_relative '../model/monitoring/public'
+require_relative '../lib/logging'
+require_relative '../lib/parameter'
+
 require 'uri'
 require 'trollop'
 require 'eventmachine'
@@ -273,57 +275,56 @@ def visitor_is_no_slave(opts)
 end
 
 
-PARAMETERS = File.dirname(__FILE__) + "/../parameter/visitor_bot.yml"
-ENVIRONMENT= File.dirname(__FILE__) + "/../parameter/environment.yml"
-$staging = "production"
-$debugging = false
+#--------------------------------------------------------------------------------------------------------------------
+# LOAD PARAMETER
+#--------------------------------------------------------------------------------------------------------------------
+begin
+  parameters = Parameter.new(__FILE__)
+rescue Exception => e
+  STDERR << e.message
+else
+  $staging = parameters.environment
+  $debugging = parameters.debugging
+  $java_runtime_path = parameters.java_runtime_path.join(File::SEPARATOR)
+  $java_key_tool_path = parameters.java_key_tool_path.join(File::SEPARATOR)
+  $start_page_server_ip = parameters.start_page_server_ip
+  $start_page_server_port = parameters.start_page_server_port
 
-def load_parameter
-  begin
-    environment = YAML::load(File.open(ENVIRONMENT), "r:UTF-8")
-    $staging = environment["staging"] unless environment["staging"].nil?
-  rescue Exception => e
-    STDERR << "loading parameter file #{ENVIRONMENT} failed : #{e.message}"
+  visitor_id = YAML::load(File.read(opts[:visit_file_name]))[:visitor][:id]
+
+  @@logger = Logging::Log.new(self, :staging => $staging, :id_file => File.join("#{File.basename(__FILE__, ".rb")}_#{visitor_id}"), :debugging => $debugging)
+  @@logger.an_event.debug "File Parameters begin------------------------------------------------------------------------------"
+  @@logger.a_log.info "java runtime path : #{$java_runtime_path}"
+  @@logger.a_log.info "java key tool path : #{$java_key_tool_path}"
+  @@logger.a_log.info "start page server ip : #{$start_page_server_ip}"
+  @@logger.a_log.info "start page server port: #{$start_page_server_port}"
+  @@logger.a_log.info "debugging : #{$debugging}"
+  @@logger.a_log.info "staging : #{$staging}"
+  @@logger.an_event.debug "File Parameters end------------------------------------------------------------------------------"
+  @@logger.an_event.debug "Start Parameters begin------------------------------------------------------------------------------"
+  @@logger.an_event.debug opts.to_yaml
+  @@logger.an_event.debug "Start Parameters end--------------------------------------------------------------------------------"
+
+  if $java_runtime_path.nil? or
+      $java_key_tool_path.nil? or
+      $start_page_server_ip.nil? or
+      $start_page_server_port.nil? or
+      $debugging.nil? or
+      $staging.nil?
+    STDERR << "some parameters not define"
+    Process.exit(KO)
   end
+  #--------------------------------------------------------------------------------------------------------------------
+  # MAIN
+  #--------------------------------------------------------------------------------------------------------------------
 
-  begin
-    #TODO parametrer les répertoires contenant des fichiers d'exécution pour un usage avec virtualisation d'OS afin que les OS point sur les même executables
-    params = YAML::load(File.open(PARAMETERS), "r:UTF-8")
-    @@home = params[$staging]["home"] unless params[$staging]["home"].nil? #geolocation
-    $java_runtime_path = params[$staging]["java_runtime_path"].join(File::SEPARATOR) unless params[$staging]["java_runtime_path"].nil?
-    $java_key_tool_path = params[$staging]["java_key_tool_path"].join(File::SEPARATOR).gsub(/\\/, "\\") unless params[$staging]["java_key_tool_path"].nil?
-    $start_page_server_ip = params[$staging]["start_page_server_ip"] unless params[$staging]["start_page_server_ip"].nil?
-    $start_page_server_port = params[$staging]["start_page_server_port"] unless params[$staging]["start_page_server_port"].nil?
-    $debugging = params[$staging]["debugging"] unless params[$staging]["debugging"].nil?
-  rescue Exception => e
-    STDERR << "loading parameters file #{PARAMETERS} failed : #{e.message}"
-  end
-end
-
-load_parameter
-visitor_id = YAML::load(File.read(opts[:visit_file_name]))[:visitor][:id]
-@@logger = Logging::Log.new(self, :staging => $staging, :id_file => File.join("#{File.basename(__FILE__, ".rb")}_#{visitor_id}"), :debugging => $debugging)
-@@logger.an_event.debug "File Parameters begin------------------------------------------------------------------------------"
-@@logger.a_log.info "java runtime path : #{$java_runtime_path}"
-@@logger.a_log.info "java key tool path : #{$java_key_tool_path}"
-@@logger.a_log.info "start page server ip : #{$start_page_server_ip}"
-@@logger.a_log.info "start page server port: #{$start_page_server_port}"
-@@logger.a_log.info "home : #{@@home}"
-@@logger.a_log.info "debugging : #{$debugging}"
-@@logger.a_log.info "staging : #{$staging}"
-@@logger.an_event.debug "File Parameters end------------------------------------------------------------------------------"
-@@logger.an_event.debug "Start Parameters begin------------------------------------------------------------------------------"
-@@logger.an_event.debug opts.to_yaml
-@@logger.an_event.debug "Start Parameters end--------------------------------------------------------------------------------"
-
-
-@@logger.an_event.debug "begin execution visitor_bot"
-state = OK
+  @@logger.an_event.debug "begin execution visitor_bot"
+  state = OK
 #state = visitor_is_slave(opts) if opts[:slave] == "yes"
-state = visitor_is_no_slave(opts) if opts[:slave] == "no"
-@@logger.an_event.debug "end execution visitor_bot, with state #{state}"
-Process.exit(state)
-
+  state = visitor_is_no_slave(opts) if opts[:slave] == "no"
+  @@logger.an_event.debug "end execution visitor_bot, with state #{state}"
+  Process.exit(state)
+end
 
 
 

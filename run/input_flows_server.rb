@@ -2,59 +2,53 @@
 # encoding: UTF-8
 require 'yaml'
 require_relative '../lib/logging'
+require_relative '../lib/parameter'
 require_relative '../model/flowing/flow_connection'
 #TODO declarer le server comme un service windows
 
 #--------------------------------------------------------------------------------------------------------------------
-# INIT
-#--------------------------------------------------------------------------------------------------------------------
-PARAMETERS = File.dirname(__FILE__) + "/../parameter/" + File.basename(__FILE__, ".rb") + ".yml"
-ENVIRONMENT= File.dirname(__FILE__) + "/../parameter/environment.yml"
-listening_port = 9201 # port d'ecoute
-$staging = "production"
-$debugging = false
-#--------------------------------------------------------------------------------------------------------------------
-# INPUT
+# LOAD PARAMETER
 #--------------------------------------------------------------------------------------------------------------------
 begin
-  environment = YAML::load(File.open(ENVIRONMENT), "r:UTF-8")
-  $staging = environment["staging"] unless environment["staging"].nil?
+  parameters = Parameter.new(__FILE__)
 rescue Exception => e
-  STDERR << "loading parameter file #{ENVIRONMENT} failed : #{e.message}"
-end
-
-begin
-  params = YAML::load(File.open(PARAMETERS), "r:UTF-8")
-  listening_port = params[$staging]["listening_port"] unless params[$staging]["listening_port"].nil?
-  $debugging = params[$staging]["debugging"] unless params[$staging]["debugging"].nil?
-rescue Exception => e
-  STDERR << "loading parameters file #{PARAMETERS} failed : #{e.message}"
-end
-
-logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
+  STDERR << e.message
+else
+  $staging = parameters.environment
+  $debugging = parameters.debugging
+  listening_port = parameters.listening_port
+  logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
 
 
-logger.a_log.info "parameters of input flows server :"
-logger.a_log.info "listening port : #{listening_port}"
-logger.a_log.info "debugging : #{$debugging}"
-logger.a_log.info "staging : #{$staging}"
+  logger.a_log.info "parameters of input flows server :"
+  logger.a_log.info "listening port : #{listening_port}"
+  logger.a_log.info "debugging : #{$debugging}"
+  logger.a_log.info "staging : #{$staging}"
 
-include Flowing
+  if listening_port.nil? or
+      $debugging.nil? or
+      $staging.nil?
+    STDERR << "some parameters not define"
+    exit(1)
+  end
+
+  include Flowing
 #--------------------------------------------------------------------------------------------------------------------
 # MAIN
 #--------------------------------------------------------------------------------------------------------------------
-begin
-  EventMachine.run {
-    Signal.trap("INT") { EventMachine.stop }
-    Signal.trap("TERM") { EventMachine.stop }
+  begin
+    EventMachine.run {
+      Signal.trap("INT") { EventMachine.stop }
+      Signal.trap("TERM") { EventMachine.stop }
 
-    logger.a_log.info "input flows server is starting"
-    EventMachine.start_server "0.0.0.0", listening_port, FlowConnection, logger
-  }
-rescue Exception => e
-  logger.a_log.fatal e.message
-  logger.a_log.warn "input flow server restart"
-  retry
+      logger.a_log.info "input flows server is starting"
+      EventMachine.start_server "0.0.0.0", listening_port, FlowConnection, logger
+    }
+  rescue Exception => e
+    logger.a_log.fatal e.message
+    logger.a_log.warn "input flow server restart"
+    retry
+  end
+  logger.a_log.info "input flows server stopped"
+
 end
-logger.a_log.info "input flows server stopped"
-

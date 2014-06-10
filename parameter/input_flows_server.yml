@@ -1,9 +1,9 @@
 
 development:
-  listening_port: 9201
-  debugging:  true
+  :listening_port: 9201
+  :debugging:  true
 test:
-  listening_port: 9201
-  debugging:  false
+  :listening_port: 9201
+  :debugging:  false
 
 production:

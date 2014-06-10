@@ -1,6 +1,5 @@
 #!/usr/bin/env ruby -w
 # encoding: UTF-8
-require_relative '../../model/visitor_factory/public'
 require_relative '../../lib/flow'
 
 module Flowing
