@@ -44,17 +44,16 @@ module Visitors
     VISITOR_NOT_BROWSE_LANDING_PAGE = 604 # à remonter en code retour de statupbot
     VISITOR_NOT_BROWSE_REFERRAL_PAGE = 605 # à remonter en code retour de statupbot
     VISITOR_NOT_FOUND_LANDING_LINK = 606 # à remonter en code retour de statupbot
-    VISITOR_NOT_CLICK_ON_LANDING = 607 # à remonter en code retour de statupbot
-    VISITOR_NOT_BROWSE_SEARCH_PAGE = 608 # à remonter en code retour de statupbot
-    VISITOR_NOT_INHUME = 609 # à remonter en code retour de statupbot
-    NO_MORE_RESULT_PAGE = 610
-    VISIT_NOT_COMPLETE = 611
-    CANNOT_CLICK_ON_LINK_OF_NEXT_PAGE = 612
-    VISITOR_NOT_CLOSE = 613
-    VISITOR_NOT_DIE = 614
-    NONE_KEYWORDS_FIND_LANDING_LINK = 615
-    VISITOR_NOT_OPEN = 616
-    LOG_VISITOR_NOT_DELETE = 617
+    VISITOR_NOT_BROWSE_SEARCH_PAGE = 607 # à remonter en code retour de statupbot
+    VISITOR_NOT_INHUME = 608 # à remonter en code retour de statupbot
+    NO_MORE_RESULT_PAGE = 609
+    VISIT_NOT_COMPLETE = 610
+    CANNOT_CLICK_ON_LINK_OF_NEXT_PAGE = 611
+    VISITOR_NOT_CLOSE = 612
+    VISITOR_NOT_DIE = 613
+    NONE_KEYWORDS_FIND_LANDING_LINK = 614
+    VISITOR_NOT_OPEN = 615
+    LOG_VISITOR_NOT_DELETE = 616
 
     #----------------------------------------------------------------------------------------------------------------
     # constants
@@ -302,8 +301,8 @@ module Visitors
             @@logger.an_event.info "visitor #{@id} click on landing link #{landing_link.url.to_s}"
 
           rescue Error, Exception => e
-            @@logger.an_event.error "visitor #{@id} not click on landing url #{landing_link.url.to_s} : #{e.message}"
-            raise VisitorError.new(VISITOR_NOT_CLICK_ON_LANDING, e), "visitor #{@id} not click on landing url #{landing_link.url.to_s}"
+            @@logger.an_event.error "visitor #{@id} not browse landing page #{landing_link.url.to_s} : #{e.message}"
+            raise VisitorError.new(VISITOR_NOT_BROWSE_LANDING_PAGE, e), "visitor #{@id} not browse landing page #{landing_link.url.to_s}"
           else
             return landing_page
           ensure
@@ -348,8 +347,8 @@ module Visitors
             @@logger.an_event.info "visitor #{@id} click on landing url #{landing_link.url.to_s}"
 
           rescue Error, Exception => e
-            @@logger.an_event.error "visitor #{@id} not click on landing link #{landing_link.url.to_s} : #{e.message}"
-            raise VisitorError.new(VISITOR_NOT_CLICK_ON_LANDING, e), "visitor #{@id} not click on landing link #{landing_link.url.to_s}"
+            @@logger.an_event.error "visitor #{@id} not browse landing page #{landing_link.url.to_s} : #{e.message}"
+            raise VisitorError.new(VISITOR_NOT_BROWSE_LANDING_PAGE, e), "visitor #{@id} not browse landing page #{landing_link.url.to_s}"
           else
             return landing_page
           ensure
@@ -430,7 +429,7 @@ module Visitors
       @@logger.an_event.debug "BEGIN Visitor.delete_log"
 
       begin
-        dir = Pathname(File.join(File.dirname(__FILE__), "..", "log")).realpath
+        dir = Pathname(File.join(File.dirname(__FILE__), "..", '..' ,"log")).realpath
         files = File.join(dir, "visitor_bot_#{@id}.{*}")
         FileUtils.rm_r(Dir.glob(files), :force => true)
 

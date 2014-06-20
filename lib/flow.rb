@@ -3,7 +3,7 @@ require_relative 'communication'
 require_relative '../lib/logging'
 
 class Flow
-  class FlowException < StandardError;
+  class FlowError < StandardError;
   end
 
   MAX_SIZE = 1000000 # taille max d'un volume
@@ -117,7 +117,7 @@ class Flow
     @date = date unless date.is_a?(Date)
     @vol = vol.to_s unless vol.nil?
     @ext = ext
-                                                     # @logger = Logging::Log.new(self, :staging => $staging, :debugging => $debugging)
+
     @logger = Logging::Log.new(self, :staging => $staging, :debugging => false)
     if  !(@dir && @type_flow && @label && @date && @ext) and $debugging
       @logger.an_event.debug "dir <#{dir}>"
@@ -128,7 +128,7 @@ class Flow
       @logger.an_event.debug "ext <#{ext}>"
       @logger.an_event.debug "details flow <#{self.to_s}>"
     end
-    raise FlowException, "Flow not initialize" unless @dir && @type_flow && @label && @date && @ext
+    raise FlowError, "Flow not initialize" unless @dir && @type_flow && @label && @date && @ext
   end
 
   def == (flow)
@@ -151,8 +151,9 @@ class Flow
 
   def archive()
     # archive le flow courant : deplace le fichier dans le repertoire ARCHIVE
-    raise FlowException, "Flow <#{absolute_path}> not exist" unless exist?
+    raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
     FileUtils.mv(absolute_path, ARCHIVE, :force => true)
+    @dir = ARCHIVE
     @logger.an_event.info "archiving <#{basename}>"
     @logger.an_event.debug "archiving <#{basename}> to #{ARCHIVE}" if $debugging
   end
@@ -164,7 +165,7 @@ class Flow
     # en prenant en compte le multivolume
     # l'objectif est de faire le ménage dans le répertoire qui contient l'instance courante
     # le ou les flow sont déplacés dans ARCHIVE
-    raise FlowException, "Flow <#{absolute_path}> not exist" unless exist?
+    raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
     Flow.list(@dir, {:type_flow => @type_flow, :label => @label, :ext => @ext}).each { |flow|
       flow.archive unless self == flow
     }
@@ -185,8 +186,8 @@ class Flow
   end
 
   def cp(to_path)
-    raise FlowException, "target <#{to_path}> is not valid" unless File.exists?(to_path) && File.directory?(to_path)
-    raise FlowException, "Flow <#{absolute_path}> not exist" unless exist?
+    raise FlowError, "target <#{to_path}> is not valid" unless File.exists?(to_path) && File.directory?(to_path)
+    raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
     FileUtils.cp(absolute_path, to_path)
     @logger.an_event.debug "copy flow <#{absolute_path}> to <#{to_path}>" if $debugging
   end
@@ -195,7 +196,7 @@ class Flow
     # coompte le nombre de ligne d'un fichier
     # la fin de ligne est identifié par #{eofline}
 
-    raise FlowException, "Flow <#{absolute_path}> not exist" unless exist?
+    raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
     File.foreach(absolute_path, eofline, encoding: "BOM|UTF-8:-").inject(0) { |c| c+1 }
   end
 
@@ -205,7 +206,7 @@ class Flow
   end
 
   def descriptor
-    raise FlowException, "Flow <#{absolute_path}> not exist" unless exist?
+    raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
     open("r:BOM|UTF-8:-") if @descriptor.nil?
     @descriptor
   end
@@ -221,12 +222,12 @@ class Flow
 
   def foreach (eofline, &bloc)
     # parcours toutes les lignes d'un flow
-    raise FlowException, "Flow <#{absolute_path}> not exist" unless exist?
+    raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
     IO.foreach(absolute_path, eofline, encoding: "BOM|UTF-8:-") { |p|
       begin
         yield(p)
       rescue Exception => e
-        raise FlowException, e
+        raise FlowError, e
       end
     }
   end
@@ -243,7 +244,7 @@ class Flow
     rescue Exception => e
       @logger.an_event.error "cannnot get flow <#{basename}> from #{ip_from}:#{port_from}"
       @logger.an_event.debug e if $debugging
-      raise FlowException, e.message
+      raise FlowError, e.message
     end
   end
 
@@ -268,8 +269,8 @@ class Flow
     # class_definition est une class
     # si class_definition est nil alors on range la ligne dans le array
     # si class_definition n'est pas nil alors on range une instance de la class construite à partir de la ligne, dans le array
-    raise FlowException, "Flow <#{absolute_path}> not exist" unless exist?
-    raise FlowException, "eofline not define" if eofline.nil?
+    raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
+    raise FlowError, "eofline not define" if eofline.nil?
     array = []
     p = ProgressBar.create(:title => "Loading #{basename} file", :length => 180, :starting_at => 0, :total => total_lines(eofline), :format => '%t, %c/%C, %a|%w|')
     volumes.each { |flow|
@@ -284,7 +285,7 @@ class Flow
 
   def new_volume()
     #cree un nouveau volume pour le flow
-    raise FlowException, "Flow <#{absolute_path}> has no first volume" if @vol.nil?
+    raise FlowError, "Flow <#{absolute_path}> has no first volume" if @vol.nil?
     close
     Flow.new(@dir, @type_flow, @label, @date, @vol.to_i + 1, @ext)
   end
@@ -313,7 +314,7 @@ class Flow
       rescue Exception => e
         @logger.an_event.error "cannot push flow <#{basename}> to input_flow server #{input_flows_server_ip}:#{input_flows_server_port}"
         @logger.an_event.debug e if $debugging
-        raise FlowException
+        raise FlowError
       end
     else
       # le flow a des volumes
@@ -332,14 +333,14 @@ class Flow
           rescue Exception => e
             @logger.an_event.error "cannot push vol <#{volume.vol.to_i}> of flow <#{basename}> to input_flow server #{input_flows_server_ip}:#{input_flows_server_port}"
             @logger.an_event.debug e if $debugging
-            raise FlowException
+            raise FlowError
           end
         }
       else
         # on pousse le volume précisé
         # si lastvolume n'est pas précisé alors = false
         @vol = vol.to_s
-        raise FlowException, "volume <#{@vol}> of the flow <#{basename}> do not exist" unless exist? # on verifie que le volume passé existe
+        raise FlowError, "volume <#{@vol}> of the flow <#{basename}> do not exist" unless exist? # on verifie que le volume passé existe
         begin
           push_vol(authentification_server_port,
                    input_flows_server_ip,
@@ -349,7 +350,7 @@ class Flow
         rescue Exception => e
           @logger.an_event.error "push vol <#{@vol}> of flow <#{basename}> to input_flow server #{input_flows_server_ip}:#{input_flows_server_port} failed"
           @logger.an_event.debug e if $debugging
-          raise FlowException
+          raise FlowError
         end
       end
     end
@@ -367,7 +368,7 @@ class Flow
     rescue Exception => e
       @logger.an_event.error "cannot ask a new authentification to localhost:#{authentification_server_port}"
       @logger.an_event.debug e if $debugging
-      raise FlowException
+      raise FlowError
     end
     begin
       put(input_flows_server_ip,
@@ -377,7 +378,7 @@ class Flow
           authen.pwd,
           last_volume)
     rescue Exception => e
-      raise FlowException
+      raise FlowError
     end
   end
 
@@ -397,34 +398,34 @@ class Flow
     rescue Exception => e
       @logger.an_event.error "cannot send properties flow <#{basename}> to #{ip_to}:#{port_to}"
       @logger.an_event.debug e if $debugging
-      raise FlowException, e.message
+      raise FlowError, e.message
     end
   end
 
   def read
     #retourne tout le contenu du fichier dans un string
-    raise FlowException, "Flow <#{absolute_path}> not exist" unless exist?
+    raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
     open("r:BOM|UTF-8:-") if @descriptor.nil?
     @descriptor.read
   end
 
   def readline(eofline)
     #retourne un ligne du fichier
-    raise FlowException, "Flow <#{absolute_path}> not exist" unless exist?
+    raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
     open("r:BOM|UTF-8:-") if @descriptor.nil?
     @descriptor.readline(eofline)
   end
 
   def readlines(eofline)
     # retourne toutes les lignes du fichier dans un tableau
-    raise FlowException, "Flow <#{absolute_path}> not exist" unless exist?
+    raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
     open("r:BOM|UTF-8:-") if @descriptor.nil?
     @descriptor.readlines(eofline)
   end
 
   def rewind()
     #retourn au debut du fichier
-    raise FlowException, "Flow <#{absolute_path}> not exist" unless exist?
+    raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
     open("r:UTF-8") if @descriptor.nil?
     @descriptor.rewind
     @logger.an_event.debug "rewind flow <#{basename}>" if $debugging
@@ -454,7 +455,7 @@ class Flow
 
   def volumes
     #renvoi un array contenant les flow de tous les volumes
-    raise FlowException, "Flow <#{absolute_path}> not exist" unless exist?
+    raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
     return [self] if @vol.nil? # si le flow n'a pas de volume alors renvoi un tableau avec le flow
     array = []
     crt = self
@@ -471,7 +472,7 @@ class Flow
 
   def volumes?
     #renvoi le nombre de volume
-    raise FlowException, "Flow <#{absolute_path}> not exist" unless exist?
+    raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
     return 0 if @vol.nil? # si le flow n'a pas de volume alors renvoi 0
     count = 0
     crt = self

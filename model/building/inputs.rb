@@ -6,6 +6,8 @@ module Flowing
   class Inputs
     attr :logger
 
+    TMP = Pathname(File.join(File.dirname(__FILE__), "..","..", "tmp")).realpath
+
     def initialize()
       @logger = Logging::Log.new(self, :staging => $staging, :debugging => $debugging)
     end
@@ -13,7 +15,6 @@ module Flowing
     def send_to_visitor_factory(inputflow)
       raise "inputflow not define" if inputflow.nil?
 
-      @logger.an_event.info "#{inputflow.basename} received at #{Time.now}"
       @logger.an_event.debug inputflow.to_s
 
       raise "inputflow #{inputflow.absolute_path} not found" unless inputflow.exist?
@@ -29,7 +30,7 @@ module Flowing
         @logger.an_event.debug "browser #{browser}"
         @logger.an_event.debug "browser_version #{browser_version}"
 
-        tmp_visit = Flow.new(VisitorFactory::TMP, "#{browser}-#{browser_version}", inputflow.label, inputflow.date, inputflow.vol, inputflow.ext)
+        tmp_visit = Flow.new(TMP, "#{browser}-#{browser_version}", inputflow.label, inputflow.date, inputflow.vol, inputflow.ext)
         tmp_visit.write(visit)
         tmp_visit.close
         @logger.an_event.info "copy input flow #{inputflow.basename} to #{tmp_visit.basename}"

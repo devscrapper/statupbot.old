@@ -272,6 +272,7 @@ def visitor_is_no_slave(opts)
 
   end
 
+  OK
 end
 
 

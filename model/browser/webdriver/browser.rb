@@ -121,7 +121,7 @@ module Browsers
         end
       end
 
-      #TODO faire travailler firefox en http et pas https avce google
+
       #TODO VALIDATE les variables HTTP, et UTM envoyé vers googlenanlytics reflete le FakeBrowser
       #TODO essayer de remplacer le mitm proxy par de l'injection de code javascript pour faker les function javascript du DOM utiliser par le script ga.js   ; (WebDriver::Element, ...) execute_script(script, *args) (also: #script)
       #TODO valider le ssl  : firefox accepte les certificats ; assume_untrusted_certificate_issuer?

@@ -1,13 +1,13 @@
 development:
   :runtime_ruby: ["d:", "ruby193", "bin", "ruby.exe"]
-  :delay_periodic_scan: 5
+  :delay_periodic_scan: 10
   :debugging:  true
 test:
   :runtime_ruby: ["d:", "ruby193", "bin", "ruby.exe"]
-  :delay_periodic_scan: 5
+  :delay_periodic_scan: 10
   :debugging:  false
 
 production:
   :runtime_ruby: ["d:", "ruby193", "bin", "ruby.exe"]
-  :delay_periodic_scan: 5
+  :delay_periodic_scan: 10
   :debugging:  false

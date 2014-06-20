@@ -6,6 +6,7 @@ module Monitoring
   #--------------------------------------------------------------------------------------------------------------------
   @@logger = nil
   @@return_codes = nil
+  @@return_codes_stat = nil
   @@count_visits = nil
   @@count_success = nil
   #--------------------------------------------------------------------------------------------------------------------
@@ -14,9 +15,10 @@ module Monitoring
   class ReturnCodeConnection < EventMachine::Connection
     include EM::Protocols::ObjectProtocol
 
-    def initialize(return_codes, count_visits, count_success, logger, opts)
+    def initialize(return_codes, return_codes_stat, count_visits, count_success, logger, opts)
       @@logger = logger
       @@return_codes = return_codes
+      @@return_codes_stat = return_codes_stat
       @@count_visits = count_visits
       @@count_success = count_success
     end
@@ -51,6 +53,8 @@ module Monitoring
         Monitoring.add_history(history,
                                @@return_codes,
                                {"no_id_visit" => data[:visit_details]})
+        Monitoring.add_stat(data[:return_code].origin_code || data[:return_code].code,
+                            @@return_codes_stat)
 
       end
 
@@ -64,6 +68,8 @@ module Monitoring
                                                   :operating_system_version => data[:visit_details][:visitor][:browser][:operating_system_version]},
                                      :referrer => data[:visit_details][:referrer]]
                                })
+        Monitoring.add_stat(data[:return_code].origin_code || data[:return_code].code,
+                            @@return_codes_stat)
 
       end
     end
@@ -81,6 +87,13 @@ module Monitoring
     end
   end
 
+  def add_stat(origin_code, return_codes_stat)
+    if return_codes_stat[origin_code].nil?
+      return_codes_stat[origin_code] = 1
+    else
+      return_codes_stat[origin_code] += 1
+    end
+  end
 
   def logger(logger)
     @@logger = logger
@@ -89,6 +102,7 @@ module Monitoring
 
   module_function :logger
   module_function :add_history
+  module_function :add_stat
 
 
 end

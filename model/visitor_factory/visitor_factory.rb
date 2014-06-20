@@ -78,7 +78,6 @@ class VisitorFactory
     @runtime_ruby = runtime_ruby
     @pattern = "#{browser} #{version}" # ne pas supprimer le blanc
     @pool = EM::Pool.new
-    @visit_file = nil
     @delay_periodic_scan = delay_periodic_scan
     @default_type_geo = default_geolocation[:proxy_type]
     @logger = logger
@@ -122,13 +121,17 @@ class VisitorFactory
   def scan_visit_file
     begin
       EM::PeriodicTimer.new(@delay_periodic_scan) do
-        @logger.an_event.info "scan visit file for #{@pattern} in #{TMP}"
+        @logger.an_event.info "scan visit flow for #{@pattern} in #{TMP}"
         tmp_flow_visit = Flow.first(TMP, {:type_flow => @pattern, :ext => "yml"})
 
+
         if !tmp_flow_visit.nil?
-          @visit_file = tmp_flow_visit.absolute_path
+          tmp_flow_visit.archive
+          @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archive"
           @pool.perform do |dispatcher|
             dispatcher.dispatch do |details|
+              details[:visit_file] = tmp_flow_visit.absolute_path
+
               start_visitor_bot(details)
             end
           end
@@ -161,15 +164,16 @@ class VisitorFactory
   #
   #-----------------------------------------------------------------------------------------------------------------
   def start_visitor_bot(details)
+
     begin
-      @logger.an_event.info "start visitor_bot with browser #{details[:pattern]} and visit file #{@visit_file}"
-      cmd = "#{@runtime_ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  #{VISITOR_BOT} -v #{@visit_file} -t #{details[:port_proxy_sahi]} -p #{@use_proxy_system} #{geolocation}"
+      @logger.an_event.info "start visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]}"
+      cmd = "#{@runtime_ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  #{VISITOR_BOT} -v #{details[:visit_file]} -t #{details[:port_proxy_sahi]} -p #{@use_proxy_system} #{geolocation}"
       @logger.an_event.debug "cmd start visitor_bot #{cmd}"
 
       pid = Process.spawn(cmd)
       pid, status = Process.wait2(pid, 0)
     rescue Exception => e
-      @logger.an_event.error "start visitor_bot with browser #{details[:pattern]} and visit file #{@visit_file} failed : #{e.message}"
+      @logger.an_event.error "start visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]} failed : #{e.message}"
     else
       unless status.exitstatus == OK
         @@logger.an_event.error "visitor_bot  browser #{details[:pattern]} port #{details[:port_proxy_sahi]} send an error to monitoring"

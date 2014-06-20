@@ -1,3 +1,4 @@
+require_relative '../../lib/parameter'
 require_relative '../../lib/error'
 require 'rubygems' # if you use RubyGems
 require 'socket'
@@ -101,27 +102,18 @@ module Monitoring
   end
 
   def load_parameter
-    @listening_port = 9230 # port d'ecoute
     begin
-      environment = YAML::load(File.open(ENVIRONMENT), "r:UTF-8")
-      $staging = environment["staging"] unless environment["staging"].nil?
+      parameters = Parameter.new("monitoring_server.rb")
     rescue Exception => e
-      STDERR << "loading parameter file #{ENVIRONMENT} failed : #{e.message}"
-    end
-
-    begin
-      params = YAML::load(File.open(PARAMETERS), "r:UTF-8")
-      @return_code_listening_port = params[$staging]["return_code_listening_port"] unless params[$staging]["return_code_listening_port"].nil?
-      @http_server_listening_port = params[$staging]["http_server_listening_port"] unless params[$staging]["http_server_listening_port"].nil?
-      $debugging = params[$staging]["debugging"] unless params[$staging]["debugging"].nil?
-    rescue Exception => e
-      STDERR << "loading parameters file #{PARAMETERS} failed : #{e.message}"
+      STDERR << e.message
+    else
+      $staging = parameters.environment
+      $debugging = parameters.debugging
+      @return_code_listening_port = parameters.return_code_listening_port
+      @http_server_listening_port = parameters.http_server_listening_port
     end
   end
 
-  def return_code_listening_port
-    @return_code_listening_port
-  end
 
   module_function :send_return_code
   module_function :send_success

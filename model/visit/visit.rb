@@ -64,7 +64,7 @@ module Visits
         @@logger.an_event.error "visit file #{file_path} not load : #{e.message}"
         raise VisitError.new(VISIT_NOT_LOAD), "visit file #{file_path} not load"
       else
-        FileUtils.move(file_path,ARCHIVE)
+        #FileUtils.move(file_path,ARCHIVE)
         return visit_details
       ensure
         @@logger.an_event.debug "END Visit.build"

@@ -24,7 +24,7 @@ require 'yaml'
     #----------------------------------------------------------------------------------------------------------------
     # constants
     #----------------------------------------------------------------------------------------------------------------
-    BROWSER_TYPE = Pathname.new(File.join(File.dirname(__FILE__), 'browser_type.csv')).realpath
+    BROWSER_TYPE = Pathname.new(File.join(File.dirname(__FILE__),'..', '..', 'repository', 'browser_type.csv')).realpath
     WIN32_XML = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'sahi.in.co', 'config', 'browser_types', 'win32.xml')).realpath
     WIN64_XML = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'sahi.in.co', 'config', 'browser_types', 'win64.xml')).realpath
     LINUX_XML = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'sahi.in.co', 'config', 'browser_types', 'linux.xml')).realpath
