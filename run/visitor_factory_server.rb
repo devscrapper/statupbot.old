@@ -10,7 +10,7 @@ require_relative '../lib/parameter'
 require_relative '../model/browser_type/browser_type'
 require_relative '../model/visitor_factory/visitor_factory'
 
-#TODO declarer le server comme un service windows
+
 
 
 opts = Trollop::options do
