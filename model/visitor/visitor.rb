@@ -7,9 +7,6 @@ require_relative '../visit/advertising/advertising'
 require_relative '../../lib/error'
 require 'pathname'
 
-#require_relative 'customize_queries_connection'
-#require_relative 'custom_gif_request/custom_gif_request'
-#TODO reviser globalement la gestion des erreurs et des exceptions
 module Visitors
   #----------------------------------------------------------------------------------------------------------------
   # include class

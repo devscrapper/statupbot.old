@@ -57,14 +57,11 @@ module Visits
         visit_file = File.open(file_path, "r:BOM|UTF-8:-")
         visit_details = YAML::load(visit_file.read)
         visit_file.close
-        #TODO supprimer le fichier de visit  ; quand ? apres execution de la visit ou apres son chargemebnt?
-        #File.delete(file_path)
         @@logger.an_event.info "visit file #{file_path} load"
       rescue Exception => e
         @@logger.an_event.error "visit file #{file_path} not load : #{e.message}"
         raise VisitError.new(VISIT_NOT_LOAD), "visit file #{file_path} not load"
       else
-        #FileUtils.move(file_path,ARCHIVE)
         return visit_details
       ensure
         @@logger.an_event.debug "END Visit.build"

@@ -3,11 +3,13 @@ require 'webrick/https'
 require 'openssl'
 require 'yaml'
 require_relative '../lib/logging'
-#TODO declarer le server comme un service windows
+require_relative '../lib/parameter'
+
+
 class StartPageVisitServer
   attr :server
 
-  def initialize
+  def initialize(port)
     cert = OpenSSL::X509::Certificate.new File.read File.join(File.dirname(__FILE__), '..', 'certificat', 'start_page_visit_server.cert')
     pkey = OpenSSL::PKey::RSA.new File.read File.join(File.dirname(__FILE__), '..', 'certificat', 'start_page_visit_server.key')
 
@@ -15,8 +17,8 @@ class StartPageVisitServer
     #                                      :SSLEnable => true,
     #                                      :SSLCertificate => cert,
     #                                      :SSLPrivateKey => pkey)
-    #TODO externliser le port d'ecoute et l'usage de https
-    @server = WEBrick::HTTPServer.new(:Port => 8080,
+
+    @server = WEBrick::HTTPServer.new(:Port => port,
                                       :SSLEnable => false,
                                       :SSLCertificate => nil,
                                       :SSLPrivateKey => nil)
@@ -87,27 +89,32 @@ end
 #--------------------------------------------------------------------------------------------------------------------
 # INIT
 #--------------------------------------------------------------------------------------------------------------------
-ENVIRONMENT= File.join(File.dirname(__FILE__), '..', 'parameter/environment.yml')
-$staging = "production"
-$debugging = false
-#--------------------------------------------------------------------------------------------------------------------
-# INPUT
-#--------------------------------------------------------------------------------------------------------------------
 begin
-  environment = YAML::load(File.open(ENVIRONMENT), "r:UTF-8")
-  $staging = environment["staging"] unless environment["staging"].nil?
+  parameters = Parameter.new(__FILE__)
 rescue Exception => e
-  STDERR << "loading environement file #{ENVIRONMENT} failed : #{e.message}"
+  STDERR << e.message
+else
+  $staging = parameters.environment
+  $debugging = parameters.debugging
+  $start_page_server_port = parameters.start_page_server_port
+
+  @@logger = Logging::Log.new(self, :staging => $staging, :id_file => File.join("#{File.basename(__FILE__, ".rb")}"), :debugging => $debugging)
+  @@logger.a_log.info "parameters of start page visit server :"
+  @@logger.a_log.info "debugging : #{$debugging}"
+  @@logger.a_log.info "staging : #{$staging}"
+  @@logger.a_log.info "staging : #{ $start_page_server_port}"
+
+  if  $start_page_server_port.nil? or
+      $debugging.nil? or
+      $staging.nil?
+    STDERR << "some parameters not define"
+    Process.exit(1)
+  end
 end
 
-@@logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
 
-
-@@logger.a_log.info "parameters of start page visit server :"
-@@logger.a_log.info "debugging : #{$debugging}"
-@@logger.a_log.info "staging : #{$staging}"
 #--------------------------------------------------------------------------------------------------------------------
 # MAIN
 #--------------------------------------------------------------------------------------------------------------------
-StartPageVisitServer.new.start
+StartPageVisitServer.new($start_page_server_port).start
 @@logger.a_log.info "start page visit server stopped"
