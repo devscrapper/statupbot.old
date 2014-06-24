@@ -73,29 +73,33 @@ else
   logger.a_log.info "publish browser type to sahi"
   bt.publish_to_sahi
 
+  begin
+    EM.run do
 
-  EM.run do
+      Signal.trap("INT") { EventMachine.stop; }
+      Signal.trap("TERM") { EventMachine.stop; }
 
-    Signal.trap("INT") { EventMachine.stop; }
-    Signal.trap("TERM") { EventMachine.stop; }
+      logger.a_log.info "visitor factory server is starting"
+      bt.browser.each { |name|
+        bt.browser_version(name).each { |version|
 
-    logger.a_log.info "visitor factory server is starting"
-    bt.browser.each { |name|
-      bt.browser_version(name).each { |version|
+          runtime_browser_path = bt.runtime_path(name, version)
+          raise StandardError, "runtime browser path #{runtime_browser_path} not found" unless File.exist?(runtime_browser_path)
 
-        runtime_browser_path = bt.runtime_path(name, version)
-        raise StandardError, "runtime browser path #{runtime_browser_path} not found" unless File.exist?(runtime_browser_path)
+          use_proxy_system = bt.proxy_system?(name, version) == true ? "yes" : "no"
 
-        use_proxy_system = bt.proxy_system?(name, version) == true ? "yes" : "no"
+          port_proxy_sahi = bt.listening_port_proxy(name, version)
 
-        port_proxy_sahi = bt.listening_port_proxy(name, version)
-
-        vf = VisitorFactory.new(name, version, use_proxy_system, port_proxy_sahi, $runtime_ruby, $delay_periodic_scan, opts, logger)
-        vf.scan_visit_file
+          vf = VisitorFactory.new(name, version, use_proxy_system, port_proxy_sahi, $runtime_ruby, $delay_periodic_scan, opts, logger)
+          vf.scan_visit_file
+        }
       }
-    }
+    end
+  rescue Exception => e
+    logger.a_log.error e.message
+    logger.a_log.debug e.backtrace
+    retry
   end
-
   logger.a_log.info "visitor factory server stopped"
 
 

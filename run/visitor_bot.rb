@@ -271,7 +271,7 @@ def visitor_is_no_slave(opts)
     return KO
 
   end
-
+  Monitoring.send_success(@@logger)
   OK
 end
 

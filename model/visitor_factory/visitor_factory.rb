@@ -122,19 +122,22 @@ class VisitorFactory
     begin
       EM::PeriodicTimer.new(@delay_periodic_scan) do
         @logger.an_event.info "scan visit flow for #{@pattern} in #{TMP}"
-        tmp_flow_visit = Flow.first(TMP, {:type_flow => @pattern, :ext => "yml"})
+        tmp_flow_visit = Flow.first(TMP, {:type_flow => @pattern, :ext => "yml"}, @logger)
 
 
         if !tmp_flow_visit.nil?
           tmp_flow_visit.archive
-          @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archive"
+          @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
           @pool.perform do |dispatcher|
+
             dispatcher.dispatch do |details|
               details[:visit_file] = tmp_flow_visit.absolute_path
-
               start_visitor_bot(details)
+
             end
+
           end
+
         end
       end
     rescue Exception => e
@@ -164,7 +167,6 @@ class VisitorFactory
   #
   #-----------------------------------------------------------------------------------------------------------------
   def start_visitor_bot(details)
-
     begin
       @logger.an_event.info "start visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]}"
       cmd = "#{@runtime_ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  #{VISITOR_BOT} -v #{details[:visit_file]} -t #{details[:port_proxy_sahi]} -p #{@use_proxy_system} #{geolocation}"
@@ -172,14 +174,15 @@ class VisitorFactory
 
       pid = Process.spawn(cmd)
       pid, status = Process.wait2(pid, 0)
+
     rescue Exception => e
       @logger.an_event.error "start visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]} failed : #{e.message}"
     else
-      unless status.exitstatus == OK
-        @@logger.an_event.error "visitor_bot  browser #{details[:pattern]} port #{details[:port_proxy_sahi]} send an error to monitoring"
-      end
+      @logger.an_event.debug "browser #{details[:pattern]} and visit file #{details[:visit_file]} : exit status #{status.exitstatus}"
       if status.exitstatus == OK
-        Monitoring.send_success(@logger)
+        @logger.an_event.info "visitor_bot browser #{details[:pattern]} port #{details[:port_proxy_sahi]} send success to monitoring"
+      else
+        @logger.an_event.info "visitor_bot browser #{details[:pattern]} port #{details[:port_proxy_sahi]} send an error to monitoring"
       end
     end
   end

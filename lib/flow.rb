@@ -1,6 +1,7 @@
 require 'net/ftp'
 require_relative 'communication'
 require_relative '../lib/logging'
+require 'pathname'
 
 class Flow
   class FlowError < StandardError;
@@ -8,7 +9,7 @@ class Flow
 
   MAX_SIZE = 1000000 # taille max d'un volume
   SEPARATOR = "_" # separateur entre elemet composant (type_flow, label, date, vol) le nom du volume (basename)
-  ARCHIVE = File.dirname(__FILE__) + "/../archive" #localisation du repertoire d'archive
+  ARCHIVE = Pathname.new(File.join(File.dirname(__FILE__), '..', 'archive')).realpath #localisation du repertoire d'archive
   FORBIDDEN_CHAR = /[_ ]/ # liste des caractères interdits dans le typeflow et label d'un volume
   attr :descriptor,
        :dir,
@@ -33,8 +34,8 @@ class Flow
   # :date : une date : si est absent alors n'intervient pas dans la recherche
   # :ext : une extension de fichier : si est absent alors n'intervient pas dans la recherche
   #----------------------------------------------------------------------------------------------------------------
-  def self.first(dir, opts)
-    list(dir, opts)[0]
+  def self.first(dir, opts,logger = Logging::Log.new(self, :staging => $staging, :debugging => $debugging) )
+    list(dir, opts, logger)[0]
   end
   #----------------------------------------------------------------------------------------------------------------
   # self.list(dir, opts)
@@ -48,13 +49,13 @@ class Flow
   # :date : une date : si est absent alors n'intervient pas dans la recherche
   # :ext : une extension de fichier : si est absent alors n'intervient pas dans la recherche
   #----------------------------------------------------------------------------------------------------------------
-  def self.list(dir, opts={})
+  def self.list(dir, opts={}, logger = Logging::Log.new(self, :staging => $staging, :debugging => $debugging))
     type_flow = opts.getopt(:type_flow, "*").gsub(FORBIDDEN_CHAR, "-")
     label = opts.getopt(:label, "*")
     date = opts.getopt(:date, "*")
     date = date.strftime("%Y-%m-%d") if date.is_a?(Date)
     ext = opts.getopt(:ext, ".*")
-    Dir.glob(File.join(dir, "#{type_flow}#{SEPARATOR}#{label}#{SEPARATOR}#{date}#{ext}")).map { |file| Flow.from_absolute_path(file) }
+    Dir.glob(File.join(dir, "#{type_flow}#{SEPARATOR}#{label}#{SEPARATOR}#{date}#{ext}")).map { |file| Flow.from_absolute_path(file, logger) }
   end
 
   #----------------------------------------------------------------------------------------------------------------
@@ -70,7 +71,7 @@ class Flow
   # vol
   # separé par #{SEPARATOR}
   #----------------------------------------------------------------------------------------------------------------
-  def self.from_basename(dir, basename)
+  def self.from_basename(dir, basename, logger = Logging::Log.new(self, :staging => $staging, :debugging => $debugging))
     #basename ne doit être nil
     ext = File.extname(basename)
     basename = File.basename(basename, ext)
@@ -80,7 +81,7 @@ class Flow
     date = basename_splitted[2]
     vol = basename_splitted[3]
 
-    Flow.new(dir, type_flow, label, date, vol, ext)
+    Flow.new(dir, type_flow, label, date, vol, ext, logger)
   end
 
   #----------------------------------------------------------------------------------------------------------------
@@ -100,16 +101,16 @@ class Flow
   #----------------------------------------------------------------------------------------------------------------
   # input : le nom absolu d'un fichier (path+nanme+extension)
   #----------------------------------------------------------------------------------------------------------------
-  def self.from_absolute_path(absolute_path)
+  def self.from_absolute_path(absolute_path, logger = Logging::Log.new(self, :staging => $staging, :debugging => $debugging))
     dir = File.dirname(absolute_path)
     basename = File.basename(absolute_path)
-    Flow.from_basename(dir, basename)
+    Flow.from_basename(dir, basename, logger)
   end
 
   #----------------------------------------------------------------------------------------------------------------
   # instance methods
   #----------------------------------------------------------------------------------------------------------------
-  def initialize(dir, type_flow, label, date, vol=nil, ext=".txt")
+  def initialize(dir, type_flow, label, date, vol=nil, ext=".txt", logger= Logging::Log.new(self, :staging => $staging, :debugging => $debugging))
     @dir = dir
     @type_flow = type_flow.gsub(FORBIDDEN_CHAR, "-") #le label ne doit pas contenir les caractères interdits
     @label = label.gsub(FORBIDDEN_CHAR, "-") #le label ne doit pas contenir les caractères interdits
@@ -118,7 +119,8 @@ class Flow
     @vol = vol.to_s unless vol.nil?
     @ext = ext
 
-    @logger = Logging::Log.new(self, :staging => $staging, :debugging => false)
+    @logger = logger
+
     if  !(@dir && @type_flow && @label && @date && @ext) and $debugging
       @logger.an_event.debug "dir <#{dir}>"
       @logger.an_event.debug "type_flow <#{type_flow}>"
@@ -149,12 +151,11 @@ class Flow
     @descriptor.write(data); @logger.an_event.debug "write data <#{data}> to flow <#{basename}>" if $debugging
   end
 
-  def archive()
+  def archive
     # archive le flow courant : deplace le fichier dans le repertoire ARCHIVE
     raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
     FileUtils.mv(absolute_path, ARCHIVE, :force => true)
     @dir = ARCHIVE
-    @logger.an_event.info "archiving <#{basename}>"
     @logger.an_event.debug "archiving <#{basename}> to #{ARCHIVE}" if $debugging
   end
 
@@ -248,7 +249,7 @@ class Flow
     end
   end
 
-  def last()
+  def last
     #retourn nil si pas de flow ancien, sinon le plus recent, sinon le flox lui-même
     return self if exist?
     volum = "#{SEPARATOR}#{@vol}" unless @vol.nil?
@@ -283,7 +284,7 @@ class Flow
     array
   end
 
-  def new_volume()
+  def new_volume
     #cree un nouveau volume pour le flow
     raise FlowError, "Flow <#{absolute_path}> has no first volume" if @vol.nil?
     close
@@ -423,7 +424,7 @@ class Flow
     @descriptor.readlines(eofline)
   end
 
-  def rewind()
+  def rewind
     #retourn au debut du fichier
     raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
     open("r:UTF-8") if @descriptor.nil?
