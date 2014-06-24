@@ -128,10 +128,11 @@ module Browsers
         window_parameters = "width=#{@width},height=#{@height},fullscreen=0,left=0,menubar=1,status=1,titlebar=1,top=0"
         @@logger.an_event.debug "windows parameters : #{window_parameters}"
 
-        cmd = "_sahi.open_start_page_ch(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")"
+        cmd = "_sahi.open_start_page_ch(\"http://#{$start_page_server_ip}:#{$start_page_server_port}/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")"
+        #cmd = "_sahi.open_start_page_ch(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")"
         @@logger.an_event.debug "cmd : #{cmd}"
 
-        #TODO variabiliser le port 8080 dans le paramter file yml de visitor_bot
+
         #TODO prendre en compte les window parameter pour chrome
 
         # DATA_URI

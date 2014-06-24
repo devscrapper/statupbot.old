@@ -127,13 +127,13 @@ module Browsers
         @@logger.an_event.debug "start_url : #{start_url}"
         @@logger.an_event.debug "visitor_id : #{visitor_id}"
 
-        raise ArgumentError, "start_url undefine" if start_url.nil? or start_url ==""
-        raise ArgumentError, "visitor_id undefine" if visitor_id.nil? or visitor_id == ""
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "start_url undefine" if start_url.nil? or start_url ==""
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "visitor_id undefine" if visitor_id.nil? or visitor_id == ""
 
         window_parameters = "width=#{@width},height=#{@height},fullscreen=no,left=0,menubar=yes,scrollbars=yes,status=yes,titlebar=yes,toolbar=yes,top=0"
         @@logger.an_event.debug "windows parameters : #{window_parameters}"
 
-        cmd = "_sahi.open_start_page_ff(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")"
+        cmd = "_sahi.open_start_page_ff(\"http://#{$start_page_server_ip}:#{$start_page_server_port}/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")"
         @@logger.an_event.debug "cmd : #{cmd}"
         begin
           page = super(cmd)

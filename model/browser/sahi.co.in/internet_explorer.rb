@@ -113,21 +113,21 @@ module Browsers
       # Si il est impossible de recuperer les propriétés de la page
       #----------------------------------------------------------------------------------------------------------------
       def display_start_page (start_url, visitor_id)
-#TODO variabiliser le num de port
+
 #TODO la size du browser nest pas gerer car window.open dans le self
         @@logger.an_event.debug "BEGIN InternetExplorer.display_start_page"
 
         @@logger.an_event.debug "start_url : #{start_url}"
         @@logger.an_event.debug "visitor_id : #{visitor_id}"
 
-        raise ArgumentError, "start_url undefine" if start_url.nil? or start_url ==""
-        raise ArgumentError, "visitor_id undefine" if visitor_id.nil? or visitor_id == ""
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "start_url undefine" if start_url.nil? or start_url ==""
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "visitor_id undefine" if visitor_id.nil? or visitor_id == ""
 
 
         window_parameters = "width=#{@width},height=#{@height},channelmode=0,fullscreen=0,left=0,menubar=1,resizable=1,scrollbars=1,status=1,titlebar=1,toolbar=1,top=0"
         @@logger.an_event.debug "windows parameters : #{window_parameters}"
 
-        cmd = "_sahi.open_start_page_ie(\"http://127.0.0.1:8080/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")"
+        cmd = "_sahi.open_start_page_ie(\"http://#{$start_page_server_ip}:#{$start_page_server_port}/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}\")"
 
         @@logger.an_event.debug "cmd : #{cmd}"
         begin
