@@ -9,6 +9,7 @@ module Monitoring
   @@return_codes_stat = nil
   @@count_visits = nil
   @@count_success = nil
+
   #--------------------------------------------------------------------------------------------------------------------
   # CONNECTION
   #--------------------------------------------------------------------------------------------------------------------
@@ -27,15 +28,14 @@ module Monitoring
     def receive_object(data)
       begin
         port, ip = Socket.unpack_sockaddr_in(get_peername)
-
         @@count_visits[0] += 1
         if data[:return_code].code == 0
           @@count_success[0] += 1
+          @@logger.an_event.info "register success for visit #{data[:visit_details]} from #{ip}"
         else
           add_error(data) unless data[:return_code].code == 0
           @@logger.an_event.info "register return code #{data[:return_code].code} for visit #{data[:visit_details]} from #{ip}"
         end
-
       rescue Exception => e
         @@logger.an_event.error "not register return code #{data[:return_code].code} for visit #{data[:visit_details][:id_visit]}from #{ip} : #{e.message}"
       ensure

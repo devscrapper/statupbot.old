@@ -42,6 +42,7 @@ module Monitoring
     end
 
     def unbind
+      #@logger.an_event.info "stop_EM=#{@stop}"
       EM.stop if @stop
     end
 
