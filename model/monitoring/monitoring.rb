@@ -88,10 +88,13 @@ module Monitoring
   end
 
   def add_stat(origin_code, return_codes_stat)
-    if return_codes_stat[origin_code].nil?
-      return_codes_stat[origin_code] = 1
+    if                              return_codes_stat[Date.today].nil?
+      return_codes_stat[Date.today] = {}
+    end
+    if return_codes_stat[Date.today][origin_code].nil?
+      return_codes_stat[Date.today][origin_code] = 1
     else
-      return_codes_stat[origin_code] += 1
+      return_codes_stat[Date.today][origin_code] += 1
     end
   end
 
