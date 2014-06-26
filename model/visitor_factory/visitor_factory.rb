@@ -1,5 +1,6 @@
 require 'trollop'
 require 'eventmachine'
+require 'yaml'
 require 'em/threaded_resource'
 require_relative '../../lib/flow'
 require_relative '../../lib/logging'
@@ -26,7 +27,7 @@ class VisitorFactory
   # constant
   #----------------------------------------------------------------------------------------------------------------
   VISITOR_BOT = Pathname(File.join(File.dirname(__FILE__), "..", "..", "run", "visitor_bot.rb")).realpath
-  TMP = Pathname(File.join(File.dirname(__FILE__), "..","..", "tmp")).realpath
+  TMP = Pathname(File.join(File.dirname(__FILE__), "..", "..", "tmp")).realpath
   OK = 0
 
   #----------------------------------------------------------------------------------------------------------------
@@ -181,6 +182,16 @@ class VisitorFactory
       @logger.an_event.debug "browser #{details[:pattern]} and visit file #{details[:visit_file]} : exit status #{status.exitstatus}"
       if status.exitstatus == OK
         @logger.an_event.info "visitor_bot browser #{details[:pattern]} port #{details[:port_proxy_sahi]} send success to monitoring"
+        begin
+          visitor_id = YAML::load(File.open(details[:visit_file], "r:BOM|UTF-8:-").read)[:visitor][:id]
+          dir = Pathname(File.join(File.dirname(__FILE__), "..", '..', "log")).realpath
+          files = File.join(dir, "visitor_bot_#{visitor_id}.{*}")
+          FileUtils.rm_r(Dir.glob(files))
+        rescue Exception => e
+          @logger.an_event.error "log file of visitor_bot #{visitor_id} not delete : #{e.message}"
+        else
+          @logger.an_event.debug "log file of visitor_bot #{visitor_id} delete"
+        end
       else
         @logger.an_event.info "visitor_bot browser #{details[:pattern]} port #{details[:port_proxy_sahi]} send an error to monitoring"
       end

@@ -256,21 +256,7 @@ def visitor_is_no_slave(opts)
 
   end
 
-  #TODO delete log files visitor_bot qd tout est ok et si on est là alors tout est ok
 
-  #---------------------------------------------------------------------------------------------------------------------
-  # Visitor delete log
-  #---------------------------------------------------------------------------------------------------------------------
-  begin
-
-    visitor.delete_log
-
-  rescue Exception => e
-
-    Monitoring.send_return_code(e, visit_details, @@logger)
-    return KO
-
-  end
   Monitoring.send_success(@@logger)
   OK
 end
