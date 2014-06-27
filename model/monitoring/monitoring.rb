@@ -1,4 +1,6 @@
 require 'eventmachine'
+require 'em/protocols'
+
 require_relative '../../lib/error'
 module Monitoring
   #--------------------------------------------------------------------------------------------------------------------
@@ -31,9 +33,11 @@ module Monitoring
         @@count_visits[0] += 1
         if data[:return_code].code == 0
           @@count_success[0] += 1
+          Monitoring.add_stat(data[:return_code].code,
+                              @@return_codes_stat)
           @@logger.an_event.info "register success for visit #{data[:visit_details]} from #{ip}"
         else
-          add_error(data) unless data[:return_code].code == 0
+          add_error(data)
           @@logger.an_event.info "register return code #{data[:return_code].code} for visit #{data[:visit_details]} from #{ip}"
         end
       rescue Exception => e
@@ -88,7 +92,7 @@ module Monitoring
   end
 
   def add_stat(origin_code, return_codes_stat)
-    if                              return_codes_stat[Date.today].nil?
+    if return_codes_stat[Date.today].nil?
       return_codes_stat[Date.today] = {}
     end
     if return_codes_stat[Date.today][origin_code].nil?
