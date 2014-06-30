@@ -154,7 +154,7 @@ class VisitorFactory
               end
             end
           else
-            Monitoring.send_visit_out_of_time(tmp_flow_visit.basename, logger)
+            Monitoring.send_visit_out_of_time(@pattern, logger)
             @logger.an_event.warn "visit #{tmp_flow_visit.basename} for #{@pattern} is out of time."
           end
         end

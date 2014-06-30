@@ -162,13 +162,13 @@ module Monitoring
     end
   end
 
-  def send_visit_out_of_time (visit_details, logger)
+  def send_visit_out_of_time (pattern, logger)
     begin
           load_parameter()
           # par defaut on considere que EM est déjà actif => stop_EM = false
           # cas d'usage  : visitor_factory_server ; il ne faut pas stoper la boucle EM avec EM.stop localisé dans unbind (ci-dessus)
           stop_EM = false
-          EM.connect '127.0.0.1', @visit_out_of_time_listening_port, VisitOutOfTimeClient, visit_details, logger, stop_EM
+          EM.connect '127.0.0.1', @visit_out_of_time_listening_port, VisitOutOfTimeClient, pattern, logger, stop_EM
 
         rescue RuntimeError => e
           case e.message
@@ -178,13 +178,13 @@ module Monitoring
               # cas d'usage : visitor_bot ; il faut arrter la boucle EM au moyen del 'EM.stop localisé dans unbind(ci-dessus)
               EM.run {
                 stop_EM = true
-                EM.connect '127.0.0.1', @visit_out_of_time_listening_port, VisitOutOfTimeClient, visit_details, logger, stop_EM
+                EM.connect '127.0.0.1', @visit_out_of_time_listening_port, VisitOutOfTimeClient, pattern, logger, stop_EM
               }
             else
-              logger.an_event.error "not sent poll size to monitoring server : #{e.message}"
+              logger.an_event.error "not sent visit out of time #{pattern} to monitoring server : #{e.message}"
           end
         rescue Exception => e
-          logger.an_event.error "not sent pool size to monitoring server : #{e.message}"
+          logger.an_event.error "not sent visit out of time #{pattern}to monitoring server : #{e.message}"
 
         end
   end
@@ -207,7 +207,7 @@ module Monitoring
             EM.connect '127.0.0.1', @return_code_listening_port, PoolSizeClient, pool_size, logger, stop_EM
           }
         else
-          logger.an_event.error "not sent poll size to monitoring server : #{e.message}"
+          logger.an_event.error "not sent pool size to monitoring server : #{e.message}"
       end
     rescue Exception => e
       logger.an_event.error "not sent pool size to monitoring server : #{e.message}"

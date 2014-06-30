@@ -123,11 +123,11 @@ module Monitoring
     end
 
 
-    def receive_object(pool_size)
+    def receive_object(pattern)
       begin
         port, ip = Socket.unpack_sockaddr_in(get_peername)
         Monitoring.add_stat(Date.today,
-                            Time.now.hour,
+                            pattern,
                             @@visits_out_of_time_stat)
 
         @@logger.an_event.info "register visit out of time #{@@visits_out_of_time_stat} from #{ip}"
