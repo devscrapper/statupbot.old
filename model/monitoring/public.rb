@@ -12,7 +12,7 @@ module Monitoring
   ENVIRONMENT= File.dirname(__FILE__) + "/../../parameter/environment.yml"
   $staging = "production"
   $debugging = false
-  attr_reader :return_code_listening_port, :http_server_listening_port
+  attr_reader :return_code_listening_port, :pool_size_listening_port, :http_server_listening_port, :visit_out_of_time_listening_port
 
   #--------------------------------------------------------------------------------------------------------------------
   # CLIENT
@@ -48,7 +48,67 @@ module Monitoring
 
   end
 
+  class PoolSizeClient < EventMachine::Connection
+    include EM::Protocols::ObjectProtocol
+    attr_accessor :data
+    attr :logger, :stop
 
+    def initialize(visit_details, logger, stop)
+      begin
+        @data = visit_details
+        @stop = stop
+        @logger = logger
+      rescue Exception => e
+        @logger.an_event.error "#{e.message}"
+      end
+    end
+
+    def post_init
+      begin
+        send_object @data
+        @logger.an_event.info "send visit out of time to monitoring server"
+      rescue Exception => e
+        @logger.an_event.error "not send visit out of time to monitoring server : #{e.message}"
+      end
+    end
+
+    def unbind
+      EM.stop if @stop
+    end
+
+  end
+
+
+
+  class VisitOutOfTimeClient < EventMachine::Connection
+    include EM::Protocols::ObjectProtocol
+    attr_accessor :data
+    attr :logger, :stop
+
+    def initialize(pool_size, logger, stop)
+      begin
+        @data = pool_size
+        @stop = stop
+        @logger = logger
+      rescue Exception => e
+        @logger.an_event.error "#{e.message}"
+      end
+    end
+
+    def post_init
+      begin
+        send_object @data
+        @logger.an_event.info "send pool size to monitoring server"
+      rescue Exception => e
+        @logger.an_event.error "not send pool size to monitoring server : #{e.message}"
+      end
+    end
+
+    def unbind
+      EM.stop if @stop
+    end
+
+  end
   #--------------------------------------------------------------------------------------------------------------------
   # MODULE FUNCTION
   #--------------------------------------------------------------------------------------------------------------------
@@ -102,6 +162,59 @@ module Monitoring
     end
   end
 
+  def send_visit_out_of_time (visit_details, logger)
+    begin
+          load_parameter()
+          # par defaut on considere que EM est déjà actif => stop_EM = false
+          # cas d'usage  : visitor_factory_server ; il ne faut pas stoper la boucle EM avec EM.stop localisé dans unbind (ci-dessus)
+          stop_EM = false
+          EM.connect '127.0.0.1', @visit_out_of_time_listening_port, VisitOutOfTimeClient, visit_details, logger, stop_EM
+
+        rescue RuntimeError => e
+          case e.message
+            # la mahcine EM n'est pas démarrée
+            when "eventmachine not initialized: evma_connect_to_server"
+              # EM n'est pas actif ; une exception a été levée alors on lance EM => stop_EM = true
+              # cas d'usage : visitor_bot ; il faut arrter la boucle EM au moyen del 'EM.stop localisé dans unbind(ci-dessus)
+              EM.run {
+                stop_EM = true
+                EM.connect '127.0.0.1', @visit_out_of_time_listening_port, VisitOutOfTimeClient, visit_details, logger, stop_EM
+              }
+            else
+              logger.an_event.error "not sent poll size to monitoring server : #{e.message}"
+          end
+        rescue Exception => e
+          logger.an_event.error "not sent pool size to monitoring server : #{e.message}"
+
+        end
+  end
+  def send_pool_size(pool_size, logger)
+    begin
+      load_parameter()
+      # par defaut on considere que EM est déjà actif => stop_EM = false
+      # cas d'usage  : visitor_factory_server ; il ne faut pas stoper la boucle EM avec EM.stop localisé dans unbind (ci-dessus)
+      stop_EM = false
+      EM.connect '127.0.0.1', @pool_size_listening_port, PoolSizeClient, pool_size, logger, stop_EM
+
+    rescue RuntimeError => e
+      case e.message
+        # la mahcine EM n'est pas démarrée
+        when "eventmachine not initialized: evma_connect_to_server"
+          # EM n'est pas actif ; une exception a été levée alors on lance EM => stop_EM = true
+          # cas d'usage : visitor_bot ; il faut arrter la boucle EM au moyen del 'EM.stop localisé dans unbind(ci-dessus)
+          EM.run {
+            stop_EM = true
+            EM.connect '127.0.0.1', @return_code_listening_port, PoolSizeClient, pool_size, logger, stop_EM
+          }
+        else
+          logger.an_event.error "not sent poll size to monitoring server : #{e.message}"
+      end
+    rescue Exception => e
+      logger.an_event.error "not sent pool size to monitoring server : #{e.message}"
+
+    end
+  end
+
   def load_parameter
     begin
       parameters = Parameter.new("monitoring_server.rb")
@@ -111,6 +224,8 @@ module Monitoring
       $staging = parameters.environment
       $debugging = parameters.debugging
       @return_code_listening_port = parameters.return_code_listening_port
+      @pool_size_listening_port = parameters.pool_size_listening_port
+      @visit_out_of_time_listening_port = parameters.visit_out_of_time_listening_port
       @http_server_listening_port = parameters.http_server_listening_port
     end
   end
@@ -118,7 +233,11 @@ module Monitoring
 
   module_function :send_return_code
   module_function :send_success
+  module_function :send_pool_size
+  module_function :send_visit_out_of_time
   module_function :return_code_listening_port
+  module_function :pool_size_listening_port
+  module_function :visit_out_of_time_listening_port
   module_function :http_server_listening_port
   module_function :load_parameter
 

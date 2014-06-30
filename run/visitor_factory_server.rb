@@ -9,8 +9,7 @@ require_relative '../lib/os'
 require_relative '../lib/parameter'
 require_relative '../model/browser_type/browser_type'
 require_relative '../model/visitor_factory/visitor_factory'
-
-
+require_relative '../model/monitoring/public'
 
 
 opts = Trollop::options do
@@ -48,18 +47,23 @@ else
   $debugging = parameters.debugging
   $runtime_ruby = parameters.runtime_ruby.join(File::SEPARATOR)
   $delay_periodic_scan = parameters.delay_periodic_scan
+  delay_out_of_time = parameters.delay_out_of_time
+  delay_periodic_pool_size_monitor = parameters.delay_periodic_pool_size_monitor
 
   logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
 
   logger.a_log.info "parameters of visitor factory server :"
   logger.a_log.info "geolocation is : #{opts[:proxy_type]}"
   logger.a_log.info "runtime ruby : #{$runtime_ruby}"
-  logger.a_log.info "delay_periodic_scan : #{$delay_periodic_scan}"
+  logger.a_log.info "delay_periodic_scan (second) : #{$delay_periodic_scan}"
+  logger.a_log.info "delay_periodic_pool_size_monitor (minute) : #{delay_periodic_pool_size_monitor}"
+  logger.a_log.info "delay_out_of_time (minute): #{delay_out_of_time}"
   logger.a_log.info "debugging : #{$debugging}"
   logger.a_log.info "staging : #{$staging}"
 
   if $runtime_ruby.nil? or
       $delay_periodic_scan.nil? or
+      delay_out_of_time.nil? or
       $debugging.nil? or
       $staging.nil?
     STDERR << "some parameters not define"
@@ -73,6 +77,7 @@ else
   logger.a_log.info "publish browser type to sahi"
   bt.publish_to_sahi
 
+  vf_arr = []
   begin
     EM.run do
 
@@ -90,10 +95,20 @@ else
 
           port_proxy_sahi = bt.listening_port_proxy(name, version)
 
-          vf = VisitorFactory.new(name, version, use_proxy_system, port_proxy_sahi, $runtime_ruby, $delay_periodic_scan, opts, logger)
+          vf = VisitorFactory.new(name, version, use_proxy_system, port_proxy_sahi, $runtime_ruby, $delay_periodic_scan,delay_out_of_time, opts, logger)
           vf.scan_visit_file
+          vf_arr << vf
         }
       }
+
+
+      EM.add_periodic_timer(delay_periodic_pool_size_monitor * 60) do
+        pool_size = {}
+        vf_arr.each { |vf|
+          pool_size.merge!({vf.pattern => vf.pool_size })
+        }
+        Monitoring.send_pool_size(pool_size, logger)
+      end
     end
   rescue Exception => e
     logger.a_log.error e.message

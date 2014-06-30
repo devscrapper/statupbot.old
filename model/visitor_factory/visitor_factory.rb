@@ -7,7 +7,11 @@ require_relative '../../lib/logging'
 require_relative '../../lib/error'
 require_relative '../../model/monitoring/public'
 
-
+class ThreadedResource
+  def to_s
+    p "queue #{@queue.size}"
+  end
+end
 class VisitorFactory
   #----------------------------------------------------------------------------------------------------------------
   # include class
@@ -42,6 +46,7 @@ class VisitorFactory
        :default_user_geo,
        :default_pwd_geo,
        :default_type_geo,
+       :delay_out_of_time,
        :logger
 
   #----------------------------------------------------------------------------------------------------------------
@@ -73,13 +78,14 @@ class VisitorFactory
   #-----------------------------------------------------------------------------------------------------------------
   #
   #-----------------------------------------------------------------------------------------------------------------
-  def initialize(browser, version, use_proxy_system, port_proxy_sahi, runtime_ruby, delay_periodic_scan, default_geolocation, logger)
+  def initialize(browser, version, use_proxy_system, port_proxy_sahi, runtime_ruby, delay_periodic_scan, delay_out_of_time, default_geolocation, logger)
     @use_proxy_system = use_proxy_system
     @port_proxy_sahi = port_proxy_sahi
     @runtime_ruby = runtime_ruby
     @pattern = "#{browser} #{version}" # ne pas supprimer le blanc
     @pool = EM::Pool.new
     @delay_periodic_scan = delay_periodic_scan
+    @delay_out_of_time = delay_out_of_time
     @default_type_geo = default_geolocation[:proxy_type]
     @logger = logger
 
@@ -124,27 +130,43 @@ class VisitorFactory
       EM::PeriodicTimer.new(@delay_periodic_scan) do
         @logger.an_event.info "scan visit flow for #{@pattern} in #{TMP}"
         tmp_flow_visit = Flow.first(TMP, {:type_flow => @pattern, :ext => "yml"}, @logger)
+        @logger.an_event.info "size pool #{@pattern} #{@pool.num_waiting} "
 
 
         if !tmp_flow_visit.nil?
+          # si la date de planificiation de la visite portée par le nom du fichier est dépassée de 15mn alors la visit est out of time et ne sera jamais executé
+          # ceci afin de ne pas dénaturer la planification calculer par enginebot.
+          # pour pallier à cet engorgement, il faut augmenter le nombre d'instance concurrente de navigateur dans le fichier browser_type.csv
+          # un jour peut être ce fonctionnement sera revu pour adapter automatiquement le nombre d'instance concurrente d'un nivagteur (cela nécessite de prévoir un pool de numero de port pour sahi proxy)
+          start_time_visit = tmp_flow_visit.date.split(/-/)
           tmp_flow_visit.archive
-          @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
-          @pool.perform do |dispatcher|
-
-            dispatcher.dispatch do |details|
-              details[:visit_file] = tmp_flow_visit.absolute_path
-              start_visitor_bot(details)
-
+          if Time.now - Time.local(start_time_visit[0],
+                                   start_time_visit[1],
+                                   start_time_visit[2],
+                                   start_time_visit[3],
+                                   start_time_visit[4],
+                                   start_time_visit[5]) <= @delay_out_of_time * 60
+            @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
+            @pool.perform do |dispatcher|
+              dispatcher.dispatch do |details|
+                details[:visit_file] = tmp_flow_visit.absolute_path
+                start_visitor_bot(details)
+              end
             end
-
+          else
+            Monitoring.send_visit_out_of_time(tmp_flow_visit.basename, logger)
+            @logger.an_event.warn "visit #{tmp_flow_visit.basename} for #{@pattern} is out of time."
           end
-
         end
       end
     rescue Exception => e
       @logger.an_event.error "scan visit file for #{@pattern} catch exception : #{e.message} => restarting"
       retry
     end
+  end
+
+  def pool_size
+    @pool.num_waiting
   end
 
   #-----------------------------------------------------------------------------------------------------------------

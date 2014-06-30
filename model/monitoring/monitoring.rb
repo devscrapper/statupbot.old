@@ -11,7 +11,8 @@ module Monitoring
   @@return_codes_stat = nil
   @@count_visits = nil
   @@count_success = nil
-
+  @@pools_size_stat = nil
+  @@visits_out_of_time_stat = nil
   #--------------------------------------------------------------------------------------------------------------------
   # CONNECTION
   #--------------------------------------------------------------------------------------------------------------------
@@ -33,7 +34,8 @@ module Monitoring
         @@count_visits[0] += 1
         if data[:return_code].code == 0
           @@count_success[0] += 1
-          Monitoring.add_stat(data[:return_code].code,
+          Monitoring.add_stat(Date.today,
+                              data[:return_code].code,
                               @@return_codes_stat)
           @@logger.an_event.info "register success for visit #{data[:visit_details]} from #{ip}"
         else
@@ -57,7 +59,8 @@ module Monitoring
         Monitoring.add_history(history,
                                @@return_codes,
                                {"no_id_visit" => data[:visit_details]})
-        Monitoring.add_stat(data[:return_code].origin_code || data[:return_code].code,
+        Monitoring.add_stat(Date.today,
+                            data[:return_code].origin_code || data[:return_code].code,
                             @@return_codes_stat)
 
       end
@@ -72,9 +75,67 @@ module Monitoring
                                                   :operating_system_version => data[:visit_details][:visitor][:browser][:operating_system_version]},
                                      :referrer => data[:visit_details][:referrer]]
                                })
-        Monitoring.add_stat(data[:return_code].origin_code || data[:return_code].code,
+        Monitoring.add_stat(Date.today,
+                            data[:return_code].origin_code || data[:return_code].code,
                             @@return_codes_stat)
 
+      end
+    end
+  end
+
+  class PoolSizeConnection < EventMachine::Connection
+    include EM::Protocols::ObjectProtocol
+
+    def initialize(pools_size, logger, opts)
+      @@logger = logger
+      @@pools_size_stat = pools_size
+    end
+
+
+    def receive_object(pool_size)
+      begin
+        port, ip = Socket.unpack_sockaddr_in(get_peername)
+        #@@pools_size_stat[Time.now.strftime("%F : %Hh")] = pool_size
+        pool_size.each_pair { |browser_type, pool_size|
+          Monitoring.add_stat(Date.today,
+                              browser_type,
+                              @@pools_size_stat,
+                              pool_size)
+
+        }
+
+        @@logger.an_event.info "register pool size #{@@pools_size_stat} from #{ip}"
+
+      rescue Exception => e
+        @@logger.an_event.error "not register pool size : #{e.message}"
+      ensure
+        close_connection
+      end
+    end
+  end
+
+  class VisitOutOfTimeConnection < EventMachine::Connection
+    include EM::Protocols::ObjectProtocol
+
+    def initialize(visit_out_of_time, logger, opts)
+      @@logger = logger
+      @@visits_out_of_time_stat = visit_out_of_time
+    end
+
+
+    def receive_object(pool_size)
+      begin
+        port, ip = Socket.unpack_sockaddr_in(get_peername)
+        Monitoring.add_stat(Date.today,
+                            Time.now.hour,
+                            @@visits_out_of_time_stat)
+
+        @@logger.an_event.info "register visit out of time #{@@visits_out_of_time_stat} from #{ip}"
+
+      rescue Exception => e
+        @@logger.an_event.error "not register visit out of time : #{e.message}"
+      ensure
+        close_connection
       end
     end
   end
@@ -91,14 +152,19 @@ module Monitoring
     end
   end
 
-  def add_stat(origin_code, return_codes_stat)
-    if return_codes_stat[Date.today].nil?
-      return_codes_stat[Date.today] = {}
+
+  def add_stat(key1, key2, stats_universe, value = 1)
+    if stats_universe[key1].nil?
+      stats_universe[key1] = {}
     end
-    if return_codes_stat[Date.today][origin_code].nil?
-      return_codes_stat[Date.today][origin_code] = 1
+    if stats_universe[key1][key2].nil?
+      stats_universe[key1][key2] = value
     else
-      return_codes_stat[Date.today][origin_code] += 1
+      if value == 1
+        stats_universe[key1][key2] += value
+      else
+        stats_universe[key1][key2] = value > stats_universe[key1][key2] ? value : stats_universe[key1][key2]
+      end
     end
   end
 
