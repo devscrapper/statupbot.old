@@ -69,11 +69,12 @@ module Monitoring
         Monitoring.add_history(history,
                                @@return_codes,
                                {data[:visit_details][:id_visit] =>
-                                    [:browser => {:name => data[:visit_details][:visitor][:browser][:name],
+                                    {:visitor => data[:visit_details][:visitor][:id],
+                                     :browser => {:name => data[:visit_details][:visitor][:browser][:name],
                                                   :version => data[:visit_details][:visitor][:browser][:version],
                                                   :operating_system => data[:visit_details][:visitor][:browser][:operating_system],
                                                   :operating_system_version => data[:visit_details][:visitor][:browser][:operating_system_version]},
-                                     :referrer => data[:visit_details][:referrer]]
+                                     :referrer => data[:visit_details][:referrer]}
                                })
         Monitoring.add_stat(Date.today,
                             data[:return_code].origin_code || data[:return_code].code,

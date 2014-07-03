@@ -7,11 +7,7 @@ require_relative '../../lib/logging'
 require_relative '../../lib/error'
 require_relative '../../model/monitoring/public'
 
-class ThreadedResource
-  def to_s
-    p "queue #{@queue.size}"
-  end
-end
+
 class VisitorFactory
   #----------------------------------------------------------------------------------------------------------------
   # include class
