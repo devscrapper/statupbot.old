@@ -93,14 +93,13 @@ class HTTPHandler < EM::HttpServer::Server
         _end_of_html_
       when /\/visit_id\/.+/
         visit_id = @http_request_uri.split(/\/visit_id\//).join("")
-        visit_flow = Flow.first(ARCHIVE, {:vol => visit_id, :ext => ".yml"})
+        visit_flow = Flow.from_absolute_path(Dir.glob(File.join(ARCHIVE, "*#{visit_id}.yml"))[0])
         response.content =<<-_end_of_html_
 #{YAML::load(visit_flow.read).to_html(@messages)}
         _end_of_html_
       when /\/visitor_id\/.+/
         visitor_id = @http_request_uri.split(/\/visitor_id\//).join("")
-#TODO en fonction du staging adapter l'extension du fichier de log
-        log_visitor_flow = Flow.first(LOG, {:typeflow => "visitor", :label => "bot", :date => visitor_id, :ext => ".deb"})
+        log_visitor_flow = Flow.first(LOG, {:typeflow => "visitor", :label => "bot", :date => visitor_id, :ext => $debugging ? ".deb" : ".log"})
 
         if log_visitor_flow.nil?
           response.content =<<-_end_of_html_
