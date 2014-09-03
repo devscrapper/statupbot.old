@@ -5,11 +5,11 @@ development:
   :start_page_server_port: 8080
   :debugging:  true
 test:
-  :java_runtime_path: ["\"c:", "Program Files (x86)", "Java", "jre6", "bin", "java.exe\""]
-  :java_key_tool_path: ["\"C:", "Program Files", "Java", "jre6", "bin", "keytool.exe\""]
+  :java_runtime_path: ["\"c:", "Program Files", "Java", "jre7", "bin", "java.exe\""]
+  :java_key_tool_path: ["\"C:", "Program Files", "Java", "jre7", "bin", "keytool.exe\""]
   :start_page_server_ip: "127.0.0.1"
   :start_page_server_port: 8080
-  :debugging:  false
+  :debugging:  true
 production:
   :java_runtime_path: ["\"c:", "Program Files (x86)", "Java", "jre6", "bin", "java.exe\""]
   :java_key_tool_path: ["\"C:", "Program Files", "Java", "jre6", "bin", "keytool.exe\""]
