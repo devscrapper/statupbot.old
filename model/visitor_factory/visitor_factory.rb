@@ -17,7 +17,9 @@ class VisitorFactory
   #----------------------------------------------------------------------------------------------------------------
   # Exception message
   #----------------------------------------------------------------------------------------------------------------
-  class VisitorFactoryError < Error
+
+
+      class VisitorFactoryError < Error
 
   end
 
@@ -242,7 +244,7 @@ class VisitorFactory
     # si @default_type_geo <> "none" => proxy
     #     si @default_ip_geo == nil et @default_port_geo == nil alors il faut calculer un proxy de geolocation
     #     sinon utilise le proxy de l'entreprise passé en paramètre
-    #geolocation = "-r http -o muz11-wbsswsg.ca-technologies.fr -x 8080 -y ET00752 -w Bremb@08"
+    #geolocation = "-r http -o muz11-wbsswsg.ca-technologies.fr -x 8080 -y ET00752 -w Bremb@09"
     case @default_type_geo
       when "none"
         return ""

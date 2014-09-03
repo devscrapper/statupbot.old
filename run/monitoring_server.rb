@@ -71,7 +71,7 @@ EventMachine.run {
   EventMachine.start_server "0.0.0.0", Monitoring.pool_size_listening_port, Monitoring::PoolSizeConnection, @@pools_size_stat,logger, opts
   EventMachine.start_server "0.0.0.0", Monitoring.visit_out_of_time_listening_port, Monitoring::VisitOutOfTimeConnection, @@visits_out_time_stat,logger, opts
   logger.a_log.info "monitoring server http is starting"
-  EventMachine.start_server "0.0.0.0", Monitoring.http_server_listening_port, HTTPHandler, @@return_codes , @@return_codes_stat, @@count_success, @@count_visits, @@pools_size_stat, @@visits_out_time_stat
+  EventMachine.start_server "0.0.0.0", Monitoring.http_server_listening_port, HTTPHandler, @@return_codes , @@return_codes_stat, @@count_success, @@count_visits, @@pools_size_stat, @@visits_out_time_stat, Monitoring.debugging_visitor_bot
 
 }
 logger.a_log.info "visitor factory server stopped"

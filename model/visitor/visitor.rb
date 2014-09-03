@@ -1,6 +1,6 @@
 require_relative 'geolocation/geolocation'
 require_relative 'nationality/nationality'
-require_relative '../../model/browser/webdriver/browser'
+
 require_relative '../../model/browser/sahi.co.in/browser'
 require_relative '../visit/referrer/referrer'
 require_relative '../visit/advertising/advertising'

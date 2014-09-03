@@ -34,8 +34,9 @@ module Monitoring
         @@count_visits[0] += 1
         if data[:return_code].code == 0
           @@count_success[0] += 1
-          Monitoring.add_stat(Date.today,
+          Monitoring.add_stat_3_key(Date.today,
                               data[:return_code].code,
+                              "#{data[:visit_details][:visitor][:browser][:name]}-#{data[:visit_details][:visitor][:browser][:version]}",
                               @@return_codes_stat)
           @@logger.an_event.info "register success for visit #{data[:visit_details]} from #{ip}"
         else
@@ -59,8 +60,9 @@ module Monitoring
         Monitoring.add_history(history,
                                @@return_codes,
                                {"no_id_visit" => data[:visit_details]})
-        Monitoring.add_stat(Date.today,
+        Monitoring.add_stat_3_key(Date.today,
                             data[:return_code].origin_code || data[:return_code].code,
+                            "#{data[:visit_details][:visitor][:browser][:name]}-#{data[:visit_details][:visitor][:browser][:version]}",
                             @@return_codes_stat)
 
       end
@@ -76,8 +78,9 @@ module Monitoring
                                                   :operating_system_version => data[:visit_details][:visitor][:browser][:operating_system_version]},
                                      :referrer => data[:visit_details][:referrer]}
                                })
-        Monitoring.add_stat(Date.today,
+        Monitoring.add_stat_3_key(Date.today,
                             data[:return_code].origin_code || data[:return_code].code,
+                            "#{data[:visit_details][:visitor][:browser][:name]}-#{data[:visit_details][:visitor][:browser][:version]}",
                             @@return_codes_stat)
 
       end
@@ -98,10 +101,10 @@ module Monitoring
         port, ip = Socket.unpack_sockaddr_in(get_peername)
         #@@pools_size_stat[Time.now.strftime("%F : %Hh")] = pool_size
         pool_size.each_pair { |browser_type, pool_size|
-          Monitoring.add_stat(Date.today,
-                              browser_type,
-                              @@pools_size_stat,
-                              pool_size)
+          Monitoring.add_stat_max(Date.today,
+                                  browser_type,
+                                  @@pools_size_stat,
+                                  pool_size)
 
         }
 
@@ -127,7 +130,7 @@ module Monitoring
     def receive_object(pattern)
       begin
         port, ip = Socket.unpack_sockaddr_in(get_peername)
-        Monitoring.add_stat(Date.today,
+        Monitoring.add_stat_2_key(Date.today,
                             pattern,
                             @@visits_out_of_time_stat)
 
@@ -152,22 +155,28 @@ module Monitoring
       Monitoring.add_history(history, return_codes[rc], visit_details)
     end
   end
+  def add_stat_2_key(key1, key2, stats_universe, value = 1)
+    stats_universe[key1] = stats_universe[key1].nil? ? {} : stats_universe[key1]
+    stats_universe[key1][key2] = stats_universe[key1][key2].nil? ? value : stats_universe[key1][key2] + value
+  end
 
+  def add_stat_3_key(key1, key2, key3, stats_universe, value = 1)
+    stats_universe[key1] = stats_universe[key1].nil? ? {} : stats_universe[key1]
+    stats_universe[key1][key2] = stats_universe[key1][key2].nil? ? {} : stats_universe[key1][key2]
+    stats_universe[key1][key2][key3] = stats_universe[key1][key2][key3].nil? ? value : stats_universe[key1][key2] + value
+  end
 
-  def add_stat(key1, key2, stats_universe, value = 1)
+  def add_stat_max(key1, key2, stats_universe, value = 1)
     if stats_universe[key1].nil?
       stats_universe[key1] = {}
     end
     if stats_universe[key1][key2].nil?
-      stats_universe[key1][key2] = value
+      stats_universe[key1][key2] = [value, value]
     else
-      if value == 1
-        stats_universe[key1][key2] += value
-      else
-        stats_universe[key1][key2] = value > stats_universe[key1][key2] ? value : stats_universe[key1][key2]
-      end
+      stats_universe[key1][key2] = [value, value > stats_universe[key1][key2][1] ? value : stats_universe[key1][key2][0]]
     end
   end
+
 
   def logger(logger)
     @@logger = logger
@@ -176,7 +185,9 @@ module Monitoring
 
   module_function :logger
   module_function :add_history
-  module_function :add_stat
+  module_function :add_stat_2_key
+  module_function :add_stat_3_key
+  module_function :add_stat_max
 
 
 end

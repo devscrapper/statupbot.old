@@ -14,6 +14,13 @@ class Hash
     ].join
   end
 
+  def to_html_stat3
+    [
+        '<ul>',
+        map { |k, v| [!k.is_a?(Date) ? "<li><strong>#{k}</strong>" : "<li><strong>#{k}</strong> : ", v.respond_to?(:to_html) ? v.to_html_stat3 : " (<strong>#{v[0]} - max #{v[1]}</strong>)</li>"] },
+        '</ul>'
+    ].join
+  end
   def to_html_stat2
     [
         '<ul>',
@@ -21,7 +28,6 @@ class Hash
         '</ul>'
     ].join
   end
-
   def to_html(messages)
     [
         '<ul>',
@@ -49,11 +55,11 @@ end
 
 
 class HTTPHandler < EM::HttpServer::Server
-  attr :return_codes, :return_codes_stat, :count_success, :count_visits, :messages, :pool_size, :visits_out_of_time
+  attr :return_codes, :return_codes_stat, :count_success, :count_visits, :messages, :pool_size, :visits_out_of_time, :debugging_visitor_bot
   ARCHIVE = Pathname(File.join(File.dirname(__FILE__), "..", "..", "archive")).realpath
   LOG = Pathname(File.join(File.dirname(__FILE__), "..", "..", "log")).realpath
 
-  def initialize(return_codes, return_codes_stat, count_success, count_visits, pool_size, visits_out_of_time)
+  def initialize(return_codes, return_codes_stat, count_success, count_visits, pool_size, visits_out_of_time, debugging_visitor_bot)
     @return_codes = return_codes
     @return_codes_stat = return_codes_stat
     @count_visits = count_visits
@@ -61,6 +67,7 @@ class HTTPHandler < EM::HttpServer::Server
     @pool_size = pool_size
     @visits_out_of_time = visits_out_of_time
     @messages = Messages.instance
+    @debugging_visitor_bot = debugging_visitor_bot
     super
   end
 
@@ -78,7 +85,7 @@ class HTTPHandler < EM::HttpServer::Server
                             <ul>
                               <li><h1>Statistics</h1>
                             <h2>Pools size</h2>
-                            #{@pool_size.to_html_stat2}
+                            #{@pool_size.to_html_stat3}
                             <h2>Visits out of time</h2>
                             #{@visits_out_of_time.to_html_stat2}
                             <h2>count visits(#{@count_visits[0]}),
@@ -99,7 +106,8 @@ class HTTPHandler < EM::HttpServer::Server
         _end_of_html_
       when /\/visitor_id\/.+/
         visitor_id = @http_request_uri.split(/\/visitor_id\//).join("")
-        log_visitor_flow = Flow.first(LOG, {:typeflow => "visitor", :label => "bot", :date => visitor_id, :ext => $debugging ? ".deb" : ".log"})
+        #TODO recuperer la valeur de la variable debug en fonction de l'environement bien sur car on va lire dans le fichier de parametrage de visitor_bot
+        log_visitor_flow = Flow.first(LOG, {:typeflow => "visitor", :label => "bot", :date => visitor_id, :ext => @debugging_visitor_bot ? ".deb" : ".log"})
 
         if log_visitor_flow.nil?
           response.content =<<-_end_of_html_

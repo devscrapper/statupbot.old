@@ -2,23 +2,20 @@
 source "http://rubygems.org"
 source "http://gems.github.com"
 
-gem 'capistrano'
-gem 'rvm-capistrano'
-gem "bundler"
+
 gem "eventmachine", '~> 1.0.0'
 gem 'em-http-server', '~> 0.1.8'
 gem 'certified'
-gem 'json'
-gem 'rufus-scheduler'
-gem 'logging'
-gem 'uuid'
-gem 'selenium-webdriver'
-gem 'trollop'
-gem 'sahi'
-gem 'webrick'
+gem 'json' , '~> 1.7.5'
+gem 'rufus-scheduler' , '~> 2.0.17'
+gem 'logging', '~> 1.8.1'
+gem 'uuid', '~> 2.3.7'
+gem 'trollop', '~> 2.0'
+gem 'sahi' , '~> 1.2.1'
+gem 'webrick'  , '~> 1.3.1'
 #gem 'os'
 gem 'win32-taskscheduler'
-gem 'em-http-request'
+gem 'em-http-request' , '~> 1.0.0'
 gem 'win32-process', '~> 0.7.4'
 # fin new gem
 
