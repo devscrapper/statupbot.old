@@ -1,18 +1,25 @@
 module Visits
-    module Advertisings
+  module Advertisings
     class Adsense < Advertising
-              #TODO VALIDATE le comportement du navigateur avec l'annonceur Adsense
-      ID = [/doubleclick.net/, /googleadservices.com/]
+
 
       def initialize(advertiser)
+        @@logger.an_event.debug "BEGIN Adsense.initialize"
+
+        @@logger.an_event.debug "advertiser #{advertiser}"
+
+        raise AdvertisingError.new(ARGUMENT_UNDEFINE), "advertiser undefine" if advertiser.nil?
+
+        @domains = ["googleads.g.doubleclick.net"]
+        # 2014/09/08 : Adsens offre 2 solutions pour cliquer sur la pub : un titre ou un button
+        # les liens sont identifiés grace à leur class HTML.
+        @link_identifiers = ["rhtitle", "rhbutton"]
         @advertiser = advertiser
+
+        @@logger.an_event.debug "END Adsense.initialize"
       end
-      def advert_on(page)
-        # retourne nil si pas de advert
-        advert_link = page.link_by_hostname(ID)
-        @@logger.an_event.debug "chosen adsense link #{advert_link.url}"
-        advert_link
-      end
+
+
     end
 
   end

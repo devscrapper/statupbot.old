@@ -12,7 +12,12 @@ module Monitoring
   ENVIRONMENT= File.dirname(__FILE__) + "/../../parameter/environment.yml"
   $staging = "production"
   $debugging = false
-  attr_reader :return_code_listening_port, :pool_size_listening_port, :http_server_listening_port, :visit_out_of_time_listening_port, :debugging_visitor_bot
+  attr_reader :return_code_listening_port,
+              :pool_size_listening_port,
+              :http_server_listening_port,
+              :visit_out_of_time_listening_port,
+              :advert_select_listening_port,
+              :debugging_visitor_bot
 
   #--------------------------------------------------------------------------------------------------------------------
   # CLIENT
@@ -108,9 +113,61 @@ module Monitoring
     end
 
   end
+
+  class AdvertSelectClient < EventMachine::Connection
+    include EM::Protocols::ObjectProtocol
+    attr_accessor :data
+    attr :logger, :stop
+
+    def initialize(visit_details, logger, stop)
+      begin
+        @data = visit_details
+        @stop = stop
+        @logger = logger
+      rescue Exception => e
+        @logger.an_event.error "#{e.message}"
+      end
+    end
+
+    def post_init
+      begin
+        send_object @data
+        @logger.an_event.info "send advert select to monitoring server"
+      rescue Exception => e
+        @logger.an_event.error "not send advert select to monitoring server : #{e.message}"
+      end
+    end
+
+    def unbind
+      EM.stop if @stop
+    end
+
+  end
   #--------------------------------------------------------------------------------------------------------------------
   # MODULE FUNCTION
   #--------------------------------------------------------------------------------------------------------------------
+  def send_advert_select(visit_details, logger)
+    begin
+      load_parameter()
+      stop_EM = false
+      EM.connect '127.0.0.1', @advert_select_listening_port, AdvertSelectClient, visit_details, logger, stop_EM
+
+    rescue RuntimeError => e
+      case e.message
+        # la mahcine EM n'est pas démarrée
+        when "eventmachine not initialized: evma_connect_to_server"
+          EventMachine.run {
+            stop_EM = true
+            EM.connect '127.0.0.1', @advert_select_listening_port, AdvertSelectClient, visit_details, logger, stop_EM
+          }
+        else
+          logger.an_event.error "not sent advert select of visit #{visit_details[:id_visit]} to monitoring server : #{e.message}"
+      end
+    rescue Exception => e
+      logger.an_event.error "not sent advert select of visit #{visit_details[:id_visit]}to monitoring server : #{e.message}"
+    end
+  end
+
   def send_return_code(return_code, visit_details, logger)
     begin
 
@@ -134,32 +191,14 @@ module Monitoring
     end
   end
 
-  def send_success(logger)
-    begin
-      load_parameter()
-      # par defaut on considere que EM est déjà actif => stop_EM = false
-      # cas d'usage  : visitor_factory_server ; il ne faut pas stoper la boucle EM avec EM.stop localisé dans unbind (ci-dessus)
-      stop_EM = false
-      EM.connect '127.0.0.1', @return_code_listening_port, ReturnCodeClient, Errors::Error.new(0), {}, logger, stop_EM
-
-    rescue RuntimeError => e
-      case e.message
-        # la mahcine EM n'est pas démarrée
-        when "eventmachine not initialized: evma_connect_to_server"
-          # EM n'est pas actif ; une exception a été levée alors on lance EM => stop_EM = true
-          # cas d'usage : visitor_bot ; il faut arrter la boucle EM au moyen del 'EM.stop localisé dans unbind(ci-dessus)
-          EM.run {
-            stop_EM = true
-            EM.connect '127.0.0.1', @return_code_listening_port, ReturnCodeClient, Errors::Error.new(0), {}, logger, stop_EM
-          }
-        else
-          logger.an_event.error "not sent success code to monitoring server : #{e.message}"
-      end
-    rescue Exception => e
-      logger.an_event.error "not sent success code to monitoring server : #{e.message}"
-
-    end
+  def send_success(visit_details, logger)
+    send_return_code(Errors::Error.new(0), visit_details, logger)
   end
+
+  def send_failure(return_code, visit_details, logger)
+    send_return_code(return_code, visit_details, logger)
+  end
+
 
   def send_visit_out_of_time (pattern, logger)
     begin
@@ -215,6 +254,9 @@ module Monitoring
     end
   end
 
+  private
+
+
   def load_parameter
     begin
       parameters = Parameter.new("monitoring_server.rb")
@@ -227,6 +269,7 @@ module Monitoring
       @pool_size_listening_port = parameters.pool_size_listening_port
       @visit_out_of_time_listening_port = parameters.visit_out_of_time_listening_port
       @http_server_listening_port = parameters.http_server_listening_port
+      @advert_select_listening_port = parameters.advert_select_listening_port
     end
     # recuperation du mode debug ou pas de visitor_bot pour selectionner le fichier de log de visitor_bot à afficher dans le monitoring.
     # l extension est differente entre debug et non debug
@@ -240,7 +283,9 @@ module Monitoring
   end
 
 
+  module_function :send_advert_select
   module_function :send_return_code
+  module_function :send_failure
   module_function :send_success
   module_function :send_pool_size
   module_function :send_visit_out_of_time
@@ -249,6 +294,7 @@ module Monitoring
   module_function :visit_out_of_time_listening_port
   module_function :debugging_visitor_bot
   module_function :http_server_listening_port
+  module_function :advert_select_listening_port
   module_function :load_parameter
 
 

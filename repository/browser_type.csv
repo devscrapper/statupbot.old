@@ -15,8 +15,8 @@ development;windows;seven;Firefox;19.0;C:\Program Files (x86)\Mozilla Firefox\fi
 development;windows;seven;Chrome;33.0.1750.117;C:\Users\ET00752\AppData\Local\Google\Chrome\Application\chrome.exe;false;9976;1
 development;windows;seven;Chrome;35.0.1916.153;C:\Users\ET00752\AppData\Local\Google\Chrome\Application\chrome.exe;false;9974;1
 development;windows;vista;Internet Explorer;9.0;C:\Program Files\Internet Explorer\iexplore.exe;true;9972;1
-development;windows;vista;Firefox;28.0;C:\Program Files\Mozilla Firefox\firefox.exe;false;9971;1
+development;windows;vista;Firefox;28.0;C:\Program Files (x86)\Mozilla Firefox\firefox.exe;false;9971;1
 development;windows;vista;Firefox;19.0;C:\Program Files\Mozilla Firefox\firefox.exe;false;9969;1
 development;windows;vista;Chrome;33.0.1750.117;C:\Program Files\Google\Chrome\Application\chrome.exe;false;9967;1
 development;windows;vista;Chrome;23.0.1271.97;C:\Program Files\Google\Chrome\Application\chrome.exe;false;9965;1
-test;windows;seven;Internet Explorer;11.0;C:\Program Files\Internet Explorer\iexplore.exe;false;9983;1
+test;windows;seven;Internet Explorer;11.0;C:\Program Files\Internet Explorer\iexplore.exe;true;9983;1

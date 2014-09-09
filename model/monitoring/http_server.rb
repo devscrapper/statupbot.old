@@ -55,17 +55,26 @@ end
 
 
 class HTTPHandler < EM::HttpServer::Server
-  attr :return_codes, :return_codes_stat, :count_success, :count_visits, :messages, :pool_size, :visits_out_of_time, :debugging_visitor_bot
+  attr :return_codes,
+       :return_codes_stat,
+       :count_success,
+       :count_visits,
+       :messages,
+       :pool_size,
+       :visits_out_of_time,
+       :advert_select_stat,
+       :debugging_visitor_bot
   ARCHIVE = Pathname(File.join(File.dirname(__FILE__), "..", "..", "archive")).realpath
   LOG = Pathname(File.join(File.dirname(__FILE__), "..", "..", "log")).realpath
 
-  def initialize(return_codes, return_codes_stat, count_success, count_visits, pool_size, visits_out_of_time, debugging_visitor_bot)
+  def initialize(return_codes, return_codes_stat, count_success, count_visits, pool_size, visits_out_of_time, advert_select_stat, debugging_visitor_bot)
     @return_codes = return_codes
     @return_codes_stat = return_codes_stat
     @count_visits = count_visits
     @count_success = count_success
     @pool_size = pool_size
     @visits_out_of_time = visits_out_of_time
+    @advert_select_stat = advert_select_stat
     @messages = Messages.instance
     @debugging_visitor_bot = debugging_visitor_bot
     super
@@ -84,6 +93,8 @@ class HTTPHandler < EM::HttpServer::Server
                           <BODY>
                             <ul>
                               <li><h1>Statistics</h1>
+                            <h2>Advert select</h2>
+                            #{@advert_select_stat.to_html_stat2}
                             <h2>Pools size</h2>
                             #{@pool_size.to_html_stat3}
                             <h2>Visits out of time</h2>

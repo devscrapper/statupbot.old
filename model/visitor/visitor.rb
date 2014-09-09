@@ -51,7 +51,8 @@ module Visitors
     NONE_KEYWORDS_FIND_LANDING_LINK = 614
     VISITOR_NOT_OPEN = 615
     LOG_VISITOR_NOT_DELETE = 616
-
+    VISITOR_NOT_FOUND_ADVERT = 617
+    VISITOR_NOT_CLICK_ON_ADVERT = 618
     #----------------------------------------------------------------------------------------------------------------
     # constants
     #----------------------------------------------------------------------------------------------------------------
@@ -357,6 +358,78 @@ module Visitors
     end
 
     #----------------------------------------------------------------------------------------------------------------
+    # select_advert
+    #----------------------------------------------------------------------------------------------------------------
+    #
+    # inputs : objet advertising
+    # output : objet sahi link represents an advert
+    # StandardError
+    #----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------------------------------
+
+    def select_advert(advertising)
+      @@logger.an_event.debug "BEGIN Visitor.select_advert"
+
+      @@logger.an_event.debug "advertising #{advertising}"
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "advertising undefine" if advertising.nil?
+
+      links = []
+      link = nil
+      begin
+        advertising.domains.each { |domain|
+          advertising.link_identifiers.each { |link_identifier|
+            links += @browser.find_links(domain, link_identifier)
+          }
+        }
+        links.each { |link| @@logger.an_event.debug "advertising links : #{link}" }
+      rescue Error => e
+        @@logger.an_event.error "visitor #{@id} not found advert #{advertising.name} : #{e.message}"
+        raise VisitorError.new(VISITOR_NOT_FOUND_ADVERT, e), "visitor #{@id} not found advert #{advertising} : #{e.message}"
+      else
+        link = links.shuffle![0]
+      ensure
+        @@logger.an_event.debug "END Visitor.select_advert"
+        return link
+      end
+    end
+
+    #----------------------------------------------------------------------------------------------------------------
+    # select_click_on_advert
+    #----------------------------------------------------------------------------------------------------------------
+    #
+    # inputs : objet page
+    # output : objet page pointant sur l'advertiser
+    # StandardError
+    #----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------------------------------
+    def click_on_advert(advert)
+      @@logger.an_event.debug "BEGIN Visitor.click_on_advert"
+
+      @@logger.an_event.debug "advert #{advert}"
+      raise VisitorError.new(ARGUMENT_UNDEFINE), "advert undefine" if advert.nil?
+
+      begin
+
+        advertiser_page = @browser.click_on(advert)
+
+        @@logger.an_event.info "visitor #{@id} click on advert url #{advert.url.to_s}"
+
+      rescue Error, Exception => e
+        @@logger.an_event.error "visitor #{@id} not browse advert page #{advert.to_s} : #{e.message}"
+        raise VisitorError.new(VISITOR_NOT_CLICK_ON_ADVERT), "visitor #{@id} not browse advert page"
+      else
+        return advertiser_page
+      ensure
+        @@logger.an_event.debug "END Visitor.click_on_advert"
+      end
+
+    end
+
+    #----------------------------------------------------------------------------------------------------------------
     # initialize
     #----------------------------------------------------------------------------------------------------------------
     # demarre un proxy :
@@ -426,7 +499,7 @@ module Visitors
       @@logger.an_event.debug "BEGIN Visitor.delete_log"
 
       begin
-        dir = Pathname(File.join(File.dirname(__FILE__), "..", '..' ,"log")).realpath
+        dir = Pathname(File.join(File.dirname(__FILE__), "..", '..', "log")).realpath
         files = File.join(dir, "visitor_bot_#{@id}.{*}")
         FileUtils.rm_r(Dir.glob(files), :force => true)
 
@@ -672,6 +745,7 @@ module Visitors
 # durations : un tableau de durée de lecture de chaucne des pages
 # page : la page de départ
 # around : un tableau de périmètre de sélection des link pour chaque page
+# advertising : la régie publicitaire de la visit (option)
 # output : un objet Page : la derniere
 # exception :
 # StandardError :
@@ -679,12 +753,14 @@ module Visitors
 #
 #-----------------------------------------------------------------------------------------------------------------
 
-    def surf(durations, page, around)
+    def surf(durations, page, around, advertising)
+
       # le surf sur le website prend en entrée un around => arounds est rempli avec cette valeur
       # le surf sur l'advertiser predn en entrée un array de around pré calculé par engine bot en fonction des paramètre saisis au moyen de statupweb
       @@logger.an_event.debug "durations #{durations.inspect}"
       @@logger.an_event.debug "page #{page.to_s}"
       @@logger.an_event.debug "arounds #{around.inspect}"
+      @@logger.an_event.debug "advertising #{advertising}"
 
       raise VisitorError.new(ARGUMENT_UNDEFINE), "durations undefine" if durations.nil? or durations.size == 0
       raise VisitorError.new(ARGUMENT_UNDEFINE), "page undefine" if  page.nil?
@@ -698,12 +774,32 @@ module Visitors
           read(page)
           if i < durations.size - 1
             link = page.link_by_around(arounds[i])
+
             page = @browser.click_on(link)
+
             @@logger.an_event.info "visitor #{@id} click on link #{link.url.to_s}"
+
           end # on ne clique pas quand on est sur la denriere page
         }
+
+        # si on est sur l'avant derniere page de la visit et qu'une publicité est planifiée alors
+        # il faut rechercher dans la page affichée les liens des publicités exposées par la régie publicité
+
+        page.advert = select_advert(advertising) unless advertising.is_a?(NoAdvertising)
+
         page
-      rescue Error, Exception => e
+      rescue Error => e
+        case e.code
+          when Pages::Page::PAGE_NONE_LINK, Pages::Page::PAGE_NONE_LINK_BY_AROUND
+            @@logger.an_event.error "visitor #{@id} found none link : #{e.message}"
+            raise VisitorError.new(VISIT_NOT_COMPLETE, e), "visitor #{@id} found none link"
+          when Visitors::Visitor::VISITOR_NOT_FOUND_ADVERT
+            raise e
+          else
+            @@logger.an_event.error "visitor #{@id} not click on link #{link.url.to_s} : #{e.message}"
+            raise VisitorError.new(VISIT_NOT_COMPLETE, e), "visitor #{@id} not click on link #{link.url.to_s}"
+        end
+      rescue Exception => e
         @@logger.an_event.error "visitor #{@id} not click on link #{link.url.to_s} : #{e.message}"
         raise VisitorError.new(VISIT_NOT_COMPLETE, e), "visitor #{@id} not click on link #{link.url.to_s}"
       end

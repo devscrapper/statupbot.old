@@ -13,9 +13,37 @@ module Monitoring
   @@count_success = nil
   @@pools_size_stat = nil
   @@visits_out_of_time_stat = nil
+  @@advert_select_stat = nil
   #--------------------------------------------------------------------------------------------------------------------
   # CONNECTION
   #--------------------------------------------------------------------------------------------------------------------
+  class AdvertSelectConnection < EventMachine::Connection
+    include EM::Protocols::ObjectProtocol
+
+    def initialize(advert_select_stat, logger, opts)
+      @@logger = logger
+      @@advert_select_stat = advert_select_stat
+    end
+
+
+    def receive_object(visit_details)
+      begin
+        port, ip = Socket.unpack_sockaddr_in(get_peername)
+
+        Monitoring.add_stat_2_key(Date.today,
+                       visit_details[:advert][:advertising],
+                       @@advert_select_stat)
+
+        @@logger.an_event.info "register advert select from #{ip}"
+
+      rescue Exception => e
+        @@logger.an_event.error "not register advert select : #{e.message}"
+      ensure
+        close_connection
+      end
+    end
+  end
+
   class ReturnCodeConnection < EventMachine::Connection
     include EM::Protocols::ObjectProtocol
 
@@ -163,7 +191,7 @@ module Monitoring
   def add_stat_3_key(key1, key2, key3, stats_universe, value = 1)
     stats_universe[key1] = stats_universe[key1].nil? ? {} : stats_universe[key1]
     stats_universe[key1][key2] = stats_universe[key1][key2].nil? ? {} : stats_universe[key1][key2]
-    stats_universe[key1][key2][key3] = stats_universe[key1][key2][key3].nil? ? value : stats_universe[key1][key2] + value
+    stats_universe[key1][key2][key3] = stats_universe[key1][key2][key3].nil? ? value : stats_universe[key1][key2][key3] + value
   end
 
   def add_stat_max(key1, key2, stats_universe, value = 1)

@@ -3,17 +3,20 @@ development:
   :return_code_listening_port: 9230
   :pool_size_listening_port: 9231
   :visit_out_of_time_listening_port: 9232
+  :advert_select_listening_port: 9233
   :http_server_listening_port: 8081
   :debugging:  true
 test:
   :return_code_listening_port: 9230
   :pool_size_listening_port: 9231
   :visit_out_of_time_listening_port: 9232
+  :advert_select_listening_port: 9233
   :http_server_listening_port: 8081
   :debugging:  false
 production:
   :return_code_listening_port: 9230
   :pool_size_listening_port: 9231
   :visit_out_of_time_listening_port: 9232
+  :advert_select_listening_port: 9233
   :http_server_listening_port: 8081
   :debugging:  false

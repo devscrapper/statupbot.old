@@ -3,6 +3,7 @@ require_relative '../model/visit/visit'
 require_relative '../model/monitoring/public'
 require_relative '../lib/logging'
 require_relative '../lib/parameter'
+require_relative '../lib/mail_sender'
 
 require 'uri'
 require 'trollop'
@@ -95,6 +96,7 @@ def visitor_is_no_slave(opts)
   visit = nil
   visitor = nil
   landing_page = nil
+  advertiser_landing_page = nil
   page = nil
 
   #---------------------------------------------------------------------------------------------------------------------
@@ -106,7 +108,7 @@ def visitor_is_no_slave(opts)
 
   rescue Exception => e
 
-    Monitoring.send_return_code(e, opts[:visit_file_name], @@logger)
+    Monitoring.send_failure(e, opts[:visit_file_name], @@logger)
     return KO
 
   end
@@ -126,7 +128,7 @@ def visitor_is_no_slave(opts)
 
   rescue Exception => e
 
-    Monitoring.send_return_code(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, @@logger)
     return KO
 
   end
@@ -147,7 +149,7 @@ def visitor_is_no_slave(opts)
 
   rescue Exception => e
 
-    Monitoring.send_return_code(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, @@logger)
     return KO
 
   end
@@ -161,7 +163,7 @@ def visitor_is_no_slave(opts)
 
   rescue Exception => e
 
-    Monitoring.send_return_code(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, @@logger)
     return KO
 
   end
@@ -175,7 +177,7 @@ def visitor_is_no_slave(opts)
 
   rescue Exception => e
 
-    Monitoring.send_return_code(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, @@logger)
     visitor.die
     return KO
 
@@ -190,7 +192,7 @@ def visitor_is_no_slave(opts)
 
   rescue Exception => e
 
-    Monitoring.send_return_code(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, @@logger)
     visitor.close_browser
     visitor.die
     return KO
@@ -202,17 +204,60 @@ def visitor_is_no_slave(opts)
   #---------------------------------------------------------------------------------------------------------------------
   begin
 
-    page = visitor.surf(visit.durations, landing_page, visit.around)
+    page = visitor.surf(visit.durations, landing_page, visit.around, visit.advertising)
 
   rescue Exception => e
 
-    Monitoring.send_return_code(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, @@logger)
     visitor.close_browser
     visitor.die
     return KO
 
   end
 
+  #---------------------------------------------------------------------------------------------------------------------
+  # Visitor click on advert
+  #---------------------------------------------------------------------------------------------------------------------
+  begin
+
+    if visit.advertising?
+
+      advertiser_landing_page = visitor.click_on_advert(page.advert)
+
+      Monitoring.send_advert_select(visit_details, @@logger)
+
+      MailSender.new("advert@visitor_bot.fr","olinouane@gmail.com", "advert select", page.advert.to_s).send
+
+    end
+
+  rescue Exception => e
+
+    Monitoring.send_failure(e, visit_details, @@logger)
+    visitor.close_browser
+    visitor.die
+    return KO
+
+  end
+
+    #---------------------------------------------------------------------------------------------------------------------
+  # Visitor surf on advertiser
+  #---------------------------------------------------------------------------------------------------------------------
+  begin
+
+    if visit.advertising?
+
+      page = visitor.surf(visit.advertising.advertiser.durations, advertiser_landing_page, visit.advertising.advertiser.arounds)
+
+    end
+
+  rescue Exception => e
+
+    Monitoring.send_failure(e, visit_details, @@logger)
+    visitor.close_browser
+    visitor.die
+    return KO
+
+  end
   #---------------------------------------------------------------------------------------------------------------------
   # Visitor close its browser
   #---------------------------------------------------------------------------------------------------------------------
@@ -222,7 +267,7 @@ def visitor_is_no_slave(opts)
 
   rescue Exception => e
 
-    Monitoring.send_return_code(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, @@logger)
     visitor.die
     return KO
 
@@ -237,7 +282,7 @@ def visitor_is_no_slave(opts)
 
   rescue Exception => e
 
-    Monitoring.send_return_code(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, @@logger)
     return KO
 
   end
@@ -251,13 +296,13 @@ def visitor_is_no_slave(opts)
 
   rescue Exception => e
 
-    Monitoring.send_return_code(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, @@logger)
     return KO
 
   end
 
 
-  Monitoring.send_success(@@logger)
+  Monitoring.send_success(visit_details,@@logger)
   OK
 end
 

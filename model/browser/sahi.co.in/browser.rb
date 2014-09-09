@@ -28,14 +28,15 @@ module Browsers
       end
 
       ARGUMENT_UNDEFINE = 300
-      BROWSER_NOT_CREATE = 301 # à remonter en code retour de statupbot
-      BROWSER_UNKNOWN = 302 # à remonter en code retour de statupbot
-      BROWSER_NOT_FOUND_LINK = 303 # à remonter en code retour de statupbot
-      BROWSER_NOT_DISPLAY_PAGE = 304 # à remonter en code retour de statupbot
+      BROWSER_NOT_CREATE = 301
+      BROWSER_UNKNOWN = 302
+      BROWSER_NOT_FOUND_LINK = 303
+      BROWSER_NOT_DISPLAY_PAGE = 304
       BROWSER_NOT_CLICK = 305
       BROWSER_NOT_OPEN = 306
       BROWSER_NOT_CLOSE = 307
       BROWSER_NOT_SEARCH = 308
+
 
       #----------------------------------------------------------------------------------------------------------------
       # constant
@@ -367,6 +368,67 @@ module Browsers
         }
       end
 =end
+
+
+      #----------------------------------------------------------------------------------------------------------------
+      # find_link
+      #----------------------------------------------------------------------------------------------------------------
+      # retourne un link identifié par le domain de la page html que le contient et un attribut de la balise html <a>
+      #----------------------------------------------------------------------------------------------------------------
+      # input : nom de domaine, identifier du link
+      # output : un objet sahi représentant le link ou nil si non trouvé
+      #----------------------------------------------------------------------------------------------------------------
+      def find_link(domain = nil, identifier)
+        @@logger.an_event.debug "BEGIN Browser.find_link"
+        @@logger.an_event.debug "domain : #{domain}"
+        @@logger.an_event.debug "identifier : #{identifier}"
+
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "identifier undefine" if identifier.nil?
+        link = nil
+
+        begin
+          link = @driver.domain(domain).link(identifier)
+
+          @@logger.an_event.debug "link #{domain} #{identifier} found : #{link.to_s}"
+
+        rescue Exception => e
+          @@logger.an_event.error "link #{domain} #{identifier} not found : #{e.message}"
+          raise BrowserError.new(BROWSER_NOT_FOUND_LINK, e), "link #{domain} #{identifier} not found"
+        ensure
+          @@logger.an_event.debug "END Browser.find_link"
+          link
+        end
+      end
+
+      #----------------------------------------------------------------------------------------------------------------
+      # find_links
+      #----------------------------------------------------------------------------------------------------------------
+      # retourne un array de link identifié par le domain de la page html que le contient et un attribut de la balise html <a>
+      #----------------------------------------------------------------------------------------------------------------
+      # input : nom de domaine, identifier du link
+      # output : un objet sahi représentant le link ou nil si non trouvé
+      #----------------------------------------------------------------------------------------------------------------
+      def find_links(domain = nil, identifier)
+        @@logger.an_event.debug "BEGIN Browser.find_links"
+        @@logger.an_event.debug "domain : #{domain}"
+        @@logger.an_event.debug "identifier : #{identifier}"
+
+        raise BrowserError.new(ARGUMENT_UNDEFINE), "identifier undefine" if identifier.nil?
+        links = nil
+
+        begin
+          links = @driver.domain(domain).link(identifier).collect_similar
+
+          @@logger.an_event.debug "links #{domain} #{identifier} found : #{links.to_s}"
+
+        rescue Exception => e
+          @@logger.an_event.error "none links #{domain} #{identifier} found : #{e.message}"
+          raise BrowserError.new(BROWSER_NOT_FOUND_LINK, e), "none links #{domain} #{identifier} found"
+        ensure
+          @@logger.an_event.debug "END Browser.find_links"
+          return links
+        end
+      end
 
       #----------------------------------------------------------------------------------------------------------------
       # name

@@ -30,6 +30,7 @@ Monitoring.load_parameter
 if Monitoring.return_code_listening_port.nil? or
     Monitoring.pool_size_listening_port.nil? or
     Monitoring.visit_out_of_time_listening_port.nil? or
+    Monitoring.advert_select_listening_port.nil? or
     Monitoring.http_server_listening_port.nil? or
     $debugging.nil? or
     $staging.nil?
@@ -44,6 +45,7 @@ logger.a_log.info "parameters of monitoring server :"
 logger.a_log.info "return code listening port : #{Monitoring.return_code_listening_port}"
 logger.a_log.info "pool size listening port : #{Monitoring.pool_size_listening_port}"
 logger.a_log.info "visit out of time listening port : #{Monitoring.visit_out_of_time_listening_port}"
+logger.a_log.info "advert select listening port : #{Monitoring.advert_select_listening_port}"
 logger.a_log.info "http server listening port : #{Monitoring.http_server_listening_port}"
 
 logger.a_log.info "debugging : #{$debugging}"
@@ -58,6 +60,7 @@ logger.a_log.info "staging : #{$staging}"
 @@return_codes_stat = {}
 @@pools_size_stat = {}
 @@visits_out_time_stat = {}
+@@advert_select_stat = {}
 
 @@count_visits = [0]
 @@count_success = [0]
@@ -70,8 +73,9 @@ EventMachine.run {
   EventMachine.start_server "0.0.0.0", Monitoring.return_code_listening_port, Monitoring::ReturnCodeConnection, @@return_codes,@@return_codes_stat, @@count_visits,@@count_success,  logger, opts
   EventMachine.start_server "0.0.0.0", Monitoring.pool_size_listening_port, Monitoring::PoolSizeConnection, @@pools_size_stat,logger, opts
   EventMachine.start_server "0.0.0.0", Monitoring.visit_out_of_time_listening_port, Monitoring::VisitOutOfTimeConnection, @@visits_out_time_stat,logger, opts
+  EventMachine.start_server "0.0.0.0", Monitoring.advert_select_listening_port, Monitoring::AdvertSelectConnection, @@advert_select_stat,logger, opts
   logger.a_log.info "monitoring server http is starting"
-  EventMachine.start_server "0.0.0.0", Monitoring.http_server_listening_port, HTTPHandler, @@return_codes , @@return_codes_stat, @@count_success, @@count_visits, @@pools_size_stat, @@visits_out_time_stat, Monitoring.debugging_visitor_bot
+  EventMachine.start_server "0.0.0.0", Monitoring.http_server_listening_port, HTTPHandler, @@return_codes , @@return_codes_stat, @@count_success, @@count_visits, @@pools_size_stat, @@visits_out_time_stat, @@advert_select_stat, Monitoring.debugging_visitor_bot
 
 }
 logger.a_log.info "visitor factory server stopped"
