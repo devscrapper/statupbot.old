@@ -97,7 +97,8 @@ def visitor_is_no_slave(opts)
   visitor = nil
   landing_page = nil
   advertiser_landing_page = nil
-  page = nil
+  final_visit_page = nil
+  final_advertiser_page = nil
 
   #---------------------------------------------------------------------------------------------------------------------
   # chargement du fichier definissant la visite
@@ -204,7 +205,7 @@ def visitor_is_no_slave(opts)
   #---------------------------------------------------------------------------------------------------------------------
   begin
 
-    page = visitor.surf(visit.durations, landing_page, visit.around, visit.advertising)
+    final_visit_page = visitor.surf(visit.durations, landing_page, visit.around, visit.advertising)
 
   rescue Exception => e
 
@@ -222,11 +223,7 @@ def visitor_is_no_slave(opts)
 
     if visit.advertising?
 
-      advertiser_landing_page = visitor.click_on_advert(page.advert)
-
-      Monitoring.send_advert_select(visit_details, @@logger)
-
-      MailSender.new("advert@visitor_bot.fr","olinouane@gmail.com", "advert select", page.advert.to_s).send
+      advertiser_landing_page = visitor.click_on_advert(final_visit_page.advert)
 
     end
 
@@ -246,8 +243,11 @@ def visitor_is_no_slave(opts)
 
     if visit.advertising?
 
-      page = visitor.surf(visit.advertising.advertiser.durations, advertiser_landing_page, visit.advertising.advertiser.arounds)
+      final_advertiser_page = visitor.surf(visit.advertising.advertiser.durations, advertiser_landing_page, visit.advertising.advertiser.arounds)
 
+      Monitoring.send_advert_select(visit_details, @@logger)
+
+      MailSender.new("advert@visitor_bot.fr","olinouane@gmail.com", "advert select", final_visit_page.advert).send
     end
 
   rescue Exception => e
