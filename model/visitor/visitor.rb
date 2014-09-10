@@ -785,8 +785,8 @@ module Visitors
         # si on est sur l'avant derniere page de la visit et qu'une publicité est planifiée alors
         # il faut rechercher dans la page affichée les liens des publicités exposées par la régie publicité
 
-        page.advert = select_advert(advertising) unless advertising.is_a?(NoAdvertising)
-
+        #page.advert = select_advert(advertising) unless advertising.is_a?(NoAdvertising)
+        page.advert = advertising.advert {|domain, link_identifier| @browser.find_links(domain, link_identifier)}
         page
       rescue Error => e
         case e.code

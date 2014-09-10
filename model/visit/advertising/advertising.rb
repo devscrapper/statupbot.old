@@ -14,7 +14,7 @@ module Visits
       end
       ARGUMENT_UNDEFINE = 1200
       ADVERTISING_NOT_BUILD = 1201
-
+      ADVERT_NOT_FOUND = 1202
       attr_reader :domains,
                   # tableau de nom de domain de la iframe contenant les advert.
                   # IMPORTANT : si l'advert n'est pas dans un iframe alors le tableau doit contenir la chaine "nil", exemple

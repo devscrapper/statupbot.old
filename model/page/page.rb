@@ -109,7 +109,7 @@ module Pages
     #
     #----------------------------------------------------------------------------------------------------------------
     def advert=(link)
-       @advert = Pages::Link.new("advert", link, "advert", link.text)
+       @advert = link.nil? ? link : Pages::Link.new("advert", link, "advert", link.text)
     end
 
     #----------------------------------------------------------------------------------------------------------------
