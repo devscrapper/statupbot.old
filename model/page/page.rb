@@ -109,7 +109,8 @@ module Pages
     #
     #----------------------------------------------------------------------------------------------------------------
     def advert=(link)
-       @advert = link.nil? ? link : Pages::Link.new("advert", link, "advert", link.text)
+      # le text du link est valorisée soit avec le text soit title d'un lien
+       @advert = link.nil? ? link : Pages::Link.new("advert", link[0], "advert", link[1].empty? ? "advert" : link[1])
     end
 
     #----------------------------------------------------------------------------------------------------------------

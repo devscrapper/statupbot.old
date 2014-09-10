@@ -23,7 +23,7 @@ module Visits
         @@logger.an_event.debug "BEGIN Adsense.advert"
 
         links = []
-        link = nil
+        link = []
         begin
           @domains.each { |domain|
             @link_identifiers.each { |link_identifier|
@@ -35,7 +35,8 @@ module Visits
           @@logger.an_event.error "advert Adsens not found : #{e.message}"
           raise AdvertisingError.new(ADVERT_NOT_FOUND), "advert Adsens not found : #{e.message}"
         else
-          link = links.shuffle![0]
+          l = links.shuffle![0]
+          link = [l, l.text || l.title]
         ensure
           @@logger.an_event.debug "END Adsense.advert"
           return link

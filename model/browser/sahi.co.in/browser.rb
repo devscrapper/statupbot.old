@@ -48,16 +48,15 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       # attribut
       #----------------------------------------------------------------------------------------------------------------
-      attr_accessor :driver,
-                    :listening_port_proxy
+      attr_accessor :driver, # moyen Sahi pour piloter le browser
+                    :listening_port_proxy # port d'ecoute du proxy Sahi
 
 
-      attr_reader :id,
-                  :height,
-                  :width,
-                  :pids,
-                  :method_start_page,
-                  :version
+      attr_reader :id, #id du browser
+                  :height, :width, #dimension de la fenetre du browser
+                  :method_start_page, # pour cacher le referrer aux yeux de GA, on utiliser 2 methodes choisies en focntion
+                  # du type de browser.
+                  :version # la version du browser
 
       #----------------------------------------------------------------------------------------------------------------
       # class methods
@@ -69,14 +68,21 @@ module Browsers
       # crée un geolocation :
       #----------------------------------------------------------------------------------------------------------------
       # input :
-      # une visite qui est une ligne du flow : published-visits_label_date_hour.json, sous forme de hash
-      #["flash_version", "11.4 r402"]
-      #["java_enabled", "No"]
-      #["screens_colors", "24-bit"]
-      #["screen_resolution", "1366x768"]
-      # mot clé utulisés pour les requetes de scraping de google analitycs :
-      # Browser : "Chrome", "Firefox", "Internet Explorer", "Safari"
-      # operatingSystem:  "Windows", "Linux", "Macintosh"
+      # repertoire de runtime du visitor
+      # détails du browser issue du fichier de visit :
+      # :name: Chrome
+      # :version: '33.0.1750.117'
+      # :operating_system: Windows
+      # :operating_system_version: '7'
+      # :flash_version: 11.5 r502      # 2014/09/10 : non utilisé
+      # :java_enabled: 'Yes'           # 2014/09/10 : non utilisé
+      # :screens_colors: 32-bit        # 2014/09/10 : non utilisé
+      # :screen_resolution: 1366x768
+      # output : none
+      # StandardError :
+      # les paramètres en entrée font défaut
+      # le type de browser est inconnu
+      # une exception provenant des classes Firefox, InterneEexplorer, Chrome
       #----------------------------------------------------------------------------------------------------------------
       #         #Les navigateurs disponibles sont definis dans le fichier d:\sahi\userdata\config\browser_types.xml
       #----------------------------------------------------------------------------------------------------------------
@@ -137,7 +143,10 @@ module Browsers
       # exception :
       # StandardError :
       # si le listening_port_proxy n'est pas defini
-      # si la resoltion d'ecran du browser n'est pas definie
+      # si la resolution d'ecran du browser n'est pas definie
+      # si le type de browser n'est pas definie
+      # si la méthode démarrage n'est pas définie
+      # si le runtime dir n'est pas definie
       #-----------------------------------------------------------------------------------------------------------------
       #
       #-----------------------------------------------------------------------------------------------------------------
@@ -161,9 +170,11 @@ module Browsers
         @width, @height = browser_details[:screen_resolution].split(/x/)
 
         begin
+
           @driver = Browsers::SahiCoIn::Driver.new(browser_type,
                                                    @listening_port_proxy)
           customize_properties (visitor_dir)
+
         rescue Exception => e
           @@logger.an_event.fatal "browser #{@id} not create : #{e.message}"
           raise BrowserError.new(BROWSER_NOT_CREATE, e), "browser #{@id} not create"
@@ -270,110 +281,10 @@ module Browsers
       end
 
 
-      #-----------------------------------------------------------------------------------------------------------------
-      # get_pid
-      #-----------------------------------------------------------------------------------------------------------------
-      # input : id_browser
-      # output : tableau contenant les pids du browser
-      # exception :
-      # StandardError :
-      # si id_browser n'est pas défini
-      # si aucun pid n'a pu être associé à l'id_browser
-      #-----------------------------------------------------------------------------------------------------------------
-      # est utilisé pour recuperer le pid, pour tuer le browser si Sahi n'a pas réussi
-      #-----------------------------------------------------------------------------------------------------------------
-=begin
-      def get_pid(id_browser)
-        @@logger.an_event.debug "begin get_pid"
-        raise StandardError, "id browser is not defined" if id_browser.nil?
-
-        if OS.windows?
-          pid_arr = nil
-          pids_name_file = File.join(TMP_DIR, "#{id_browser}_pids.csv")
-          try_count = 0
-          max_try_count = 10
-          begin
-            File.delete(pids_name_file) if File.exist?(pids_name_file)
-            cmd = 'powershell -NoLogo -NoProfile "get-process | where-object {$_.mainWindowTitle -like \"' + "#{id_browser}*" + '\"} | Export-Csv -notype ' + pids_name_file + '; exit $LASTEXITCODE" < NUL'
-            @@logger.an_event.debug "command powershell : #{cmd}"
-            @pid = Process.spawn(cmd)
-            Process.waitpid(@pid)
-            if File.exist?(pids_name_file)
-              pid_arr = CSV.table(pids_name_file).by_col[:id]
-              @@logger.an_event.debug "pids catch : #{pid_arr}"
-              File.delete(pids_name_file)
-              raise StandardError, "none mainWindowTitle in powershell contains id browser #{id_browser}" if pid_arr == []
-            else
-              raise StandardError, "file #{pids_name_file} not found"
-            end
-          rescue StandardError => e
-            @@logger.an_event.debug "none mainWindowTitle in powershell contains id browser #{id_browser}, try #{try_count}"
-            sleep (1)
-            try_count += 1
-            retry if pid_arr == [] and try_count < max_try_count
-            @@logger.an_event.fatal "cannot get pid of #{id_browser}"
-          rescue Exception => e
-            @@logger.an_event.debug e.message
-            raise StandardError, "cannot get pid of #{id_browser}"
-          ensure
-            @@logger.an_event.debug "end get_pid"
-          end
-        elsif OS.mac?
-          #TODO determiner le get_pid pour mac
-        elsif OS.linux?
-          #TODO determiner le get_pid pour linux
-        end
-
-
-        pid_arr
-      end
-=end
-
-      #-----------------------------------------------------------------------------------------------------------------
-      # kill
-      #-----------------------------------------------------------------------------------------------------------------
-      # input : tableau de pids
-      # output : none
-      # exception :
-      # StandardError :
-      # si aucune pid n'est passé à la fonction
-      # StandardError :
-      # si il n'a pas été possible de tuer le browser
-      #-----------------------------------------------------------------------------------------------------------------
-      # est utilisé pour recuperer le pid, pour tuer le browser si Sahi n'a pas réussi
-      #-----------------------------------------------------------------------------------------------------------------
-=begin
-      def kill(pid_arr)
-        @@logger.an_event.debug "begin kill"
-        raise StandardError, "no pid" if pid_arr == []
-
-        pid_arr.each { |pid|
-          if OS.windows?
-            begin
-              cmd = 'powershell -NoLogo -NoProfile "Stop-Process ' + pid.to_s + '; exit $LASTEXITCODE" < NUL'
-              @@logger.an_event.debug "command powershell : #{cmd}"
-              ps_pid = Process.spawn(cmd)
-              Process.waitpid(ps_pid)
-            rescue Exception => e
-              @@logger.an_event.debug e.message
-              raise StandardError, "cannot kill pid #{pid}"
-            ensure
-              @@logger.an_event.debug "end kill"
-            end
-          elsif OS.mac?
-            #TODO determiner le get_pid pour mac
-          elsif OS.linux?
-            #TODO determiner le get_pid pour linux
-          end
-        }
-      end
-=end
-
-
       #----------------------------------------------------------------------------------------------------------------
       # find_link
       #----------------------------------------------------------------------------------------------------------------
-      # retourne un link identifié par le domain de la page html que le contient et un attribut de la balise html <a>
+      # retourne un link identifié par le domain de la page html et un attribut de la balise html <a>
       #----------------------------------------------------------------------------------------------------------------
       # input : nom de domaine, identifier du link
       # output : un objet sahi représentant le link ou nil si non trouvé
@@ -387,6 +298,7 @@ module Browsers
         link = nil
 
         begin
+
           link = @driver.domain(domain).link(identifier)
 
           @@logger.an_event.debug "link #{domain} #{identifier} found : #{link.to_s}"
@@ -403,7 +315,7 @@ module Browsers
       #----------------------------------------------------------------------------------------------------------------
       # find_links
       #----------------------------------------------------------------------------------------------------------------
-      # retourne un array de link identifié par le domain de la page html que le contient et un attribut de la balise html <a>
+      # retourne un array de link identifié par le domain de la page html et un attribut de la balise html <a>
       #----------------------------------------------------------------------------------------------------------------
       # input : nom de domaine, identifier du link
       # output : un objet sahi représentant le link ou nil si non trouvé
@@ -473,37 +385,6 @@ module Browsers
           @@logger.an_event.debug "END Browser.open"
         end
 
-=begin
-        #----------------------------------------------------------------------------------------------------
-        #
-        # affecte l'id du browser dans le title de la fenetre
-        #
-        #-----------------------------------------------------------------------------------------------------
-        begin
-          title_updt = @driver.set_title(@id)
-          @@logger.an_event.debug "browser #{name} has set title #{title_updt}"
-        rescue StandardError => e
-          @@logger.an_event.error e.message
-          @@logger.an_event.debug "end open browser"
-          raise StandardError, "browser #{name} no set title #{title_updt} with #{@id}"
-        end
-        #----------------------------------------------------------------------------------------------------
-        #
-        # recupere le PID du browser en fonction de l'id du browser dans le titre de la fenetre du browser
-        #
-        #-----------------------------------------------------------------------------------------------------
-        begin
-          @pids = get_pid(@id)
-          @@logger.an_event.debug "browser #{name} #{@id} pid is retrieve"
-        rescue StandardError => e
-          @@logger.an_event.fatal e.message
-          @@logger.an_event.debug "end open browser"
-          raise StandardError, "browser #{name} #{@id} cannot get its pid"
-        ensure
-          @@logger.an_event.debug "end open browser"
-        end
-=end
-
       end
 
 
@@ -512,17 +393,16 @@ module Browsers
       #-----------------------------------------------------------------------------------------------------------------
       # input : none
       # output : none
-      # exception :
       # StandardError :
-      # si il n'a pas été possible de killer le browser automatiquement avec sahi ou manuellement
+      # si il n'a pas été possible de killer le browser automatiquement avec sahi
       #-----------------------------------------------------------------------------------------------------------------
       #   1-demande la fermeture du browser au driver
-      #   2- si la demande échoue alors on kill manuellement le browser avec ses pids
       #   3-recupere le pid du browser
       #-----------------------------------------------------------------------------------------------------------------
       def quit
         @@logger.an_event.debug "BEGIN Browser.quit"
         begin
+
           @driver.close
           @@logger.an_event.debug "browser #{name} #{@id} close"
 
@@ -531,23 +411,6 @@ module Browsers
           raise BrowserError.new(BROWSER_NOT_CLOSE, e), "browser #{name} #{@id} not close"
         ensure
           @@logger.an_event.debug "END Browser.quit"
-=begin
-          #----------------------------------------------------------------------------------------------------
-          #
-          # kill le browser en fonction de ses Pids
-          #
-          #-----------------------------------------------------------------------------------------------------
-          begin
-            kill(@pids)
-            @@logger.an_event.debug "browser #{name} #{@id} is killed"
-          rescue StandardError => e
-            @@logger.an_event.error e.message
-            @@logger.an_event.debug "end browser quit"
-            raise StandardError, "browser #{name} #{@id} is not killed"
-          ensure
-
-          end
-=end
         end
 
       end
@@ -624,19 +487,6 @@ module Browsers
         @@logger.an_event.debug "browser #{name} #{@id} finish waiting on page #{page.url}"
         @@logger.an_event.debug "END Browser.wait_on"
       end
-=begin
-
-      def well_formed?(url)
-        begin
-          URI.parse(url)
-          return true
-        rescue Exception => e
-          @@logger.an_event.debug "#{e.message}, url"
-          return false
-        end
-      end
-=end
-
     end
   end
 end

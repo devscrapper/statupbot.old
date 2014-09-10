@@ -222,8 +222,8 @@ def visitor_is_no_slave(opts)
   begin
 
     if visit.advertising?
-
-      advertiser_landing_page = visitor.click_on_advert(final_visit_page.advert)
+      #TODO a decommenter lorsque le service de proxy de geolocation sera en ligne
+      #advertiser_landing_page = visitor.click_on_advert(final_visit_page.advert)
 
     end
 
@@ -242,12 +242,12 @@ def visitor_is_no_slave(opts)
   begin
 
     if visit.advertising?
-
-      final_advertiser_page = visitor.surf(visit.advertising.advertiser.durations, advertiser_landing_page, visit.advertising.advertiser.arounds)
+      #TODO a decommenter lorsque le service de proxy de geolocation sera en ligne
+      #final_advertiser_page = visitor.surf(visit.advertising.advertiser.durations, advertiser_landing_page, visit.advertising.advertiser.arounds)
 
       Monitoring.send_advert_select(visit_details, @@logger)
 
-      MailSender.new("advert@visitor_bot.fr","olinouane@gmail.com", "advert select", final_visit_page.advert).send
+      #MailSender.new("advert@visitor_bot.fr","olinouane@gmail.com", "advert select", final_visit_page.advert).send
     end
 
   rescue Exception => e

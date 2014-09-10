@@ -357,43 +357,6 @@ module Visitors
 
     end
 
-    #----------------------------------------------------------------------------------------------------------------
-    # select_advert
-    #----------------------------------------------------------------------------------------------------------------
-    #
-    # inputs : objet advertising
-    # output : objet sahi link represents an advert
-    # StandardError
-    #----------------------------------------------------------------------------------------------------------------
-    #----------------------------------------------------------------------------------------------------------------
-    #
-    #----------------------------------------------------------------------------------------------------------------
-
-    def select_advert(advertising)
-      @@logger.an_event.debug "BEGIN Visitor.select_advert"
-
-      @@logger.an_event.debug "advertising #{advertising}"
-      raise VisitorError.new(ARGUMENT_UNDEFINE), "advertising undefine" if advertising.nil?
-
-      links = []
-      link = nil
-      begin
-        advertising.domains.each { |domain|
-          advertising.link_identifiers.each { |link_identifier|
-            links += @browser.find_links(domain, link_identifier)
-          }
-        }
-        links.each { |link| @@logger.an_event.debug "advertising links : #{link}" }
-      rescue Error => e
-        @@logger.an_event.error "visitor #{@id} not found advert #{advertising.name} : #{e.message}"
-        raise VisitorError.new(VISITOR_NOT_FOUND_ADVERT, e), "visitor #{@id} not found advert #{advertising} : #{e.message}"
-      else
-        link = links.shuffle![0]
-      ensure
-        @@logger.an_event.debug "END Visitor.select_advert"
-        return link
-      end
-    end
 
     #----------------------------------------------------------------------------------------------------------------
     # select_click_on_advert
@@ -430,14 +393,12 @@ module Visitors
     end
 
     #----------------------------------------------------------------------------------------------------------------
-    # initialize
+    # close_browser
     #----------------------------------------------------------------------------------------------------------------
-    # demarre un proxy :
-    # inputs
-
-    # output
-    # StandardError
-    # StandardError
+    # ferme le navigateur :
+    # inputs : RAS
+    # output : RAS
+    # StandardError : VISITOR_NOT_CLOSE
     #----------------------------------------------------------------------------------------------------------------
     #----------------------------------------------------------------------------------------------------------------
     #
@@ -446,8 +407,11 @@ module Visitors
     def close_browser
       @@logger.an_event.debug "BEGIN Visitor.close "
       begin
+
         @browser.quit
+
         @@logger.an_event.info "visitor #{@id} close his browser #{@browser.name}"
+
       rescue Error => e
         @@logger.an_event.error "visitor #{@id} not close his browser #{@browser.name} #{@browser.id} : #{e.message}"
         raise VisitorError.new(VISITOR_NOT_CLOSE, e), "visitor #{@id} not close his browser #{@browser.name} #{@browser.id}"
@@ -456,24 +420,25 @@ module Visitors
       end
     end
 
-#----------------------------------------------------------------------------------------------------------------
-# initialize
-#----------------------------------------------------------------------------------------------------------------
-# demarre un proxy :
-# inputs
-
-# output
-# StandardError
-# StandardError
-#----------------------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------------------
-#
-#----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
+    # die
+    #----------------------------------------------------------------------------------------------------------------
+    # arrete le proxy :
+    # inputs : RAS
+    # output : RAS
+    # StandardError : VISITOR_NOT_DIE
+    #----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------------------------------
     def die
       @@logger.an_event.debug "BEGIN Visitor.die"
       begin
+
         @proxy.stop
+
         @@logger.an_event.info "visitor #{@id} die"
+
       rescue Error => e
         @@logger.an_event.error "visitor #{@id} not die : #{e.message}"
         raise VisitorError.new(VISITOR_NOT_DIE, e), "visitor #{@id} not die"
@@ -483,14 +448,12 @@ module Visitors
     end
 
     #----------------------------------------------------------------------------------------------------------------
-    # initialize
+    # delete_log
     #----------------------------------------------------------------------------------------------------------------
     # supprimer les fichier de log
-    # inputs
-
-    # output
-    # StandardError
-    # StandardError
+    # inputs : RAS
+    # output : RAS
+    # StandardError  : LOG_VISITOR_NOT_DELETE
     #----------------------------------------------------------------------------------------------------------------
     #----------------------------------------------------------------------------------------------------------------
     #
@@ -499,6 +462,7 @@ module Visitors
       @@logger.an_event.debug "BEGIN Visitor.delete_log"
 
       begin
+
         dir = Pathname(File.join(File.dirname(__FILE__), "..", '..', "log")).realpath
         files = File.join(dir, "visitor_bot_#{@id}.{*}")
         FileUtils.rm_r(Dir.glob(files), :force => true)
@@ -558,7 +522,7 @@ module Visitors
 #-----------------------------------------------------------------------------------------------------------------
 # permet de realiser plusieurs recherche avec à chaque fois une list de mot clé différent
 # cette liste de mot clé sera calculé par scraperbot en fonction d'un paramètage de statupweb
-# cela permetra par exemple de realisé des recherches qui échouent
+# cela permettra par exemple de realiser des recherches qui échouent
 #-----------------------------------------------------------------------------------------------------------------
     def many_search(referrer)
       @@logger.an_event.debug "BEGIN Visitor.many_search"
@@ -600,23 +564,27 @@ module Visitors
     end
 
     #----------------------------------------------------------------------------------------------------------------
-    # initialize
+    # open_browser
     #----------------------------------------------------------------------------------------------------------------
-    # demarre un proxy :
-    # inputs
-
-    # output
+    # ouvre un browser :
+    # inputs : none
+    # output : none
     # StandardError
-    # StandardError
+    # si le visiteur n'a pas pu lancer le navigateur.
     #----------------------------------------------------------------------------------------------------------------
     #----------------------------------------------------------------------------------------------------------------
     #
     #----------------------------------------------------------------------------------------------------------------
     def open_browser
+
       @@logger.an_event.debug "BEGIN Visitor.open_browser"
+
       begin
+
         @browser.open
+
         @@logger.an_event.info "visitor #{@id} open his browser #{@browser.name}"
+
       rescue Error => e
         @@logger.an_event.error "visitor #{@id} not open his browser #{@browser.name} #{@browser.id} : #{e.message}"
         raise VisitorError.new(VISITOR_NOT_OPEN, e), "visitor #{@id} not open his browser #{@browser.name} #{@browser.id}"
@@ -625,25 +593,28 @@ module Visitors
       end
     end
 
-#----------------------------------------------------------------------------------------------------------------
-# initialize
-#----------------------------------------------------------------------------------------------------------------
-# demarre un proxy :
-# inputs
-
-# output
-# StandardError
-# StandardError
-#----------------------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------------------
-#
-#----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
+    # read
+    #----------------------------------------------------------------------------------------------------------------
+    # lit le contenu d'une page affichée,
+    # inputs : un objet page
+    # output : none
+    # StandartError
+    # si aucune page n'est définie
+    #----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------------------------------
     def read(page)
       @@logger.an_event.debug "BEGIN Visitor.read"
       @@logger.an_event.debug "page #{page.to_s}"
+
       raise VisitorError.new(ARGUMENT_UNDEFINE), "page undefine" if page.nil?
+
       @@logger.an_event.info "visitor #{@id} read #{page.url.to_s} during #{page.sleeping_time}s"
+
       @browser.wait_on(page)
+
       @@logger.an_event.debug "END Visitor.read"
     end
 
@@ -750,13 +721,12 @@ module Visitors
 # exception :
 # StandardError :
 #-----------------------------------------------------------------------------------------------------------------
-#
+# le surf sur l'advertiser a un advertising == nil
 #-----------------------------------------------------------------------------------------------------------------
 
-    def surf(durations, page, around, advertising)
+    def surf(durations, page, around, advertising = nil)
 
-      # le surf sur le website prend en entrée un around => arounds est rempli avec cette valeur
-      # le surf sur l'advertiser predn en entrée un array de around pré calculé par engine bot en fonction des paramètre saisis au moyen de statupweb
+
       @@logger.an_event.debug "durations #{durations.inspect}"
       @@logger.an_event.debug "page #{page.to_s}"
       @@logger.an_event.debug "arounds #{around.inspect}"
@@ -768,7 +738,11 @@ module Visitors
 
       link = nil
       begin
+
+        # le surf sur le website prend en entrée un around => arounds est rempli avec cette valeur
+        # le surf sur l'advertiser prend en entrée un array de around pré calculé par engine bot en fonction des paramètre saisis au moyen de statupweb
         arounds = (around.is_a?(Array)) ? around : Array.new(durations.size, around)
+
         durations.each_index { |i|
           page.duration = durations[i]
           read(page)
@@ -779,15 +753,17 @@ module Visitors
 
             @@logger.an_event.info "visitor #{@id} click on link #{link.url.to_s}"
 
-          end # on ne clique pas quand on est sur la denriere page
+          end # on ne clique pas quand on est sur la derniere page
         }
 
-        # si on est sur l'avant derniere page de la visit et qu'une publicité est planifiée alors
-        # il faut rechercher dans la page affichée les liens des publicités exposées par la régie publicité
-
-        #page.advert = select_advert(advertising) unless advertising.is_a?(NoAdvertising)
-        page.advert = advertising.advert {|domain, link_identifier| @browser.find_links(domain, link_identifier)}
+        # quand on surf sur le site :
+        # si on est sur l'avant derniere page de la visit et qu'une publicité est planifiée par la visit alors
+        # il faut rechercher dans la dernière page affichée, les liens des publicités exposés par la régie publicité
+        # quand on surf sur l'advertiser :
+        # on ne recherche pas de publicité.
+        page.advert = advertising.advert { |domain, link_identifier| @browser.find_links(domain, link_identifier) } unless advertising.nil?
         page
+
       rescue Error => e
         case e.code
           when Pages::Page::PAGE_NONE_LINK, Pages::Page::PAGE_NONE_LINK_BY_AROUND
