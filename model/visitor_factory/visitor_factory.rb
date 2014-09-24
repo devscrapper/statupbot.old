@@ -160,20 +160,6 @@ class VisitorFactory
   #-----------------------------------------------------------------------------------------------------------------
   # initialize
   #-----------------------------------------------------------------------------------------------------------------
-  # input : hash decrivant les propriétés du browser de la visit
-  # :name : Internet Explorer
-  # :version : '9.0'
-  # :operating_system : Windows
-  # :operating_system_version : '7'
-  # :flash_version : 11.7 r700   -- not use
-  # :java_enabled : 'Yes'        -- not use
-  # :screens_colors : 32-bit     -- not use
-  # :screen_resolution : 1600 x900
-  # output : un objet Browser
-  # exception :
-  # StandardError :
-  # si le listening_port_proxy n'est pas defini
-  # si la resoltion d'ecran du browser n'est pas definie
   #-----------------------------------------------------------------------------------------------------------------
   # pour sandboxer l'execution d'un visitor_bot :
   # @runtime_start_sandbox = "C:\Program Files\Sandboxie\Start.exe"
@@ -187,32 +173,53 @@ class VisitorFactory
   #-----------------------------------------------------------------------------------------------------------------
   def start_visitor_bot(details)
     begin
+
       @logger.an_event.info "start visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]}"
-      cmd = "#{@runtime_ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  #{VISITOR_BOT} -v #{details[:visit_file]} -t #{details[:port_proxy_sahi]} -p #{@use_proxy_system} #{geolocation}"
+
+      # si pas d'avert alors :  [:advert][:advertising] = "none"
+      # sinon le nom de l'advertising, exemple adsense
+      with_advertising = YAML::load(File.open(details[:visit_file], "r:BOM|UTF-8:-").read)[:advert][:advertising] != :none
+
+      # si un advert est présent alors on sélectionne une geolocation francaise
+      cmd = "#{@runtime_ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  \
+                              #{VISITOR_BOT} \
+                              -v #{details[:visit_file]} \
+                              -t #{details[:port_proxy_sahi]} \
+                              -p #{@use_proxy_system} \
+                              #{with_advertising ? geolocation("fr") : geolocation}"
+
       @logger.an_event.debug "cmd start visitor_bot #{cmd}"
 
       pid = Process.spawn(cmd)
       pid, status = Process.wait2(pid, 0)
 
     rescue Exception => e
+
       @logger.an_event.error "start visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]} failed : #{e.message}"
+
     else
+
       @logger.an_event.debug "browser #{details[:pattern]} and visit file #{details[:visit_file]} : exit status #{status.exitstatus}"
+
       if status.exitstatus == OK
         @logger.an_event.info "visitor_bot browser #{details[:pattern]} port #{details[:port_proxy_sahi]} send success to monitoring"
         begin
+
           visitor_id = YAML::load(File.open(details[:visit_file], "r:BOM|UTF-8:-").read)[:visitor][:id]
           dir = Pathname(File.join(File.dirname(__FILE__), "..", '..', "log")).realpath
           files = File.join(dir, "visitor_bot_#{visitor_id}.{*}")
           FileUtils.rm_r(Dir.glob(files))
+
         rescue Exception => e
           @logger.an_event.error "log file of visitor_bot #{visitor_id} not delete : #{e.message}"
         else
           @logger.an_event.debug "log file of visitor_bot #{visitor_id} delete"
         end
+
       else
         @logger.an_event.info "visitor_bot browser #{details[:pattern]} port #{details[:port_proxy_sahi]} send an error to monitoring"
       end
+
     end
   end
 
@@ -225,30 +232,36 @@ class VisitorFactory
   #-----------------------------------------------------------------------------------------------------------------
   #
   #-----------------------------------------------------------------------------------------------------------------
-  def geolocation
-    # si geolocation_factory == nil => pasz de geolocalisation
-    # sinon factory est dispo contenant soit une liste de proxy soit le proxy par defaut de l'entreprise  passé en paramètre e visitorfactory_server
-    # geolocation = "-r http -o muz11-wbsswsg.ca-technologies.fr -x 8080 -y ET00752 -w Bremb@09"
-    # si une erruer surivent lors de la rcuperation d'un gelolocation alors on passe sans geolocation
-
-    geo_to_s =  "" if @geolocation_factory.nil?
+  def geolocation(country=nil)
+    # si exception pour le get : NONE_GEOLOCATION => pas de geolocalisation
+    # si exception pour le get_french : GEO_NONE_FRENCH => pas de geolocation francaise
+    # sinon retour d'une geolocation qui est  :
+    # soit issu d'une liste de proxy
+    # soit le proxy par defaut de l'entreprise  passé en paramètre de visitorfactory_server : geolocation = "-r http -o muz11-wbsswsg.ca-technologies.fr -x 8080 -y ET00752 -w Bremb@09"
+    # si la visit contient un advert alors on essaie de recuperer un geolocation francais.
+    # sinon un geolocation.
 
     begin
 
-      geo = @geolocation_factory.get
+      case country
+        when "fr"
+          geo = @geolocation_factory.get_french
+        else
+          geo = @geolocation_factory.get
+      end
 
     rescue GeolocationError => e
 
-      geo_to_s =  ""
+      geo_to_s = ""
 
     else
 
-      geo_to_s =   "-r #{geo.protocol} -o #{geo.ip} -x #{geo.port} -y #{geo.user} -w #{geo.password}"
+      geo_to_s = "-r #{geo.protocol} -o #{geo.ip} -x #{geo.port} -y #{geo.user} -w #{geo.password}"
 
     ensure
       @logger.an_event.info "geolocation is <#{geo_to_s}>"
 
-       return geo_to_s
+      return geo_to_s
 
     end
   end

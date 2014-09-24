@@ -80,33 +80,9 @@ module Geolocations
       @logger.an_event.debug "END GeolocationFactory.clear"
     end
 
-    def load
-      @logger.an_event.debug "BEGIN GeolocationFactory.load"
 
-      clear
-
-      @geolocations_file.foreach(EOFLINE) { |geo_line|
-
-        begin
-
-          @geolocations << Geolocation.new(geo_line)
-
-        rescue Exception => e
-
-          @logger.an_event.warn e.message
-
-        end
-      }
-
-      @geolocations_file.close
-
-      @logger.an_event.info "#{@geolocations.size} geolocation(s) loaded"
-
-      @logger.an_event.debug "END GeolocationFactory.load"
-    end
-
-
-    # retourne un objet geolocation ou retourne une exception
+    # retourne un objet geolocation ou
+    # retourne une exception si plus aucun geolocation dans la factory
     def get
       @logger.an_event.debug "BEGIN GeolocationFactory.get"
 
@@ -147,25 +123,67 @@ module Geolocations
 
     end
 
+    # retourne un objet geolocation ou
+    # retourne une exception si plus aucun geolocation dans la factory
     def get_french
+      @logger.an_event.debug "BEGIN GeolocationFactory.get_french"
+
       begin
+
+        geo_count = @geolocations.size
         geo = get
         i = 1
-        while geo.country != "fr" and i <= @geolocations.size
+
+        while geo.country != "fr" and i < geo_count
           geo = get
           i += 1
         end
+
       rescue Exception => e
-          raise e
+        #si il n'y a plus de geo dans la factory
+        raise e
+
       else
-        return geo if geo.country == "fr"
-        return nil unless geo.country == "fr"
+        #on sort de la boucle :
+        # soit on a trouve une geo francais
+        # soit parce que on les a tous passé et il n'y a aucun geolocation francais => execption
+        raise GeolocationError.new(GEO_NONE_FRENCH), "none french geolocation" unless geo.country == "fr"
+
+      ensure
+
+        @logger.an_event.debug "END GeolocationFactory.get_french"
+        return geo
       end
     end
 
 
     def to_s
       @geolocations.join("\n")
+    end
+
+    def load
+      @logger.an_event.debug "BEGIN GeolocationFactory.load"
+
+      clear
+
+      @geolocations_file.foreach(EOFLINE) { |geo_line|
+
+        begin
+
+          @geolocations << Geolocation.new(geo_line)
+
+        rescue Exception => e
+
+          @logger.an_event.warn e.message
+
+        end
+      }
+
+      @geolocations_file.close
+
+      @logger.an_event.info "#{@geolocations.size} geolocation(s) loaded"
+
+      @logger.an_event.debug "END GeolocationFactory.load"
     end
   end
 end

@@ -22,7 +22,7 @@ class Flow
   #----------------------------------------------------------------------------------------------------------------
   # class methods
   #----------------------------------------------------------------------------------------------------------------
-   #----------------------------------------------------------------------------------------------------------------
+  #----------------------------------------------------------------------------------------------------------------
   # self.first(dir, opts)
   #----------------------------------------------------------------------------------------------------------------
   # fournit le premier d'une liste des flow présent dans le <dir> et qui satisfont les options
@@ -34,9 +34,10 @@ class Flow
   # :date : une date : si est absent alors n'intervient pas dans la recherche
   # :ext : une extension de fichier : si est absent alors n'intervient pas dans la recherche
   #----------------------------------------------------------------------------------------------------------------
-  def self.first(dir, opts,logger = Logging::Log.new(self, :staging => $staging, :debugging => $debugging) )
+  def self.first(dir, opts, logger = Logging::Log.new(self, :staging => $staging, :debugging => $debugging))
     list(dir, opts, logger)[0]
   end
+
   #----------------------------------------------------------------------------------------------------------------
   # self.list(dir, opts)
   #----------------------------------------------------------------------------------------------------------------
@@ -55,7 +56,9 @@ class Flow
     date = opts.getopt(:date, "*")
     date = date.strftime("%Y-%m-%d") if date.is_a?(Date)
     ext = opts.getopt(:ext, ".*")
-    Dir.glob(File.join(dir, "#{type_flow}#{SEPARATOR}#{label}#{SEPARATOR}#{date}#{ext}")).map { |file| Flow.from_absolute_path(file, logger) }
+    Dir.glob(File.join(dir, "#{type_flow}#{SEPARATOR}#{label}#{SEPARATOR}#{date}#{ext}")).map { |file|
+      Flow.from_absolute_path(file, logger)
+    }
   end
 
   #----------------------------------------------------------------------------------------------------------------
@@ -133,6 +136,28 @@ class Flow
     raise FlowError, "Flow not initialize" unless @dir && @type_flow && @label && @date && @ext
   end
 
+  def <(flow)
+    # est utilisé pour ordonner les flow dans le temps
+    # ne DOIT etre utilisé que pour les flow dont les volumes représentent une heure.
+    # les dates sont des chaine de caracteres
+    @dir == flow.dir &&
+        @type_flow == flow.type_flow &&
+        @label == flow.label &&
+        @ext == flow.ext &&
+        (Date.parse(@date) == Date.parse(flow.date) && @vol.to_i < flow.vol.to_i) || Date.parse(@date) < Date.parse(flow.date)
+  end
+
+  def >(flow)
+    # est utilisé pour ordonner les flow dans le temps
+    # ne DOIT etre utilisé que pour les flow dont les volumes représentent une heure.
+    # les dates sont des chaine de caracteres
+    @dir == flow.dir &&
+        @type_flow == flow.type_flow &&
+        @label == flow.label &&
+        @ext == flow.ext &&
+        (Date.parse(@date) == Date.parse(flow.date) && @vol.to_i > flow.vol.to_i) || Date.parse(@date) > Date.parse(flow.date)
+  end
+
   def == (flow)
     #les volumes et leur nombre ne sont pas pris en compte, car c'est une egalité fonctionnelle et pas technique
     @dir == flow.dir &&
@@ -165,20 +190,20 @@ class Flow
 
 
   def archive_previous
-      # N'ARCHIVE PAS L'INSTANCE COURANTE
-      # archive le flow ou les flows qui sont antérieurs à l'instance courante
-      # en prenant en compte le multivolume
-      # l'objectif est de faire le ménage dans le répertoire qui contient l'instance courante
-      # le ou les flow sont déplacés dans ARCHIVE
-      Flow.list(@dir, {:type_flow => @type_flow, :label => @label, :ext => @ext}).each { |flow|
-        if self != flow
-          p flow.to_s
-          flow.archive
-          @logger.an_event.info "archive previous <#{flow.basename}>"
-        end
+    # N'ARCHIVE PAS L'INSTANCE COURANTE
+    # archive le flow ou les flows qui sont antérieurs à l'instance courante
+    # en prenant en compte le multivolume
+    # l'objectif est de faire le ménage dans le répertoire qui contient l'instance courante
+    # le ou les flow sont déplacés dans ARCHIVE
+    Flow.list(@dir, {:type_flow => @type_flow, :label => @label, :ext => @ext}).each { |flow|
+      if self != flow
+        p flow.to_s
+        flow.archive
+        @logger.an_event.info "archive previous <#{flow.basename}>"
+      end
 
-      }
-    end
+    }
+  end
 
   def basename
     basename = @type_flow + SEPARATOR + @label + SEPARATOR + @date
@@ -275,21 +300,18 @@ class Flow
   end
 
   def last
-    #retourn nil si pas de flow ancien, sinon le plus recent, sinon le flox lui-même
-    return self if exist?
-    volum = "#{SEPARATOR}#{@vol}" unless @vol.nil?
-    volum = "" if @vol.nil?
-    max_time = Time.new(2001, 01, 01)
-    chosen_file = nil
-    Dir.glob(File.join(@dir, "#{@type_flow}#{SEPARATOR}#{@label}#{SEPARATOR}*#{volum}#{@ext}")).each { |file|
-      if File.ctime(file) > max_time
-        max_time = File.ctime(file)
-        chosen_file = file
+    newer = self
+    Flow.list(@dir, {:type_flow => @type_flow, :label => @label, :ext => @ext}).map { |flow|
+      if flow > self
+
+        newer = flow
+
       end
     }
-    return Flow.from_basename(@dir, chosen_file) unless chosen_file.nil?
-    chosen_file
+    newer
   end
+
+
 
   def load_to_array(eofline, class_definition=nil)
     # class_definition est une class
