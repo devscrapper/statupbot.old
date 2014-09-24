@@ -57,7 +57,7 @@ PLATFORMS
 
 DEPENDENCIES
   certified
-  em-http-request (~> 1.0.0)
+  em-http-request (= 1.0.3)
   em-http-server (~> 0.1.8)
   eventmachine (~> 1.0.0)
   json (~> 1.7.5)

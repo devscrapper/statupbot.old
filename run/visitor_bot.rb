@@ -352,7 +352,7 @@ else
 
   @@logger.an_event.debug "begin execution visitor_bot"
   state = OK
-#state = visitor_is_slave(opts) if opts[:slave] == "yes"
+#state = visitor_is_slave(opts) if opts[:slave] == "yes"  pour gerer le return visitor
   state = visitor_is_no_slave(opts) if opts[:slave] == "no"
   @@logger.an_event.debug "end execution visitor_bot, with state #{state}"
   Process.exit(state)

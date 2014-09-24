@@ -142,6 +142,10 @@ class Flow
         @ext == flow.ext
   end
 
+  def !=(flow)
+    !(self == flow)
+  end
+
   def absolute_path
     File.join(@dir, basename)
   end
@@ -159,19 +163,22 @@ class Flow
     @logger.an_event.debug "archiving <#{basename}> to #{ARCHIVE}" if $debugging
   end
 
+
   def archive_previous
-    #TODO valider archive_previous
-    # N'ARCHIVE PAS L'INSTANCE COURANTE
-    # archive le flow ou les flows qui sont antérieurs à l'instance courante
-    # en prenant en compte le multivolume
-    # l'objectif est de faire le ménage dans le répertoire qui contient l'instance courante
-    # le ou les flow sont déplacés dans ARCHIVE
-    raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
-    Flow.list(@dir, {:type_flow => @type_flow, :label => @label, :ext => @ext}).each { |flow|
-      flow.archive unless self == flow
-    }
-    @logger.an_event.info "archive previous <#{basename}>"
-  end
+      # N'ARCHIVE PAS L'INSTANCE COURANTE
+      # archive le flow ou les flows qui sont antérieurs à l'instance courante
+      # en prenant en compte le multivolume
+      # l'objectif est de faire le ménage dans le répertoire qui contient l'instance courante
+      # le ou les flow sont déplacés dans ARCHIVE
+      Flow.list(@dir, {:type_flow => @type_flow, :label => @label, :ext => @ext}).each { |flow|
+        if self != flow
+          p flow.to_s
+          flow.archive
+          @logger.an_event.info "archive previous <#{flow.basename}>"
+        end
+
+      }
+    end
 
   def basename
     basename = @type_flow + SEPARATOR + @label + SEPARATOR + @date
@@ -186,11 +193,29 @@ class Flow
     @logger.an_event.debug "close flow <#{absolute_path}>" if $debugging
   end
 
-  def cp(to_path)
-    raise FlowError, "target <#{to_path}> is not valid" unless File.exists?(to_path) && File.directory?(to_path)
+  # Copie un flow origine :
+  # soit vers un autre flow et il est retourné en sortie
+  # soit vers un repertoire (String/Dir/Pathname)et un nouveau flow est retourné qui pointe sur le nouveau fichier en sortie
+  # remarque  : si le fichier cible existe, il est alors ecrasé
+  def cp(to)
     raise FlowError, "Flow <#{absolute_path}> not exist" unless exist?
+
+    # un répertoire peut être soit un objet Dir, Pathname ou String
+    to_path = to.path if to.is_a?(Dir)
+    to_path = to.to_path if to.is_a?(Pathname)
+    to_path = to if to.is_a?(String)
+    unless to_path.nil?
+      raise FlowError, "target <#{to_path}> not a directory" if File.ftype(to_path) != "directory"
+      raise FlowError, "target directory <#{to_path}> not exist" if  !Dir.exist?(to_path)
+    end
+    # un fichier est représenté par un Flow exclusivement
+    to_path = to.absolute_path if to.is_a?(Flow)
+
     FileUtils.cp(absolute_path, to_path)
     @logger.an_event.debug "copy flow <#{absolute_path}> to <#{to_path}>" if $debugging
+    #si to est un flow alors on le retourne
+    #si to est un répertoire alors on retourne un nouveau Flow qui représente le fichier cible
+    to.is_a?(Flow) ? to : Flow.from_basename(to_path, basename)
   end
 
   def count_lines(eofline)

@@ -42,7 +42,6 @@ module Flowing
         @logger.an_event.error "visit #{inputflow.basename} not send to visitor factory : #{e.message}"
         raise   "visit #{inputflow.basename} not send to visitor factory"
       end
-
     end
   end
 end

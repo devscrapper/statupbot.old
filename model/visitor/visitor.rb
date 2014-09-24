@@ -1,6 +1,3 @@
-require_relative 'geolocation/geolocation'
-require_relative 'nationality/nationality'
-
 require_relative '../../model/browser/sahi.co.in/browser'
 require_relative '../visit/referrer/referrer'
 require_relative '../visit/advertising/advertising'
@@ -11,8 +8,6 @@ module Visitors
   #----------------------------------------------------------------------------------------------------------------
   # include class
   #----------------------------------------------------------------------------------------------------------------
-  include Geolocations
-  include Nationalities
   include Browsers
   include Visits::Referrers
   include Visits::Advertisings
@@ -23,8 +18,6 @@ module Visitors
     # include class
     #----------------------------------------------------------------------------------------------------------------
     include Errors
-    include Geolocations
-    include Nationalities
     include Browsers
     include Visits::Referrers
     include Visits::Advertisings

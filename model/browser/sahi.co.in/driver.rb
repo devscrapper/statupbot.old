@@ -224,7 +224,7 @@ module Browsers
         rescue Exception => e
           try_count+=1
           @@logger.an_event.debug "#{e.message}, try #{try_count}"
-          sleep(1)
+          sleep(3)
           retry if try_count < max_try_count
           if try_count >= max_try_count
             @@logger.an_event.fatal "driver #{@browser_type} not connect to proxy : #{e.message}"
@@ -313,8 +313,11 @@ module Browsers
         raise DriverError.new(ARGUMENT_UNDEFINE), "keywords undefine" if keywords.nil? or keywords==""
         raise DriverError.new(ARGUMENT_UNDEFINE), "engine_search undefine" if engine_search.nil?
 
-        raise TEXTBOX_SEARCH_NOT_FOUND unless textbox(engine_search.id_search).exists?
-        raise SUBMIT_SEARCH_NOT_FOUND unless submit(engine_search.label_search_button).exists?
+        @@logger.an_event.debug "engine_search.id_search #{engine_search.id_search}"
+        @@logger.an_event.debug "engine_search.label_search_button #{engine_search.label_search_button}"
+
+        raise DriverError.new(TEXTBOX_SEARCH_NOT_FOUND), "textbox search not found" unless textbox(engine_search.id_search).exists?
+        raise DriverError.new(SUBMIT_SEARCH_NOT_FOUND), "submit search not found" unless submit(engine_search.label_search_button).exists?
 
         begin
           textbox(engine_search.id_search).value = !keywords.is_a?(String) ? keywords.to_s : keywords
