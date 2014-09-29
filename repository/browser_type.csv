@@ -29,3 +29,4 @@ test;windows;xp;Firefox;3.6.8;C:\Program Files\Mozilla Firefox\3.6.8\firefox.exe
 test;windows;xp;Firefox;32.0;C:\Program Files\Mozilla Firefox\32.0\firefox.exe;false;9971;1
 test;windows;xp;Firefox;33.0;C:\Program Files\Mozilla Firefox\33.0\firefox.exe;false;9972;1
 test;windows;xp;Internet Explorer;8.0;C:\Program Files\Internet Explorer\iexplore.exe;true;9997;1
+test;windows;xp;Chrome;37.0.2062.120;C:\GoogleChromePortable\37.0.2062.120\GoogleChromePortable.exe;false;9996;1
