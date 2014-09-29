@@ -17,7 +17,7 @@ class OS
       @name = environment["os"] unless environment["os"].nil?
       @version = environment["os_version"] unless environment["os_version"].nil?
     rescue Exception => e
-      STDERR << "loading parameter file #{ENVIRONMENT} failed : #{e.message}"
+      $stderr << "loading parameter file #{ENVIRONMENT} failed : #{e.message}" << "\n"
     end
   end
   def self.dump

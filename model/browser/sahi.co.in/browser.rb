@@ -4,11 +4,12 @@ require 'sahi'
 require 'json'
 require 'csv'
 require 'pathname'
-
+require 'win32/screenshot'
 
 require_relative '../../page/link'
 require_relative '../../page/page'
 require_relative '../../../lib/error'
+require_relative '../../../lib/flow'
 
 module Browsers
 
@@ -42,6 +43,7 @@ module Browsers
       # constant
       #----------------------------------------------------------------------------------------------------------------
       TMP_DIR = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'tmp')).realpath
+      SCREENSHOT = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'screen_shot')).realpath
       NO_REFERER = "noreferrer"
       DATA_URI = "datauri"
 
@@ -463,6 +465,31 @@ module Browsers
 
         end
 
+      end
+
+      #-----------------------------------------------------------------------------------------------------------------
+      # screen_shot
+      #-----------------------------------------------------------------------------------------------------------------
+      # input : RAS
+      # output : image du contenu du browser dans le repertoire screen_shot
+      # exception : none
+      #-----------------------------------------------------------------------------------------------------------------
+      #-----------------------------------------------------------------------------------------------------------------
+      def screen_shot(id_visitor, vol = 1)
+        @@logger.an_event.debug "BEGIN Browser.screen_shot"
+
+        begin
+          title = @driver.title
+          output_file = Flow.new(SCREENSHOT, id_visitor, title, Date.today, vol , ".png") # File.join(SCREENSHOT, "#{id_file}-.png")
+          output_file.delete if output_file.exist?
+          Win32::Screenshot::Take.of(:window, :title => /#{title}/).write(output_file.absolute_path)
+        rescue Exception => e
+          @@logger.an_event.error "browser #{name} #{@id} cannot take screen shot : #{e.message}"
+        else
+            @@logger.an_event.info "browser #{name} #{@id} take screen shot of #{title}"
+        ensure
+          @@logger.an_event.debug "END Browser.screen_shot"
+        end
       end
 
       #-----------------------------------------------------------------------------------------------------------------

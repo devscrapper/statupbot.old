@@ -34,7 +34,7 @@ if Monitoring.return_code_listening_port.nil? or
     Monitoring.http_server_listening_port.nil? or
     $debugging.nil? or
     $staging.nil?
-  STDERR << "some parameters not define"
+  $stderr << "some parameters not define"  << "\n"
   exit(1)
 end
 

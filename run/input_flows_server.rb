@@ -12,7 +12,7 @@ require_relative '../model/flowing/flow_connection'
 begin
   parameters = Parameter.new(__FILE__)
 rescue Exception => e
-  STDERR << e.message
+  $stderr << e.message   << "\n"
 else
   $staging = parameters.environment
   $debugging = parameters.debugging
@@ -28,7 +28,7 @@ else
   if listening_port.nil? or
       $debugging.nil? or
       $staging.nil?
-    STDERR << "some parameters not define"
+    $stderr << "some parameters not define"   << "\n"
     exit(1)
   end
 

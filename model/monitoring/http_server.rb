@@ -6,10 +6,11 @@ require_relative '../../lib/message'
 require_relative '../../lib/flow'
 
 class Hash
+
   def to_html_stat(messages)
     [
         '<ul>',
-        map { |k, v| [!k.is_a?(Date) ? "<li><strong>#{k}</strong> - #{messages[k]}" : "<li><strong>#{k}</strong> : ", v.respond_to?(:to_html) ? v.to_html_stat(messages) : " (<strong>#{v}</strong>)</li>"] },
+        map { |k, v| [!k.is_a?(Date) ? "<li><strong>#{k}</strong> - #{messages[k]}"  : "<li><strong>#{k}</strong> : ", v.respond_to?(:to_html) ? v.to_html_stat(messages) : " (<strong>#{v}</strong>)</li>"] },
         '</ul>'
     ].join
   end

@@ -261,7 +261,7 @@ module Monitoring
     begin
       parameters = Parameter.new("monitoring_server.rb")
     rescue Exception => e
-      STDERR << e.message
+      $stderr << e.message << "\n"
     else
       $staging = parameters.environment
       $debugging = parameters.debugging
@@ -276,7 +276,7 @@ module Monitoring
     begin
       parameters = Parameter.new("visitor_bot.rb")
     rescue Exception => e
-      STDERR << e.message
+      $stderr << e.message      << "\n"
     else
       @debugging_visitor_bot = parameters.debugging
     end

@@ -1,3 +1,4 @@
+
 module Visits
   module Advertisings
     class Adsense < Advertising

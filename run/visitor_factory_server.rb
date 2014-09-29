@@ -43,7 +43,7 @@ Trollop::die :proxy_port, "is require with proxy" if ["http"].include?(opts[:pro
 begin
   parameters = Parameter.new(__FILE__)
 rescue Exception => e
-  STDERR << e.message
+  $stderr << e.message  << "\n"
 else
   $staging = parameters.environment
   $debugging = parameters.debugging
@@ -70,7 +70,7 @@ else
       delay_out_of_time.nil? or
       $debugging.nil? or
       $staging.nil?
-    STDERR << "some parameters not define\n"
+    $stderr << "some parameters not define\n"   << "\n"
     exit(1)
   end
   #--------------------------------------------------------------------------------------------------------------------

@@ -247,7 +247,7 @@ def visitor_is_no_slave(opts)
 
       Monitoring.send_advert_select(visit_details, @@logger)
 
-      #MailSender.new("advert@visitor_bot.fr","olinouane@gmail.com", "advert select", final_visit_page.advert).send
+      MailSender.new("advert@visitor_bot.fr","olinouane@gmail.com", "advert select", final_visit_page.advert.to_s).send
     end
 
   rescue Exception => e
@@ -313,7 +313,7 @@ end
 begin
   parameters = Parameter.new(__FILE__)
 rescue Exception => e
-  STDERR << e.message
+  $stderr << e.message    << "\n"
 else
   $staging = parameters.environment
   $debugging = parameters.debugging
@@ -343,7 +343,7 @@ else
       $start_page_server_port.nil? or
       $debugging.nil? or
       $staging.nil?
-    STDERR << "some parameters not define"
+    $stderr << "some parameters not define" << "\n"
     Process.exit(KO)
   end
   #--------------------------------------------------------------------------------------------------------------------

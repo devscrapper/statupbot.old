@@ -92,7 +92,7 @@ end
 begin
   parameters = Parameter.new(__FILE__)
 rescue Exception => e
-  STDERR << e.message
+  $stderr << e.message   << "\n"
 else
   $staging = parameters.environment
   $debugging = parameters.debugging
@@ -107,7 +107,7 @@ else
   if  $start_page_server_port.nil? or
       $debugging.nil? or
       $staging.nil?
-    STDERR << "some parameters not define"
+    $stderr << "some parameters not define" << "\n"
     Process.exit(1)
   end
 end

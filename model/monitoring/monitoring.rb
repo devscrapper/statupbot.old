@@ -192,6 +192,7 @@ module Monitoring
     stats_universe[key1] = stats_universe[key1].nil? ? {} : stats_universe[key1]
     stats_universe[key1][key2] = stats_universe[key1][key2].nil? ? {} : stats_universe[key1][key2]
     stats_universe[key1][key2][key3] = stats_universe[key1][key2][key3].nil? ? value : stats_universe[key1][key2][key3] + value
+    stats_universe[key1][:total] = stats_universe[key1][:total].nil? ? 1 : stats_universe[key1][:total] + 1
   end
 
   def add_stat_max(key1, key2, stats_universe, value = 1)

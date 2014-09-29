@@ -200,10 +200,7 @@ module Visitors
 
 
       else
-#@geolocation = Geolocation.build() #TODO a revisiter avec la mise en oeuvre des web proxy d'internet
-#                                   #TODO peut on partager les proxy entre visiteur de site different ?
-#@browser = Browsers::Webdriver::Browser.build(visitor_details[:browser])
-#@browser.profile = @geolocation.update_profile(@browser.profile)
+
       end
 
     end
@@ -243,6 +240,7 @@ module Visitors
             @@logger.an_event.info "visitor #{@id} browse landing page #{referrer.landing_url.to_s}"
 
           rescue Error, Exception => e
+            @browser.screen_shot(@id, "ERROR")
             @@logger.an_event.error "visitor #{@id} not browse landing url #{referrer.landing_url.to_s} : #{e.message}"
             raise VisitorError.new(VISITOR_NOT_BROWSE_LANDING_PAGE, e), "visitor #{@id} not browse landing page #{referrer.landing_url.to_s}"
           else
@@ -271,6 +269,7 @@ module Visitors
             read(referral_page)
 
           rescue Error, Exception => e
+            @browser.take_screen_shot(@id, "ERROR")
             @@logger.an_event.error "visitor #{@id} not browse referral url #{referrer.page_url.to_s} : #{e.message}"
             @@logger.an_event.debug "END Visitor.browse"
             raise VisitorError.new(VISITOR_NOT_BROWSE_REFERRAL_PAGE, e), "visitor #{@id} not browse referral url #{referrer.page_url.to_s}"
@@ -280,6 +279,7 @@ module Visitors
             landing_link = referral_page.link_by_url(referrer.landing_url)
 
           rescue Error => e
+            @browser.take_screen_shot(@id, "ERROR")
             @@logger.an_event.error "visitor #{@id} not found landing link #{referrer.landing_url.to_s} in referral page #{referral_page.url.to_s} : #{e.message}"
             @@logger.an_event.debug "END Visitor.browse"
             raise VisitorError.new(VISITOR_NOT_FOUND_LANDING_LINK, e), "visitor #{@id} not found landing link #{referrer.landing_url.to_s} in referral page #{referral_page.url.to_s}"
@@ -292,6 +292,7 @@ module Visitors
             @@logger.an_event.info "visitor #{@id} click on landing link #{landing_link.url.to_s}"
 
           rescue Error, Exception => e
+            @browser.take_screen_shot(@id, "ERROR")
             @@logger.an_event.error "visitor #{@id} not browse landing page #{landing_link.url.to_s} : #{e.message}"
             raise VisitorError.new(VISITOR_NOT_BROWSE_LANDING_PAGE, e), "visitor #{@id} not browse landing page #{landing_link.url.to_s}"
           else
@@ -315,6 +316,7 @@ module Visitors
             @@logger.an_event.info "visitor #{@id} browse engine search page #{referrer.engine_search.page_url}"
 
           rescue Error, Exception => e
+            @browser.take_screen_shot(@id, "ERROR")
             @@logger.an_event.error "visitor #{@id} not browse engine search url #{referrer.engine_search.page_url.to_s} : #{e.message}"
             @@logger.an_event.debug "END Visitor.browse"
             raise VisitorError.new(VISITOR_NOT_BROWSE_SEARCH_PAGE, e), "visitor #{@id} not browse engine search url #{referrer.engine_search.page_url.to_s}"
@@ -327,6 +329,7 @@ module Visitors
             @@logger.an_event.info "visitor #{@id} found landing link #{landing_link.url.to_s} in results search pages"
 
           rescue Exception => e
+
             @@logger.an_event.error "visitor #{@id} not found landing link #{referrer.landing_url.to_s} in results search pages : #{e.message}"
             @@logger.an_event.debug "END Visitor.browse"
             raise VisitorError.new(VISITOR_NOT_FOUND_LANDING_LINK, e), "visitor #{@id} not found landing link #{referrer.landing_url.to_s} in results search pages"
@@ -338,6 +341,7 @@ module Visitors
             @@logger.an_event.info "visitor #{@id} click on landing url #{landing_link.url.to_s}"
 
           rescue Error, Exception => e
+            @browser.take_screen_shot(@id, "ERROR")
             @@logger.an_event.error "visitor #{@id} not browse landing page #{landing_link.url.to_s} : #{e.message}"
             raise VisitorError.new(VISITOR_NOT_BROWSE_LANDING_PAGE, e), "visitor #{@id} not browse landing page #{landing_link.url.to_s}"
           else
@@ -375,6 +379,7 @@ module Visitors
         @@logger.an_event.info "visitor #{@id} click on advert url #{advert.url.to_s}"
 
       rescue Error, Exception => e
+        @browser.take_screen_shot(@id, "ERROR")
         @@logger.an_event.error "visitor #{@id} not browse advert page #{advert.to_s} : #{e.message}"
         raise VisitorError.new(VISITOR_NOT_CLICK_ON_ADVERT), "visitor #{@id} not browse advert page"
       else
@@ -653,6 +658,7 @@ module Visitors
         @@logger.an_event.info "visitor #{@id} browse first results page with keywords #{keywords} on #{engine_search.class}"
 
       rescue Exception => e
+        @browser.take_screen_shot(@id, "ERROR")
         @@logger.an_event.error "visitor #{@id} not browse first results page with keywords #{keywords} on #{engine_search.class} : #{e.message}"
         @@logger.an_event.debug "END Visitor.search"
         raise e
@@ -685,6 +691,7 @@ module Visitors
             @@logger.an_event.info "visitor #{@id} click on next link #{next_page_link.url.to_s}"
           rescue Error => e
             #un erreur survient lors du click sur le lien de la page suivante.
+            @browser.take_screen_shot(@id, "ERROR")
             @@logger.an_event.error "visitor #{@id} not click on next link #{next_page_link.url.to_s}"
             @@logger.an_event.debug "END Visitor.search"
             raise VisitorError.new(CANNOT_CLICK_ON_LINK_OF_NEXT_PAGE, e), "visitor #{@id} not click on next link #{next_page_link.url.to_s}"
@@ -758,6 +765,7 @@ module Visitors
         page
 
       rescue Error => e
+        @browser.take_screen_shot(@id, "ERROR")
         case e.code
           when Pages::Page::PAGE_NONE_LINK, Pages::Page::PAGE_NONE_LINK_BY_AROUND
             @@logger.an_event.error "visitor #{@id} found none link : #{e.message}"
@@ -769,11 +777,23 @@ module Visitors
             raise VisitorError.new(VISIT_NOT_COMPLETE, e), "visitor #{@id} not click on link #{link.url.to_s}"
         end
       rescue Exception => e
+        @browser.take_screen_shot(@id, "ERROR")
         @@logger.an_event.error "visitor #{@id} not click on link #{link.url.to_s} : #{e.message}"
         raise VisitorError.new(VISIT_NOT_COMPLETE, e), "visitor #{@id} not click on link #{link.url.to_s}"
       end
     end
 
+    #-----------------------------------------------------------------------------------------------------------------
+    # take_screen_shot
+    #-----------------------------------------------------------------------------------------------------------------
+    # input : none
+    # output : none
+    # exception : none
+    #-----------------------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------------------------
+     def take_screen_shot
+       @browser.screen_shot(@id)
+     end
   end
 
 

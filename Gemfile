@@ -18,6 +18,7 @@ gem 'pony', '1.10'
 #gem 'os'
 gem 'win32-taskscheduler'
 gem 'win32-process', '~> 0.7.4'
+gem 'win32screenshot', '1.0.10'
 # fin new gem
 
 #group :development
