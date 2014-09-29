@@ -22,6 +22,7 @@ test;windows;seven;Chrome;39.0.2139.3;D:\GoogleChromePortableDev\39.0.2139.3\Goo
 test;windows;seven;Chrome;38.0.2125.44;D:\GoogleChromePortableBeta\38.0.2125.44\GoogleChromePortable.exe;false;9975;1
 test;windows;seven;Chrome;36.0.1985.143;D:\GoogleChromePortable\36.0.1985.143\GoogleChromePortable.exe;false;9974;1
 test;windows;seven;Chrome;37.0.2062.103;D:\GoogleChromePortable\37.0.2062.103\GoogleChromePortable.exe;false;9973;1
+test;windows;seven;Chrome;37.0.2062.120;D:\GoogleChromePortable\37.0.2062.120\GoogleChromePortable.exe;false;9972;1
 test;windows;seven;Firefox;31.0;C:\Program Files\Mozilla Firefox\31\firefox.exe;false;9970;1
 test;windows;seven;Firefox;32.0;C:\Program Files\Mozilla Firefox\32\firefox.exe;false;9970;1
 test;windows;xp;Firefox;3.6.8;C:\Program Files\Mozilla Firefox\3.6.8\firefox.exe;false;9970;1
