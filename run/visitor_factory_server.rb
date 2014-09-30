@@ -76,61 +76,74 @@ else
   #--------------------------------------------------------------------------------------------------------------------
   # INCLUDE
   #--------------------------------------------------------------------------------------------------------------------
-   include Errors
+  include Errors
 
   #--------------------------------------------------------------------------------------------------------------------
   # MAIN
   #--------------------------------------------------------------------------------------------------------------------
   begin
-    logger.a_log.info "load browser type repository file : browser_type.csv"
+
     bt = BrowserTypes.new()
-    logger.a_log.info "publish browser type to sahi"
+    logger.a_log.info "load browser type repository file : #{BrowserTypes::BROWSER_TYPE}"
     bt.publish_to_sahi
+    logger.a_log.info "publish browser type to \\lib\\sahi.in.co"
+
 
     vf_arr = []
 
     EM.run do
+      logger.a_log.info "visitor factory server is starting"
+
       Signal.trap("INT") { EventMachine.stop; }
       Signal.trap("TERM") { EventMachine.stop; }
 
-      logger.a_log.info "visitor factory server is starting"
+      # association d'une geolocation factory à chaque visitor_factory pour eviter les contentions car chaque visitorFactory
+      # s'execute dans un thread car c'est un EM::ThreadedResource
+      # remarque  : mettre un Mutex sur @gelocations_factory genere l'erreur :  "deadlock; recursive locking"
+      geolocation_factory = nil
+      case opts[:proxy_type]
+        when "none"
+
+          logger.a_log.info "none geolocation"
+
+        when "factory"
+
+          logger.a_log.info "factory geolocation"
+          geolocation_factory = Geolocations::GeolocationFactory.new(delay_periodic_load_geolocations * 60, logger)
+
+        when "http"
+
+          logger.a_log.info "default geolocation : #{opts[:proxy_ip]}:#{opts[:proxy_port]}"
+          geo_flow = Flow.new(TMP, "geolocations", $staging, Date.today)
+          geo_flow.write(["fr", opts[:proxy_type], opts[:proxy_ip], opts[:proxy_port], opts[:proxy_user], opts[:proxy_pwd]].join(Geolocations::Geolocation::SEPARATOR))
+          geo_flow.close
+          geolocation_factory = Geolocations::GeolocationFactory.new(delay_periodic_load_geolocations * 60, logger)
+
+      end
 
       bt.browser.each { |name|
         bt.browser_version(name).each { |version|
 
           runtime_browser_path = bt.runtime_path(name, version)
-          raise VisitorFactory::VisitorFactoryError.new(VisitorFactory::RUNTIME_BROWSER_PATH_NOT_FOUND), "runtime browser path #{runtime_browser_path} not found" unless File.exist?(runtime_browser_path)
+          unless File.exist?(runtime_browser_path)
+            logger.an_event.error "runtime browser #{name} #{version} path <#{runtime_browser_path}> not found"
+            raise VisitorFactory::VisitorFactoryError.new(VisitorFactory::RUNTIME_BROWSER_PATH_NOT_FOUND)
+          end
+
 
           use_proxy_system = bt.proxy_system?(name, version) == true ? "yes" : "no"
 
           port_proxy_sahi = bt.listening_port_proxy(name, version)
 
-          # association d'une geolocation factory à chaque visitor_factory pour eviter les contentions car chaque visitorFactory
-          # s'execute dans un thread car c'est un EM::ThreadedResource
-          # remarque  : mettre un Mutex sur @gelocations_factory genere l'erreur :  "deadlock; recursive locking"
-          geolocation_factory = nil
-
-          case opts[:proxy_type]
-            when "none"
-
-              logger.a_log.info "none geolocation"
-
-            when "factory"
-
-              logger.a_log.info "factory geolocation"
-              geolocation_factory = Geolocations::GeolocationFactory.new(delay_periodic_load_geolocations * 60, logger)
-
-            when "http"
-
-              logger.a_log.info "default geolocation : #{opts[:proxy_ip]}:#{opts[:proxy_port]}"
-              geo_flow = Flow.new(TMP, "geolocations", $staging, Date.today)
-              geo_flow.write(["fr", opts[:proxy_type], opts[:proxy_ip], opts[:proxy_port], opts[:proxy_user], opts[:proxy_pwd]].join(Geolocations::Geolocation::SEPARATOR))
-              geo_flow.close
-              geolocation_factory = Geolocations::GeolocationFactory.new(delay_periodic_load_geolocations * 60, logger)
-
-          end
-
-          vf = VisitorFactory.new(name, version, use_proxy_system, port_proxy_sahi, $runtime_ruby, $delay_periodic_scan, delay_out_of_time, geolocation_factory, logger)
+          vf = VisitorFactory.new(name,
+                                  version,
+                                  use_proxy_system,
+                                  port_proxy_sahi,
+                                  $runtime_ruby,
+                                  $delay_periodic_scan,
+                                  delay_out_of_time,
+                                  geolocation_factory.nil? ? geolocation_factory : geolocation_factory.dup,
+                                  logger)
           vf.scan_visit_file
           vf_arr << vf
         }
@@ -144,8 +157,6 @@ else
         }
         Monitoring.send_pool_size(pool_size, logger)
       end
-
-
     end
 
   rescue Error => e
@@ -157,10 +168,12 @@ else
         logger.a_log.error e.message
         retry
     end
+
   rescue Exception => e
     logger.a_log.error e.message
     retry
   end
+
   logger.a_log.info "visitor factory server stopped"
 
 

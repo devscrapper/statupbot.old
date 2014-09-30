@@ -90,7 +90,7 @@ class VisitorFactory
       end
       @pool.add visitor_instance
     }
-    @logger.an_event.info "ressource #{@pattern} is on"
+    @logger.an_event.info "Visitor Factory #{@pattern} is on"
   end
 
   #-----------------------------------------------------------------------------------------------------------------
