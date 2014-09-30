@@ -1,3 +1,4 @@
+require_relative 'message'
 module Errors
   #-----------------------------------------------------------------------------------------------------------------
   # error range
@@ -14,6 +15,7 @@ module Errors
   # visitor_factory   | 1000 - ...
   # browser_type.rb   | 1100 - ...
   #-------------------------------------------------------------------------------------------------------------------
+
   class Error < StandardError
     attr_accessor :code, :origin_code, :history
 
@@ -28,12 +30,17 @@ module Errors
     end
 
     def to_s
-      "exception #{self.class} code #{@code}, origin_code #{@origin_code}, history #{@history}"
+      if @origin_code.nil?
+        to_s = "exception #{self.class} code #{@code} : #{Messages.instance[@code]}"
+      else
+        to_s = "exception #{self.class} code #{@code} : #{Messages.instance[@code]}, origin_code #{@origin_code} : #{Messages.instance[@origin_code]}, history #{@history}, " unless @origin_code.nil?
+      end
+      to_s
     end
 
     # convertit une sous class de Error en class Error pour le monitoring afin d'eviter d'envoyer une sous class au monitor
     def to_super
-      er =  Error.new(code)
+      er = Error.new(code)
       er.origin_code = @origin_code
       er.history = @history
       return er

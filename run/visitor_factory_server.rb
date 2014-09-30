@@ -7,6 +7,7 @@ require 'eventmachine'
 require_relative '../lib/logging'
 require_relative '../lib/os'
 require_relative '../lib/parameter'
+require_relative '../lib/error'
 require_relative '../model/browser_type/browser_type'
 require_relative '../model/visitor_factory/visitor_factory'
 require_relative '../model/geolocation/geolocation_factory'
@@ -29,11 +30,10 @@ where [options] are:
   opt :proxy_port, "Port of geolocation proxy", :type => :integer
   opt :proxy_user, "Identified user of geolocation proxy", :type => :string
   opt :proxy_pwd, "Authentified pwd of geolocation proxy", :type => :string
-
-
   opt depends(:proxy_user, :proxy_pwd)
 end
-Trollop::die :proxy_type, "is not in (none|factory|http)" if !["none", "factory" ,"http"].include?(opts[:proxy_type])
+
+Trollop::die :proxy_type, "is not in (none|factory|http)" if !["none", "factory", "http"].include?(opts[:proxy_type])
 Trollop::die :proxy_ip, "is require with proxy" if ["http"].include?(opts[:proxy_type]) and opts[:proxy_ip].nil?
 Trollop::die :proxy_port, "is require with proxy" if ["http"].include?(opts[:proxy_type]) and opts[:proxy_port].nil?
 
@@ -43,7 +43,7 @@ Trollop::die :proxy_port, "is require with proxy" if ["http"].include?(opts[:pro
 begin
   parameters = Parameter.new(__FILE__)
 rescue Exception => e
-  $stderr << e.message  << "\n"
+  $stderr << e.message << "\n"
 else
   $staging = parameters.environment
   $debugging = parameters.debugging
@@ -70,9 +70,14 @@ else
       delay_out_of_time.nil? or
       $debugging.nil? or
       $staging.nil?
-    $stderr << "some parameters not define\n"   << "\n"
+    $stderr << "some parameters not define\n" << "\n"
     exit(1)
   end
+  #--------------------------------------------------------------------------------------------------------------------
+  # INCLUDE
+  #--------------------------------------------------------------------------------------------------------------------
+   include Errors
+
   #--------------------------------------------------------------------------------------------------------------------
   # MAIN
   #--------------------------------------------------------------------------------------------------------------------
@@ -94,7 +99,7 @@ else
         bt.browser_version(name).each { |version|
 
           runtime_browser_path = bt.runtime_path(name, version)
-          raise VisitorFactoryError.new(RUNTIME_BROWSER_PATH_NOT_FOUND), "runtime browser path #{runtime_browser_path} not found" unless File.exist?(runtime_browser_path)
+          raise VisitorFactory::VisitorFactoryError.new(VisitorFactory::RUNTIME_BROWSER_PATH_NOT_FOUND), "runtime browser path #{runtime_browser_path} not found" unless File.exist?(runtime_browser_path)
 
           use_proxy_system = bt.proxy_system?(name, version) == true ? "yes" : "no"
 
@@ -143,9 +148,17 @@ else
 
     end
 
+  rescue Error => e
+
+    case e.code
+      when VisitorFactory::RUNTIME_BROWSER_PATH_NOT_FOUND, Geolocations::GEO_FILE_NOT_FOUND
+        logger.a_log.fatal e.message
+      else
+        logger.a_log.error e.message
+        retry
+    end
   rescue Exception => e
     logger.a_log.error e.message
-    logger.a_log.debug e.backtrace
     retry
   end
   logger.a_log.info "visitor factory server stopped"

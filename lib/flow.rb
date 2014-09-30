@@ -299,13 +299,14 @@ class Flow
     end
   end
 
+
+  # le fichier flow courant doit exister
   def last
-    newer = self
-    Flow.list(@dir, {:type_flow => @type_flow, :label => @label, :ext => @ext}).map { |flow|
-      if flow > self
-
+    arr = Flow.list(@dir, {:type_flow => @type_flow, :label => @label, :ext => @ext})
+    newer = arr[0]
+    arr.each { |flow|
+      if flow > newer
         newer = flow
-
       end
     }
     newer
