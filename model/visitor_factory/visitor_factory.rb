@@ -178,15 +178,17 @@ class VisitorFactory
 
       # si pas d'avert alors :  [:advert][:advertising] = "none"
       # sinon le nom de l'advertising, exemple adsense
-      with_advertising = YAML::load(File.open(details[:visit_file], "r:BOM|UTF-8:-").read)[:advert][:advertising] != :none
+      visit = YAML::load(File.open(details[:visit_file], "r:BOM|UTF-8:-").read)
+      with_advertising = visit[:advert][:advertising] != :none
+      with_google_engine = visit[:referrer][:source] == "google" && visit[:referrer][:medium] == "organic"
 
-      # si un advert est présent alors on sélectionne une geolocation francaise
       cmd = "#{@runtime_ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  \
-                              #{VISITOR_BOT} \
+      #{VISITOR_BOT} \
                               -v #{details[:visit_file]} \
                               -t #{details[:port_proxy_sahi]} \
                               -p #{@use_proxy_system} \
-                              #{with_advertising ? geolocation("fr") : geolocation}"
+      #{geolocation(with_advertising, with_google_engine)}"
+
 
       @logger.an_event.debug "cmd start visitor_bot #{cmd}"
 
@@ -232,31 +234,30 @@ class VisitorFactory
   #-----------------------------------------------------------------------------------------------------------------
   #
   #-----------------------------------------------------------------------------------------------------------------
-  def geolocation(country=nil)
+  def geolocation(with_advertising, with_google_engine)
     # si exception pour le get : NONE_GEOLOCATION => pas de geolocalisation
     # si exception pour le get_french : GEO_NONE_FRENCH => pas de geolocation francaise
     # sinon retour d'une geolocation qui est  :
     # soit issu d'une liste de proxy
     # soit le proxy par defaut de l'entreprise  passé en paramètre de visitorfactory_server : geolocation = "-r http -o muz11-wbsswsg.ca-technologies.fr -x 8080 -y ET00752 -w Bremb@09"
     # si la visit contient un advert alors on essaie de recuperer un geolocation francais.
+    # si le moteur de recherche est google alors on essaie de recuperer une geolocation qui s'appuie sur https
     # sinon un geolocation.
 
     begin
 
-      case country
-        when "fr"
-          geo = @geolocation_factory.get_french
-        else
-          geo = @geolocation_factory.get
-      end
+      geo = @geolocation_factory.get(:country => with_advertising ? "fr" : nil,
+                                     :protocol => with_google_engine ? "https" : nil)
 
     rescue GeolocationError => e
-
+      @logger.an_event.warn e.message
       geo_to_s = ""
 
     else
 
-      geo_to_s = "-r #{geo.protocol} -o #{geo.ip} -x #{geo.port} -y #{geo.user} -w #{geo.password}"
+      geo_to_s = "-r #{geo.protocol} -o #{geo.ip} -x #{geo.port}"
+      geo_to_s += " -y #{geo.user}" unless geo.user
+      geo_to_s += " -w #{geo.password}" unless geo.password
 
     ensure
       @logger.an_event.info "geolocation is <#{geo_to_s}>"

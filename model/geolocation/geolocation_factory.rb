@@ -17,7 +17,8 @@ module Geolocations
   GEO_BAD_PROPERTIES = 1302
   GEO_NOT_AVAILABLE = 1303
   GEO_FILE_NOT_FOUND = 1304
-  GEO_NONE_FRENCH = 1305
+  GEO_NONE_COMPLIANT = 1305
+  GEO_NOT_VALID = 1306
 
   class GeolocationFactory
 
@@ -81,9 +82,86 @@ module Geolocations
     end
 
 
+    def valid?(geo, criteria)
+
+
+    end
+
     # retourne un objet geolocation ou
     # retourne une exception si plus aucun geolocation dans la factory
-    def get
+    # retourne une exception si plus aucun geolocation ne satisfait les criteres
+    def get(criteria)
+      @logger.an_event.debug "BEGIN GeolocationFactory.get_french"
+
+      geo_count = @geolocations.size
+      i = 1
+
+      begin
+        geo = select
+        p geo
+        p criteria
+        raise GeolocationError.new(GEO_NOT_VALID) if (!criteria[:country].nil? and criteria[:country].downcase != geo.country.downcase) or
+            (!criteria[:protocol].nil? and criteria[:protocol].downcase != geo.protocol.downcase)
+      rescue GeolocationError => e
+        case e.code
+          when NONE_GEOLOCATION
+            raise e
+          when GEO_NOT_VALID
+            if i < geo_count
+              i += 1
+              retry
+            else
+              raise GeolocationError.new(GEO_NONE_COMPLIANT), "none geolocation compliant"
+            end
+        end
+      else
+        #on sort de la boucle :
+        # soit on a trouve une geo qui repond aux criteres passés si il y en a
+        # soit parce que on les a passé tous les geo et il n'y a aucun geolocation qui satisfont les critères => exception
+
+        return geo
+      ensure
+
+        @logger.an_event.debug "END GeolocationFactory.get"
+
+      end
+    end
+
+
+    def to_s
+      @geolocations.join("\n")
+    end
+
+    def load
+      @logger.an_event.debug "BEGIN GeolocationFactory.load"
+
+      clear
+
+      @geolocations_file.foreach(EOFLINE) { |geo_line|
+
+        begin
+
+          @geolocations << Geolocation.new(geo_line)
+
+        rescue Exception => e
+
+          @logger.an_event.warn e.message
+
+        end
+      }
+
+      @geolocations_file.close
+
+      @logger.an_event.info "#{@geolocations.size} geolocation(s) loaded"
+
+      @logger.an_event.debug "END GeolocationFactory.load"
+    end
+
+    private
+
+    # retourne un objet geolocation ou
+    # retourne une exception si plus aucun geolocation dans la factory
+    def select
       @logger.an_event.debug "BEGIN GeolocationFactory.get"
 
       begin
@@ -121,69 +199,6 @@ module Geolocations
 
       geo
 
-    end
-
-    # retourne un objet geolocation ou
-    # retourne une exception si plus aucun geolocation dans la factory
-    def get_french
-      @logger.an_event.debug "BEGIN GeolocationFactory.get_french"
-
-      begin
-
-        geo_count = @geolocations.size
-        geo = get
-        i = 1
-
-        while geo.country != "fr" and i < geo_count
-          geo = get
-          i += 1
-        end
-
-      rescue Exception => e
-        #si il n'y a plus de geo dans la factory
-        raise e
-
-      else
-        #on sort de la boucle :
-        # soit on a trouve une geo francais
-        # soit parce que on les a tous passé et il n'y a aucun geolocation francais => execption
-        raise GeolocationError.new(GEO_NONE_FRENCH), "none french geolocation" unless geo.country == "fr"
-
-      ensure
-
-        @logger.an_event.debug "END GeolocationFactory.get_french"
-        return geo
-      end
-    end
-
-
-    def to_s
-      @geolocations.join("\n")
-    end
-
-    def load
-      @logger.an_event.debug "BEGIN GeolocationFactory.load"
-
-      clear
-
-      @geolocations_file.foreach(EOFLINE) { |geo_line|
-
-        begin
-
-          @geolocations << Geolocation.new(geo_line)
-
-        rescue Exception => e
-
-          @logger.an_event.warn e.message
-
-        end
-      }
-
-      @geolocations_file.close
-
-      @logger.an_event.info "#{@geolocations.size} geolocation(s) loaded"
-
-      @logger.an_event.debug "END GeolocationFactory.load"
     end
   end
 end

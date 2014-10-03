@@ -14,7 +14,7 @@ module Geolocations
     def initialize(geo_line)
       # accepte les hsotname ou les @ip pour <ip>
 
-      r = /(?<country>.*)#{SEPARATOR}(?<protocol>http);(?<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|.*\..*\..*);(?<port>\d{1,5});(?<user>.*);(?<password>.*)/.match(geo_line)
+      r = /(?<country>.*)#{SEPARATOR}(?<protocol>http|HTTP|https|HTTPS);(?<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|.*\..*\..*);(?<port>\d{1,5});(?<user>.*);(?<password>.*)/.match(geo_line)
       unless r.nil?
         @country = r[:country]
         @protocol = r[:protocol]

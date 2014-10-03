@@ -1,6 +1,6 @@
 require 'pathname'
 require_relative '../../../lib/os'
-
+require_relative '../../../lib/error'
 module Browsers
   module SahiCoIn
     class Proxy
