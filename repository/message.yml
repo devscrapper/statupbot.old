@@ -80,6 +80,7 @@
 1300: "argument not define"
 1301: "none geolocation"
 1302: "geolocation has bad properties"
-1303: "geo not available"
-1304: "geo file not found"
-1305: "geo none french"
+1303: "geolocation not available"
+1304: "geolocation file not found"
+1305: "none geolocation compliant"
+1306: "geolocation not compliant

@@ -222,7 +222,9 @@ def visitor_is_no_slave(opts)
   begin
 
     if visit.advertising?
-      #TODO a decommenter lorsque le service de proxy de geolocation sera en ligne
+      #TODO a decommenter lorsque :
+      # TODO le service de proxy de geolocation sera en ligne  et 100% operationnel
+      # TODO un site sera founir avec un compte adsens dédié
       #advertiser_landing_page = visitor.click_on_advert(final_visit_page.advert)
 
     end
