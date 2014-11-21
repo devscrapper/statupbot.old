@@ -1,9 +1,9 @@
 require 'uuid'
 require 'uri'
-require_relative '../../lib/logging'
-require_relative 'referrer/referrer'
-require_relative 'advertising/advertising'
 require_relative '../../lib/error'
+require_relative '../../lib/logging'
+require_relative 'advertising/advertising'
+
 
 module Visits
 
@@ -13,14 +13,12 @@ module Visits
     # include class
     #----------------------------------------------------------------------------------------------------------------
     include Errors
-    #    include Referrers
     include Advertisings
 
     #----------------------------------------------------------------------------------------------------------------
     # Message exception
     #----------------------------------------------------------------------------------------------------------------
-    class VisitError < Error
-    end
+
     ARGUMENT_UNDEFINE = 700
     VISIT_NOT_CREATE = 701
     VISIT_NOT_FOUND = 702
@@ -47,24 +45,26 @@ module Visits
     # class methods
     #----------------------------------------------------------------------------------------------------------------
     def self.build(file_path)
-      @@logger.an_event.debug "BEGIN Visit.build"
-
-      @@logger.an_event.debug "file_path #{file_path}"
-      raise VisitError.new(ARGUMENT_UNDEFINE), "file_path undefine" if file_path.nil?
-      raise VisitError.new(VISIT_NOT_FOUND), "visit file #{file_path} not found" unless File.exist?(file_path)
-
       begin
+
+        @@logger.an_event.debug "file_path #{file_path}"
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "file_path"}) if file_path.nil?
+        raise Error.new(VISIT_NOT_FOUND, :values => {:path => file_path}) unless File.exist?(file_path)
+
+
         visit_file = File.open(file_path, "r:BOM|UTF-8:-")
         visit_details = YAML::load(visit_file.read)
         visit_file.close
-        @@logger.an_event.info "visit file #{file_path} load"
+
       rescue Exception => e
-        @@logger.an_event.error "visit file #{file_path} not load : #{e.message}"
-        raise VisitError.new(VISIT_NOT_LOAD), "visit file #{file_path} not load"
+        @@logger.an_event.error e.message
+        raise Error.new(VISIT_NOT_CREATE, :values => {:path => file_path}, :error => e)
+
       else
+        @@logger.an_event.info "visit file #{file_path} create"
         return visit_details
+
       ensure
-        @@logger.an_event.debug "END Visit.build"
 
       end
     end
@@ -92,7 +92,7 @@ module Visits
     # {"id_visit":"1321","start_date_time":"2013-04-21 00:13:00 +0200","account_ga":"pppppppppppppp","return_visitor":"true","browser":"Internet Explorer","browser_version":"8.0","operating_system":"Windows","operating_system_version":"XP","flash_version":"11.6 r602","java_enabled":"Yes","screens_colors":"32-bit","screen_resolution":"1024x768","referral_path":"(not set)","source":"google","medium":"organic","keyword":"(not provided)","pages":[{"id_uri":"856","delay_from_start":"33","hostname":"centre-aude.epilation-laser-definitive.info","page_path":"/ville-11-castelnaudary.htm","title":"Centre d'épilation laser CASTELNAUDARY centres de remise en forme CASTELNAUDARY"}]}
     #----------------------------------------------------------------------------------------------------------------
     def initialize(visit_details)
-      @@logger.an_event.debug "BEGIN Visit.initialize"
+
 
       @@logger.an_event.debug "id_visit #{visit_details[:id_visit]}"
       @@logger.an_event.debug "visitor #{visit_details[:visitor]}"
@@ -102,16 +102,18 @@ module Visits
       @@logger.an_event.debug "fqdn #{visit_details[:landing][:fqdn]}"
       @@logger.an_event.debug "page_path #{visit_details[:landing][:page_path]}"
 
-      raise VisitorError.new(ARGUMENT_UNDEFINE), "id_visit undefine" if visit_details[:id_visit].nil?
-      raise VisitorError.new(ARGUMENT_UNDEFINE), "visitor undefine" if visit_details[:visitor].nil?
-      raise VisitorError.new(ARGUMENT_UNDEFINE), "start_date_time undefine" if visit_details[:start_date_time].nil?
-      raise VisitorError.new(ARGUMENT_UNDEFINE), "many_hostname undefine" if visit_details[:website][:many_hostname].nil?
-      raise VisitorError.new(ARGUMENT_UNDEFINE), "many_account_ga undefine" if visit_details[:website][:many_account_ga].nil?
-      raise VisitorError.new(ARGUMENT_UNDEFINE), "fqdn undefine" if visit_details[:landing][:fqdn].nil?
-      raise VisitorError.new(ARGUMENT_UNDEFINE), "page_path undefine" if visit_details[:landing][:page_path].nil?
-
 
       begin
+
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "id_visit"}) if visit_details[:id_visit].nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "visitor"}) if visit_details[:visitor].nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "start_date_time"}) if visit_details[:start_date_time].nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "many_hostname"}) if visit_details[:website][:many_hostname].nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "many_account_ga"}) if visit_details[:website][:many_account_ga].nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "fqdn"}) if visit_details[:landing][:fqdn].nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "page_path"}) if visit_details[:landing][:page_path].nil?
+
+
         @id = visit_details[:id_visit]
         @visitor_details = visit_details[:visitor]
         @start_date_time = visit_details[:start_date_time]
@@ -121,16 +123,15 @@ module Visits
         @referrer = Referrer.build(visit_details[:referrer], @landing_url)
         @advertising = Advertising.build(visit_details[:advert])
 
-        @@logger.an_event.debug "visit #{@id} is create"
-
-      rescue Error => e
-        @@logger.an_event.error "visit #{visit_details[:id_visit]} not create #{e.message}"
-        raise VisitError.new(VISIT_NOT_CREATE, e), "visit #{visit_details[:id_visit]} not create"
       rescue Exception => e
-        @@logger.an_event.error "visit #{visit_details[:id_visit]} not create #{e.message}"
-        raise VisitError.new(VISIT_NOT_CREATE), "visit #{visit_details[:id_visit]} not create"
+        @@logger.an_event.fatal e.message
+        raise e
+
+      else
+        @@logger.an_event.debug "visit #{@id} initialize"
+
       ensure
-        @@logger.an_event.debug "END Visit.initialize"
+
       end
     end
 
@@ -144,50 +145,6 @@ module Visits
     def advertising?
       !@advertising.is_a?(NoAdvertising)
     end
-
-    #----------------------------------------------------------------------------------------------------------------
-    # plan
-    #----------------------------------------------------------------------------------------------------------------
-    # enregistre la visite aupres du schelduler
-    # planifie le referer et les pages
-    #----------------------------------------------------------------------------------------------------------------
-    # input :
-    #----------------------------------------------------------------------------------------------------------------
-=begin
-  def plan(scheduler)
-    begin
-      scheduler.at @start_date_time do
-        assign_visitor
-      end
-      @@logger.an_event.info "assign visitor to #{@id} is planed at #{@start_date_time}"
-
-      @referer.plan(scheduler, @visitor_id)
-
-      Page.plan(@pages, scheduler, @visitor_id)
-
-      #TODO VALIDATE la planification de la publcité
-      @publicity.plan(scheduler, @visitor_id)
-
-      scheduler.at @stop_date_time do
-        free_visitor
-      end
-      @@logger.an_event.info "free visitor of visit #{@id} is planed at #{stop_date_time}"
-    rescue VisitException => e
-      @@logger.an_event.debug e
-      @@logger.an_event.info "assign or free visitor of visit #{@id} is not plan"
-      raise VisitException, e.message
-    rescue ReferralException => e
-      @@logger.an_event.debug e
-      @@logger.an_event.info "referrer of visit #{@id} is not plan"
-      raise VisitException, e.message
-    rescue PublicityException => e
-      @@logger.an_event.debug e
-      @@logger.an_event.info "publicity of visit #{@id} is not plan"
-      raise VisitException, e.message
-    end
-
-  end
-=end
 
   end
 end

@@ -1,6 +1,6 @@
 require_relative '../../lib/error'
 module EngineSearches
-  class Google < EngineSearch
+  class Yahoo < EngineSearch
 
     include Errors
     #----------------------------------------------------------------------------------------------------------------
@@ -22,7 +22,7 @@ module EngineSearches
                 :id_search_button,
                 :name_search_button,
                 :label_search_button
-    #TODO rework google search avec primitive sahi et css
+    #TODO finir yahoo search
     def initialize
       @page_url = "http://www.google.fr/?nord=1"
       @page_url = "https://www.google.fr/"

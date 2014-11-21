@@ -12,6 +12,7 @@ require_relative '../model/browser_type/browser_type'
 require_relative '../model/visitor_factory/visitor_factory'
 require_relative '../model/geolocation/geolocation_factory'
 require_relative '../model/monitoring/public'
+require_relative '../model/visitor_factory/http_server'
 
 
 TMP = Pathname(File.join(File.dirname(__FILE__), "..", "tmp")).realpath
@@ -42,6 +43,7 @@ Trollop::die :proxy_port, "is require with proxy" if ["http"].include?(opts[:pro
 #--------------------------------------------------------------------------------------------------------------------
 begin
   parameters = Parameter.new(__FILE__)
+  parameters_visitor_bot = Parameter.new("visitor_bot.rb")
 rescue Exception => e
   $stderr << e.message << "\n"
 else
@@ -52,6 +54,12 @@ else
   delay_out_of_time = parameters.delay_out_of_time
   delay_periodic_pool_size_monitor = parameters.delay_periodic_pool_size_monitor
   delay_periodic_load_geolocations = parameters.delay_periodic_load_geolocations
+  monitoring_server_ip = parameters.monitoring_server_ip
+  http_server_listening_port = parameters.http_server_listening_port
+  # recuperation du mode debug ou pas de visitor_bot pour selectionner le fichier de log de visitor_bot à afficher dans le monitoring.
+  # l extension est differente entre debug et non debug
+  debugging_visitor_bot = parameters_visitor_bot.debugging
+
 
   logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
 
@@ -62,6 +70,9 @@ else
   logger.a_log.info "delay_periodic_pool_size_monitor (minute) : #{delay_periodic_pool_size_monitor}"
   logger.a_log.info "delay_periodic_load_geolocations (minute) : #{delay_periodic_load_geolocations}"
   logger.a_log.info "delay_out_of_time (minute): #{delay_out_of_time}"
+  logger.a_log.info "monitoring_server_ip: #{monitoring_server_ip}"
+  logger.a_log.info "http_server_listening_port: #{http_server_listening_port}"
+  logger.a_log.info "debugging_visitor_bot: #{debugging_visitor_bot}"
   logger.a_log.info "debugging : #{$debugging}"
   logger.a_log.info "staging : #{$staging}"
 
@@ -157,9 +168,11 @@ else
         }
         Monitoring.send_pool_size(pool_size, logger)
       end
+
+      EventMachine.start_server monitoring_server_ip, http_server_listening_port, HTTPHandler, debugging_visitor_bot
     end
 
-  rescue Error => e
+  rescue Exception => e
 
     case e.code
       when VisitorFactory::RUNTIME_BROWSER_PATH_NOT_FOUND, Geolocations::GEO_FILE_NOT_FOUND

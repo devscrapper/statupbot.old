@@ -1,28 +1,32 @@
+require_relative '../../../lib/error'
 
 module Visits
   module Advertisings
     class Adsense < Advertising
 
+      include Errors
 
       def initialize(advertiser)
-        @@logger.an_event.debug "BEGIN Adsense.initialize"
 
         @@logger.an_event.debug "advertiser #{advertiser}"
 
-        raise AdvertisingError.new(ARGUMENT_UNDEFINE), "advertiser undefine" if advertiser.nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "advertiser"}) if advertiser.nil?
+        #adclick.g.doubleclick.net
+        #googleads.g.doubleclick.net
+        #"www.googleadservices.com"
 
         @domains = ["googleads.g.doubleclick.net"]
         # 2014/09/08 : Adsens offre 2 solutions pour cliquer sur la pub : un titre ou un button
         # les liens sont identifiés grace à leur class HTML.
-        @link_identifiers = ["rhtitle", "rhbutton"]
+        # correction 2014/10/15 : Adsense à plusieurs façon de présenter la pub :
+        # avec titre et bouton : les liens sont identifiés grace à leur class HTML : rhtitle & rhbutton
+        # avec un libellé : les liens sont identifiés grace à leur class HTML : alt
+        @link_identifiers = ["alt","rhtitle", "rhbutton"]
         @advertiser = advertiser
 
-        @@logger.an_event.debug "END Adsense.initialize"
       end
 
-      def advert  (&block)
-        @@logger.an_event.debug "BEGIN Adsense.advert"
-
+      def advert (&block)
         links = []
         link = []
         begin
@@ -31,16 +35,24 @@ module Visits
               links += yield domain, link_identifier
             }
           }
-          links.each { |link| @@logger.an_event.debug "advert link : #{link}" }
-        rescue Error => e
-          @@logger.an_event.error "advert Adsens not found : #{e.message}"
-          raise AdvertisingError.new(ADVERT_NOT_FOUND), "advert Adsens not found : #{e.message}"
+
+        rescue Exception => e
+          @@logger.an_event.error e.message
+          raise Error.new(ADVERT_NOT_FOUND, :error => e)
+
         else
-          l = links.shuffle![0]
-          link = [l, l.text || l.title]
+          links.each { |link| @@logger.an_event.debug "advert link : #{link}" }
+
+          if links.empty?
+            raise Error.new(NONE_ADVERT, :values => {:advert => self.class})
+
+          else
+            l = links.shuffle![0]
+            return [l, l.text || l.title]
+          end
+
         ensure
-          @@logger.an_event.debug "END Adsense.advert"
-          return link
+
         end
 
       end

@@ -19,11 +19,6 @@ class VisitorFactory
   # Exception message
   #----------------------------------------------------------------------------------------------------------------
 
-
-  class VisitorFactoryError < Error
-
-  end
-
   ARGUMENT_UNDEFINE = 1000
   RUNTIME_BROWSER_PATH_NOT_FOUND = 1001
   #----------------------------------------------------------------------------------------------------------------
@@ -239,7 +234,7 @@ class VisitorFactory
     # si exception pour le get_french : GEO_NONE_FRENCH => pas de geolocation francaise
     # sinon retour d'une geolocation qui est  :
     # soit issu d'une liste de proxy
-    # soit le proxy par defaut de l'entreprise  passé en paramètre de visitorfactory_server : geolocation = "-r http -o muz11-wbsswsg.ca-technologies.fr -x 8080 -y ET00752 -w Bremb@09"
+    # soit le proxy par defaut de l'entreprise  passé en paramètre de visitorfactory_server : geolocation = "-r http -o muz11-wbsswsg.ca-technologies.fr -x 8080 -y ET00752 -w Bremb@10"
     # si la visit contient un advert alors on essaie de recuperer un geolocation francais.
     # si le moteur de recherche est google alors on essaie de recuperer une geolocation qui s'appuie sur https
     # sinon un geolocation.

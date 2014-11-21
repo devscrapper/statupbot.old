@@ -1,4 +1,4 @@
- require_relative '../../lib/error'
+require_relative '../../lib/error'
 
 module EngineSearches
   class EngineSearch
@@ -10,14 +10,11 @@ module EngineSearches
     #----------------------------------------------------------------------------------------------------------------
     # Message exception
     #----------------------------------------------------------------------------------------------------------------
-    class EngineSearchError < Error
-
-    end
     ARGUMENT_UNDEFINE = 900
-    SEARCH_ENGINE_UNKNOWN = 901
-    ENGINE_NOT_FOUND_LANDING_LINK = 903
-    ENGINE_NOT_FOUND_NEXT_LINK = 904
-
+    ENGINE_UNKNOWN = 901
+    ENGINE_NOT_FOUND_LANDING_LINK = 902
+    ENGINE_NOT_FOUND_NEXT_LINK = 903
+    ENGINE_NOT_CREATE = 904
     #----------------------------------------------------------------------------------------------------------------
     # attribut
     #----------------------------------------------------------------------------------------------------------------
@@ -27,22 +24,27 @@ module EngineSearches
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
-    def self.build(engine) #, driver, sleeping_time)   pour webdriver
-      @@logger.an_event.debug "BEGIN EngineSearch.build"
+    def self.build(engine)
+
       case engine
         when "google"
-          return Google.new()
-        #   when "bing"
-        #     return Bing.new()
+          return Google.new
+        when "bing"
+          return Bing.new
+        when "yahoo"
+          return Yahoo.new
         else
-          @@logger.an_event.warn "engine search <#{engine}> unknown"
-          raise EngineSearchError.new(SEARCH_ENGINE_UNKNOWN), "engine search <#{engine}> unknown"
+          raise Error.new(ENGINE_UNKNOWN, :values => {:engine => engine})
       end
     rescue Exception => e
-      @@logger.an_event.debug e.message
-      raise e
+      @@logger.an_event.error e.message
+      raise Error.new(ENGINE_NOT_CREATE, :values => {:engine => engine}, :error => e)
+
+    else
+      @@logger.an_event.debug "search engine #{engine} create"
+
     ensure
-      @@logger.an_event.debug "END EngineSearch.build"
+
     end
   end
 end

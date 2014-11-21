@@ -12,8 +12,6 @@ require 'yaml'
     #----------------------------------------------------------------------------------------------------------------
     # Message exception
     #----------------------------------------------------------------------------------------------------------------
-    class BrowserTypeError < Error
-    end
     ARGUMENT_NOT_DEFINE = 1100
     BROWSER_TYPE_NOT_DEFINE = 1101
     BROWSER_VERSION_NOT_DEFINE = 1102
@@ -21,6 +19,7 @@ require 'yaml'
     OS_VERSION_UNKNOWN = 1104
     OS_UNKNOWN = 1105
     BROWSER_TYPE_NOT_PUBLISH = 1106
+    BROWSER_TYPE_NOT_CREATE = 1107
     #----------------------------------------------------------------------------------------------------------------
     # constants
     #----------------------------------------------------------------------------------------------------------------
@@ -54,8 +53,8 @@ require 'yaml'
     # class methods
     #----------------------------------------------------------------------------------------------------------------
     def initialize
-
-      raise BrowserTypeError.new(BROWSER_TYPE_NOT_DEFINE), "file #{BROWSER_TYPE} not found" unless File.exist?(BROWSER_TYPE)
+      begin
+      raise Error.new(BROWSER_TYPE_NOT_DEFINE, values => {:path => BROWSER_TYPE}) unless File.exist?(BROWSER_TYPE)
       @current_os = OS.name
       @current_os_version = OS.version
 
@@ -79,15 +78,23 @@ require 'yaml'
           @browsers[browser][browser_version] = data if @browsers[browser][browser_version].nil?
         end
       }
+      rescue Exception => e
+        raise Error.new(BROWSER_TYPE_NOT_CREATE, :error => e)
+      else
+      ensure
+      end
     end
 
     #----------------------------------------------------------------------------------------------------------------
     # instance methods
     #----------------------------------------------------------------------------------------------------------------
     def publish_to_sahi
-      raise BrowserTypeError.new(BROWSER_TYPE_EMPTY), "browser type is empty" if @browsers.nil?
+
+
 # si la var envir "ProgramFiles(x86)" n'existe pas : XP, Vista
       begin
+        raise Error.new(BROWSER_TYPE_EMPTY) if @browsers.nil?
+
         data = <<-_end_of_xml_
 <browserTypes>
 #{publish_browsers}
@@ -103,20 +110,23 @@ require 'yaml'
               when :seven
                 out_filename = WIN64_XML
               else
-                raise BrowserTypeError.new(OS_VERSION_UNKNOWN), "os version #{@current_os_version} unknown"
+                raise Error.new(OS_VERSION_UNKNOWN, :value => {:os => @current_os, :vrs => @current_os_version})
             end
           when :linux
             out_filename = LINUX_XML
           when :mac
             out_filename = MAC_XML
           else
-            raise BrowserTypeError.new(OS_UNKNOWN), "os #{@current_os} unknown"
+            raise Error.new(OS_UNKNOWN, :value => {:os => @current_os})
         end
         f = File.new(out_filename, "w+")
         f.write(data)
         f.close
+
       rescue Exception => e
-        raise BROWSER_TYPE_NOT_PUBLISH, "#{BROWSER_TYPE} not publish to sahi"
+        raise Error.new(BROWSER_TYPE_NOT_PUBLISH, :error => e)
+      else
+      ensure
       end
     end
 
@@ -137,7 +147,7 @@ require 'yaml'
       begin
         @browsers[browser][browser_version]["proxy_system"]=="true"
       rescue Exception => e
-        raise BrowserTypeError.new(BROWSER_VERSION_NOT_DEFINE, e), "#{@current_os} #{@current_os_version} #{browser} #{browser_version} not define in browser type"
+        raise Error.new(BROWSER_VERSION_NOT_DEFINE, :values => {:browser => browser, :vrs => browser_version})
       ensure
       end
     end
@@ -146,7 +156,7 @@ require 'yaml'
       begin
         @browsers[browser][browser_version]["listening_port_proxy"]
       rescue Exception => e
-        raise BrowserTypeError.new(BROWSER_VERSION_NOT_DEFINE, e), "#{@current_os} #{@current_os_version} #{browser} #{browser_version} not define in browser type"
+        raise Error.new(BROWSER_VERSION_NOT_DEFINE, :values => {:browser => browser, :vrs => browser_version})
       ensure
       end
     end
@@ -155,7 +165,7 @@ require 'yaml'
       begin
         @browsers[browser][browser_version]["runtime_path"]
       rescue Exception => e
-        raise BrowserTypeError.new(BROWSER_VERSION_NOT_DEFINE, e), "#{@current_os} #{@current_os_version} #{browser} #{browser_version} not define in browser type"
+        raise Error.new(BROWSER_VERSION_NOT_DEFINE, :values => {:browser => browser, :vrs => browser_version})
       ensure
       end
     end

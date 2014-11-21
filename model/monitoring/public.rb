@@ -3,7 +3,7 @@ require_relative '../../lib/error'
 require 'rubygems' # if you use RubyGems
 require 'socket'
 require 'eventmachine'
-
+#TODO à deplacer dans \lib
 module Monitoring
   #--------------------------------------------------------------------------------------------------------------------
   # INIT
@@ -17,7 +17,7 @@ module Monitoring
               :http_server_listening_port,
               :visit_out_of_time_listening_port,
               :advert_select_listening_port,
-              :debugging_visitor_bot
+              :monitor_server_ip
 
   #--------------------------------------------------------------------------------------------------------------------
   # CLIENT
@@ -150,7 +150,7 @@ module Monitoring
     begin
       load_parameter()
       stop_EM = false
-      EM.connect '127.0.0.1', @advert_select_listening_port, AdvertSelectClient, visit_details, logger, stop_EM
+      EM.connect @monitor_server_ip, @advert_select_listening_port, AdvertSelectClient, visit_details, logger, stop_EM
 
     rescue RuntimeError => e
       case e.message
@@ -158,7 +158,7 @@ module Monitoring
         when "eventmachine not initialized: evma_connect_to_server"
           EventMachine.run {
             stop_EM = true
-            EM.connect '127.0.0.1', @advert_select_listening_port, AdvertSelectClient, visit_details, logger, stop_EM
+            EM.connect @monitor_server_ip, @advert_select_listening_port, AdvertSelectClient, visit_details, logger, stop_EM
           }
         else
           logger.an_event.error "not sent advert select of visit #{visit_details[:id_visit]} to monitoring server : #{e.message}"
@@ -173,7 +173,7 @@ module Monitoring
 
       load_parameter()
       stop_EM = false
-      EM.connect '127.0.0.1', @return_code_listening_port, ReturnCodeClient, return_code.to_super, visit_details, logger, stop_EM
+      EM.connect @monitor_server_ip, @return_code_listening_port, ReturnCodeClient, return_code, visit_details, logger, stop_EM
 
     rescue RuntimeError => e
       case e.message
@@ -181,7 +181,7 @@ module Monitoring
         when "eventmachine not initialized: evma_connect_to_server"
           EventMachine.run {
             stop_EM = true
-            EM.connect '127.0.0.1', @return_code_listening_port, ReturnCodeClient, return_code.to_super, visit_details, logger, stop_EM
+            EM.connect @monitor_server_ip, @return_code_listening_port, ReturnCodeClient, return_code, visit_details, logger, stop_EM
           }
         else
           logger.an_event.error "not sent success code to monitoring server : #{e.message}"
@@ -206,7 +206,7 @@ module Monitoring
       # par defaut on considere que EM est déjà actif => stop_EM = false
       # cas d'usage  : visitor_factory_server ; il ne faut pas stoper la boucle EM avec EM.stop localisé dans unbind (ci-dessus)
       stop_EM = false
-      EM.connect '127.0.0.1', @visit_out_of_time_listening_port, VisitOutOfTimeClient, pattern, logger, stop_EM
+      EM.connect @monitor_server_ip, @visit_out_of_time_listening_port, VisitOutOfTimeClient, pattern, logger, stop_EM
 
     rescue RuntimeError => e
       case e.message
@@ -216,7 +216,7 @@ module Monitoring
           # cas d'usage : visitor_bot ; il faut arrter la boucle EM au moyen del 'EM.stop localisé dans unbind(ci-dessus)
           EM.run {
             stop_EM = true
-            EM.connect '127.0.0.1', @visit_out_of_time_listening_port, VisitOutOfTimeClient, pattern, logger, stop_EM
+            EM.connect @monitor_server_ip, @visit_out_of_time_listening_port, VisitOutOfTimeClient, pattern, logger, stop_EM
           }
         else
           logger.an_event.error "not sent visit out of time #{pattern} to monitoring server : #{e.message}"
@@ -233,7 +233,7 @@ module Monitoring
       # par defaut on considere que EM est déjà actif => stop_EM = false
       # cas d'usage  : visitor_factory_server ; il ne faut pas stoper la boucle EM avec EM.stop localisé dans unbind (ci-dessus)
       stop_EM = false
-      EM.connect '127.0.0.1', @pool_size_listening_port, PoolSizeClient, pool_size, logger, stop_EM
+      EM.connect @monitor_server_ip, @pool_size_listening_port, PoolSizeClient, pool_size, logger, stop_EM
 
     rescue RuntimeError => e
       case e.message
@@ -243,7 +243,7 @@ module Monitoring
           # cas d'usage : visitor_bot ; il faut arrter la boucle EM au moyen del 'EM.stop localisé dans unbind(ci-dessus)
           EM.run {
             stop_EM = true
-            EM.connect '127.0.0.1', @pool_size_listening_port, PoolSizeClient, pool_size, logger, stop_EM
+            EM.connect @monitor_server_ip, @pool_size_listening_port, PoolSizeClient, pool_size, logger, stop_EM
           }
         else
           logger.an_event.error "not sent pool size to monitoring server : #{e.message}"
@@ -265,21 +265,14 @@ module Monitoring
     else
       $staging = parameters.environment
       $debugging = parameters.debugging
+      @monitor_server_ip = parameters.monitor_server_ip
       @return_code_listening_port = parameters.return_code_listening_port
       @pool_size_listening_port = parameters.pool_size_listening_port
       @visit_out_of_time_listening_port = parameters.visit_out_of_time_listening_port
       @http_server_listening_port = parameters.http_server_listening_port
       @advert_select_listening_port = parameters.advert_select_listening_port
     end
-    # recuperation du mode debug ou pas de visitor_bot pour selectionner le fichier de log de visitor_bot à afficher dans le monitoring.
-    # l extension est differente entre debug et non debug
-    begin
-      parameters = Parameter.new("visitor_bot.rb")
-    rescue Exception => e
-      $stderr << e.message      << "\n"
-    else
-      @debugging_visitor_bot = parameters.debugging
-    end
+
   end
 
 
@@ -289,12 +282,6 @@ module Monitoring
   module_function :send_success
   module_function :send_pool_size
   module_function :send_visit_out_of_time
-  module_function :return_code_listening_port
-  module_function :pool_size_listening_port
-  module_function :visit_out_of_time_listening_port
-  module_function :debugging_visitor_bot
-  module_function :http_server_listening_port
-  module_function :advert_select_listening_port
   module_function :load_parameter
 
 

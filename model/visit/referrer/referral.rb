@@ -1,4 +1,5 @@
 require 'uri'
+require_relative '../../../lib/error'
 module Visits
   module Referrers
     class Referral < Referrer
@@ -6,29 +7,33 @@ module Visits
       attr :page_url, # URI de la page referral
            :duration
 
+      include Errors
 
       def initialize(referer_details, landing_page)
-        @@logger.an_event.debug "BEGIN Referral.initialize"
 
-        raise ReferrerError.new(ARGUMENT_UNDEFINE), "landing page undefine" if landing_page.nil?
-        raise ReferrerError.new(ARGUMENT_UNDEFINE), "referral_path undefine" if referer_details[:referral_path].nil?
-        raise ReferrerError.new(ARGUMENT_UNDEFINE), "durations undefine" if referer_details[:duration].nil?
-        raise ReferrerError.new(ARGUMENT_UNDEFINE), "source undefine" if referer_details[:source].nil?
-
-        super(landing_page)
 
         begin
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing_page"}) if landing_page.nil?
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "referral_path"}) if referer_details[:referral_path].nil?
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "duration"}) if referer_details[:duration].nil?
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "source"}) if referer_details[:source].nil?
+
+          super(landing_page)
+
           @page_url = referer_details[:source].start_with?("http:") ?
               URI.join(referer_details[:source], referer_details[:referral_path]) :
               URI.join("http://#{referer_details[:source]}", referer_details[:referral_path])
           @duration = referer_details[:duration]
 
         rescue Exception => e
-          @@logger.an_event.error "referrer #{self.class} not create : #{e.message}"
-          raise ReferrerError.new(REFERRER_NOT_CREATE, e), "referrer #{self.class} not create"
+          @@logger.an_event.error e.message
+          raise Error.new(REFERRER_NOT_CREATE, :error => e)
+
+        else
+          @@logger.an_event.debug "referral create"
 
         ensure
-          @@logger.an_event.debug "END Referral.initialize"
+
         end
       end
 

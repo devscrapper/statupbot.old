@@ -49,11 +49,10 @@ module Visits
       #----------------------------------------------------------------------------------------------------------------
       # Message exception
       #----------------------------------------------------------------------------------------------------------------
-      class ReferrerError < Error
-      end
+
       ARGUMENT_UNDEFINE = 800
       REFERRER_NOT_CREATE = 801
-      MEDIUM_UNKNOWN = "medium is unknown"
+      MEDIUM_UNKNOWN = 802
 
       #----------------------------------------------------------------------------------------------------------------
       # attribut
@@ -81,27 +80,34 @@ module Visits
       #["medium", "(none)"]
       #["keyword", "(not set)"]
       def self.build(referer_details, landing_page)
-        @@logger.an_event.debug "BEGIN Referrer.build"
-
         begin
           case referer_details[:medium]
             when "(none)"
               return Direct.new(landing_page)
+
             when "organic"
               return Search.new(referer_details,
                                 landing_page)
+
             when "referral"
               return Referral.new(referer_details,
                                   landing_page)
+
             else
-              @@logger.an_event.debug "medium #{referer_details[:medium]} unknown"
-              raise ReferrerError.new(MEDIUM_UNKNOWN), "medium #{referer_details[:medium]} unknown"
+              raise Error.new(MEDIUM_UNKNOWN, :values => {:medium => referer_details[:medium]})
           end
+
         rescue Exception => e
-          @@logger.an_event.debug e.message
-          raise e
+          @@logger.an_event.error e.message
+          raise Error.new(REFERRER_NOT_CREATE, :error => e)
+
+
+        else
+          @@logger.an_event.debug "referrer build"
+
         ensure
-          @@logger.an_event.debug "END Referrer.build"
+
+
         end
       end
 

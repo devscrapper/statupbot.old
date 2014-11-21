@@ -10,11 +10,11 @@ module Visits
       #----------------------------------------------------------------------------------------------------------------
       # Message exception
       #----------------------------------------------------------------------------------------------------------------
-      class AdvertisingError < Error
-      end
-      ARGUMENT_UNDEFINE = 1200
+       ARGUMENT_UNDEFINE = 1200
       ADVERTISING_NOT_BUILD = 1201
       ADVERT_NOT_FOUND = 1202
+      NONE_ADVERT = 1203
+      ADVERTISING_UNKNOWN = 1204
       attr_reader :domains,
                   # tableau de nom de domain de la iframe contenant les advert.
                   # IMPORTANT : si l'advert n'est pas dans un iframe alors le tableau doit contenir la chaine "nil", exemple
@@ -38,29 +38,36 @@ module Visits
       #---------------------------------------------------------------------------------------------------------------
       #---------------------------------------------------------------------------------------------------------------
       def self.build(pub_details)
-        @@logger.an_event.debug "BEGIN Advertising.initialize"
 
         @@logger.an_event.debug "advertising #{pub_details[:advertising]}"
         @@logger.an_event.debug "advertiser #{pub_details[:advertiser]}"
 
-        raise AdvertisingError.new(ARGUMENT_UNDEFINE), "advertising undefine" if pub_details[:advertising].nil?
-        raise AdvertisingError.new(ARGUMENT_UNDEFINE), "advertiser undefine" if pub_details[:advertiser].nil? and pub_details[:advertising] != :none
 
         begin
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => advertising}) if pub_details[:advertising].nil?
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => advertiser}) if pub_details[:advertiser].nil? and pub_details[:advertising] != :none
+
           case pub_details[:advertising]
             when :none
               return NoAdvertising.new()
+
             when :adsense
               return Adsense.new(Advertiser.new(pub_details[:advertiser]))
+
             else
               @@logger.an_event.warn "advertising  #{pub_details[:advertising]} unknown"
               return NoAdvertising.new()
           end
+
         rescue Exception => e
-          @@logger.an_event.error "advertising not build : #{e.message}"
-          raise AdvertisingError.new(ADVERTISING_NOT_BUILD, e), "advertising not build"
+          @@logger.an_event.error e.message
+          raise Error.new(ADVERTISING_NOT_BUILD, :error => e)
+
+        else
+          @@logger.an_event.debug "advertising #{self.class} build"
+
         ensure
-          @@logger.an_event.debug "END Advertising.initialize"
+
         end
 
       end

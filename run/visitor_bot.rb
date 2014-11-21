@@ -91,7 +91,7 @@ Trollop::die :proxy_port, "is require with proxy" if opts[:proxy_type] != "none"
 
 OK = 0
 KO = 1
-
+NO_AD = 2
 def visitor_is_no_slave(opts)
   visit = nil
   visitor = nil
@@ -146,7 +146,7 @@ def visitor_is_no_slave(opts)
 
   begin
 
-    visitor = Visitor.build(visitor_details)
+    visitor = Visitor.new(visitor_details)
 
   rescue Exception => e
 
@@ -189,7 +189,7 @@ def visitor_is_no_slave(opts)
   #---------------------------------------------------------------------------------------------------------------------
   begin
 
-    landing_page = visitor.browse(visit.referrer)
+    landing_page = visitor.browse_landing_page(visit.referrer)
 
   rescue Exception => e
 
@@ -212,7 +212,12 @@ def visitor_is_no_slave(opts)
     Monitoring.send_failure(e, visit_details, @@logger)
     visitor.close_browser
     visitor.die
-    return KO
+    if e.history.include?(Visits::Advertisings::Advertising::NONE_ADVERT)
+      cr = NO_AD
+    else
+      cr = KO
+    end
+    return cr
 
   end
 
@@ -225,7 +230,7 @@ def visitor_is_no_slave(opts)
       #TODO a decommenter lorsque :
       # TODO le service de proxy de geolocation sera en ligne  et 100% operationnel
       # TODO un site sera founir avec un compte adsens dédié
-      #advertiser_landing_page = visitor.click_on_advert(final_visit_page.advert)
+      advertiser_landing_page = visitor.click_on_advert(final_visit_page.advert)
 
     end
 
@@ -238,18 +243,18 @@ def visitor_is_no_slave(opts)
 
   end
 
-    #---------------------------------------------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------------------------------------------
   # Visitor surf on advertiser
   #---------------------------------------------------------------------------------------------------------------------
   begin
 
     if visit.advertising?
       #TODO a decommenter lorsque le service de proxy de geolocation sera en ligne
-      #final_advertiser_page = visitor.surf(visit.advertising.advertiser.durations, advertiser_landing_page, visit.advertising.advertiser.arounds)
+      final_advertiser_page = visitor.surf(visit.advertising.advertiser.durations, advertiser_landing_page, visit.advertising.advertiser.arounds)
 
       Monitoring.send_advert_select(visit_details, @@logger)
 
-      MailSender.new("advert@visitor_bot.fr","olinouane@gmail.com", "advert select", final_visit_page.advert.to_s).send
+      MailSender.new("advert@visitor_bot.fr", "olinouane@gmail.com", "advert select", final_visit_page.advert.to_s).send
     end
 
   rescue Exception => e
@@ -304,7 +309,7 @@ def visitor_is_no_slave(opts)
   end
 
 
-  Monitoring.send_success(visit_details,@@logger)
+  Monitoring.send_success(visit_details, @@logger)
   OK
 end
 
@@ -315,7 +320,7 @@ end
 begin
   parameters = Parameter.new(__FILE__)
 rescue Exception => e
-  $stderr << e.message    << "\n"
+  $stderr << e.message << "\n"
 else
   $staging = parameters.environment
   $debugging = parameters.debugging
@@ -354,7 +359,7 @@ else
 
   @@logger.an_event.debug "begin execution visitor_bot"
   state = OK
-#state = visitor_is_slave(opts) if opts[:slave] == "yes"  pour gerer le return visitor
+  #state = visitor_is_slave(opts) if opts[:slave] == "yes"  pour gerer le return visitor
   state = visitor_is_no_slave(opts) if opts[:slave] == "no"
   @@logger.an_event.debug "end execution visitor_bot, with state #{state}"
   Process.exit(state)

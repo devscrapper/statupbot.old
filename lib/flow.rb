@@ -10,7 +10,7 @@ class Flow
   MAX_SIZE = 1000000 # taille max d'un volume
   SEPARATOR = "_" # separateur entre elemet composant (type_flow, label, date, vol) le nom du volume (basename)
   ARCHIVE = Pathname.new(File.join(File.dirname(__FILE__), '..', 'archive')).realpath #localisation du repertoire d'archive
-  FORBIDDEN_CHAR = /[_ :]/ # liste des caractères interdits dans le typeflow et label d'un volume
+  FORBIDDEN_CHAR = /[_ :\/]/ # liste des caractères interdits dans le typeflow et label d'un volume
   attr :descriptor,
        :dir,
        :type_flow,

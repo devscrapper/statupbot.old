@@ -1,6 +1,6 @@
-require_relative '../../page/page'
+require_relative '../page/page'
+
 module Browsers
-  module SahiCoIn
     class Opera < Browser
       include Pages
       #----------------------------------------------------------------------------------------------------------------
@@ -15,7 +15,7 @@ module Browsers
       #["operating_system_version", "7"]
       def initialize(visitor_dir, browser_details)
         super(browser_details)
-        @driver = Browsers::SahiCoIn::Driver.new("#{browser_details[:name]}_#{browser_details[:version]}",
+        @driver = Browsers::Driver.new("#{browser_details[:name]}_#{browser_details[:version]}",
                                                  @listening_port_proxy)
         customize_properties(visitor_dir)
       end
@@ -75,4 +75,4 @@ module Browsers
 
     end
   end
-end
+

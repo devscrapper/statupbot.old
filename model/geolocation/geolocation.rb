@@ -1,9 +1,10 @@
 require 'net/http'
+require_relative '../../lib/error'
 
 module Geolocations
   class Geolocation
     SEPARATOR = ";"
-
+    include Errors
     attr_accessor :country,
                   :protocol,
                   :ip,
@@ -23,7 +24,7 @@ module Geolocations
         @user = r[:user]
         @password = r[:password]
       else
-        raise GeolocationError.new(GEO_BAD_PROPERTIES), "geolocation bad properties : #{geo_line}"
+        raise Error.new(GEO_BAD_PROPERTIES, :values => {:geo => geo_line})
       end
     end
 
@@ -35,7 +36,7 @@ module Geolocations
           when Net::HTTPSuccess
             true
           else
-            raise GeolocationError.new(GEO_NOT_AVAILABLE), "geolocation non available"
+            raise Error.new(GEO_NOT_AVAILABLE, :values => {:geo => to_s})
         end
       end
     end

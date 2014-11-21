@@ -17,33 +17,44 @@ module Errors
   #-------------------------------------------------------------------------------------------------------------------
 
   class Error < StandardError
-    attr_accessor :code, :origin_code, :history
+    attr_accessor :code,
+                  :origin_code,
+                  :lib,
+                  :origin_lib,
+                  :history
 
-    def initialize(code, error=nil)
+    def initialize(code, args={})
+      values = args.getopt(:values, nil)
+      error = args.getopt(:error, nil)
 
       @code = code
-      if  error.is_a?(Error) and !error.nil?
-        @origin_code = error.origin_code ? error.origin_code : error.code
-        @history = Array.new(error.history)
+      @lib = Messages.instance[@code, values] unless values.nil?
+      @lib = Messages.instance[@code] if values.nil?
+
+
+      unless error.nil?
+        if  error.is_a?(Error)
+          @origin_code = error.origin_code ? error.origin_code : error.code
+          @origin_lib =error.origin_lib ? error.origin_lib : error.lib
+          @history = Array.new(error.history)
+        else
+          @origin_code = -1
+          @origin_lib = error.message
+        end
       end
+
       @history = @history.nil? ? [code] : @history << code
     end
 
     def to_s
       if @origin_code.nil?
-        to_s = "exception #{self.class} code #{@code} : #{Messages.instance[@code]}"
+        to_s = "exception #{self.class} code #{@code} : #{@lib}"
       else
-        to_s = "exception #{self.class} code #{@code} : #{Messages.instance[@code]}, origin_code #{@origin_code} : #{Messages.instance[@origin_code]}, history #{@history}, " unless @origin_code.nil?
+        to_s = "exception #{self.class} code #{@code} : #{@lib}, origin_code #{@origin_lib}, history #{@history}"
       end
       to_s
     end
 
-    # convertit une sous class de Error en class Error pour le monitoring afin d'eviter d'envoyer une sous class au monitor
-    def to_super
-      er = Error.new(code)
-      er.origin_code = @origin_code
-      er.history = @history
-      return er
-    end
+
   end
 end

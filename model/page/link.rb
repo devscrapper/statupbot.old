@@ -1,4 +1,6 @@
+require 'uri'
 require_relative '../../lib/error'
+
 module Pages
   class Link
     #----------------------------------------------------------------------------------------------------------------
@@ -9,11 +11,10 @@ module Pages
     #----------------------------------------------------------------------------------------------------------------
     # message exception
     #----------------------------------------------------------------------------------------------------------------
-    class LinkError < Error
-
-    end
     ARGUMENT_UNDEFINE = 400
     LINK_NOT_FIRE = 401
+    LINK_NOT_EXIST = 402
+    LINK_NOT_CREATE = 403
     #----------------------------------------------------------------------------------------------------------------
     # include class
     #----------------------------------------------------------------------------------------------------------------
@@ -58,27 +59,41 @@ module Pages
       @@logger.an_event.debug "element #{element}"
       @@logger.an_event.debug "text #{text}"
 
-      raise LinkError.new(ARGUMENT_UNDEFINE), "element undefine" if element.nil?
-      raise LinkError.new(ARGUMENT_UNDEFINE), "url undefine" if url.nil?
+      begin
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "element"}) if element.nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "url"}) if url.nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "text"}) if text.nil? or text == ""
 
-      @url = url
-      @element= element
-      @window_tab = window_tab
-      @path_frame = path_frame
-      @text = text
+        @url = URI.parse(URI.escape(url))
+        @element= element
+        @window_tab = window_tab
+        @path_frame = path_frame
+        @text = text
+      rescue Exception => e
+        @@logger.an_event.error e.message
+        raise Error.new(LINK_NOT_CREATE, :values => {:link => url})
+      else
+        @@logger.an_event.debug "link #{@element}, #{@url}, #{@text} create"
+      ensure
+
+      end
     end
 
     def click
-      @@logger.an_event.debug "BEGIN Link.click"
       begin
+
         @element.click
-        @@logger.an_event.debug "link #{@element}, #{@url}, #{@text} fire"
-          #TODO tester si la page en retour est une page d'erreur sahi. Si c'est le cas retourner une exception LINK_NOT_CATCH_RESOURCE (synonyme de 404). on ne sait pas si c'est une erreur soit de proxy non joignable car tombé soit un param de proxy erroné soit une ressource absente.
+
       rescue Exception => e
-        @@logger.an_event.fatal "link #{@element}, #{@url}, #{@text} not fire : #{e.message}"
-        raise LinkError.new(LINK_NOT_FIRE), "link #{@element}, #{@url}, #{@text} not fire"
+        @@logger.an_event.fatal e.message
+        raise Error.new(LINK_NOT_FIRE, :values => {:link => @text}, :error => e)
+
+      else
+        @@logger.an_event.debug "link #{@element}, #{@url}, #{@text} fire"
+
       ensure
-        @@logger.an_event.debug "END Link.click"
+
+
       end
     end
 
@@ -91,10 +106,11 @@ module Pages
         @@logger.an_event.warn "link #{@url} not found, try #{count_try}"
         count_try += 1
         sleep 1
+        #TODO controler qu'il ne faut pas utiliser @element.displayed? and @element.enabled?
         found = @element.exists?
       end
       #@element.displayed? and @element.enabled?
-      found
+      raise Error.new(LINK_NOT_EXIST, :values => {:link => @text}) unless found
     end
 
     def to_s

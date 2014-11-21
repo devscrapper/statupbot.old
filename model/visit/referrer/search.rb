@@ -1,4 +1,5 @@
 require_relative '../../engine_search/engine_search'
+require_relative '../../../lib/error'
 module Visits
   module Referrers
 
@@ -7,6 +8,7 @@ module Visits
       # include class
       #----------------------------------------------------------------------------------------------------------------
       include EngineSearches
+      include Errors
 
       #----------------------------------------------------------------------------------------------------------------
       # attribut
@@ -19,27 +21,25 @@ module Visits
       # class methods
       #----------------------------------------------------------------------------------------------------------------
       def initialize(referer_details, landing_page)
-        @@logger.an_event.debug "BEGIN Search.initialize"
-        raise ReferrerError.new(ARGUMENT_UNDEFINE), "keywords bad or undefine" if referer_details[:keyword][0]== "(not provided)" or referer_details[:keyword].size == 0
-        raise ReferrerError.new(ARGUMENT_UNDEFINE), "landing page undefine" if landing_page.nil?
-        raise ReferrerError.new(ARGUMENT_UNDEFINE), "durations undefine" if referer_details[:durations].nil?
-        raise ReferrerError.new(ARGUMENT_UNDEFINE), "source undefine" if referer_details[:source].nil?
-
-        super(landing_page)
-
-        @keywords = referer_details[:keyword]
-        @durations = referer_details[:durations]
-
         begin
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "keyword"}) if referer_details[:keyword][0]== "(not provided)" or referer_details[:keyword].size == 0
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing_page"}) if landing_page.nil?
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "source"}) if referer_details[:source].nil?
+
+          super(landing_page)
+
+          @keywords = referer_details[:keyword]
           @engine_search = EngineSearch.build(referer_details[:source])
+
+        rescue Exception => e
+          @@logger.an_event.error e.message
+          raise Error.new(REFERRER_NOT_CREATE, :error => e)
+
+        else
           @@logger.an_event.debug "referrer #{self.class} create"
 
-        rescue Error => e
-          @@logger.an_event.error "referrer #{self.class} not create : #{e.message}"
-          raise ReferrerError.new(REFERRER_NOT_CREATE, e), "referrer #{self.class} not create"
-
         ensure
-          @@logger.an_event.debug "END Search.initialize"
+
         end
       end
     end

@@ -1,5 +1,6 @@
 
 development:
+  :monitor_server_ip: 127.0.0.1
   :return_code_listening_port: 9230
   :pool_size_listening_port: 9231
   :visit_out_of_time_listening_port: 9232
@@ -7,6 +8,7 @@ development:
   :http_server_listening_port: 8081
   :debugging:  true
 test:
+  :monitor_server_ip: 192.168.1.85
   :return_code_listening_port: 9230
   :pool_size_listening_port: 9231
   :visit_out_of_time_listening_port: 9232
@@ -14,6 +16,7 @@ test:
   :http_server_listening_port: 8081
   :debugging:  false
 production:
+  :monitor_server_ip: 127.0.0.1
   :return_code_listening_port: 9230
   :pool_size_listening_port: 9231
   :visit_out_of_time_listening_port: 9232
