@@ -19,7 +19,6 @@ module Backlinks
     }
 
 
-
     backlinks
   end
 
@@ -45,9 +44,10 @@ module Backlinks
       end
       workers.map(&:join)
       backlinks = []
-      res_q.size.times { backlink = res_q.pop()
-      backlinks << backlink
-      }
+      res_q.size.times {
+        backlink = res_q.pop()
+        backlinks << backlink
+      } unless res_q.size == 0
     rescue Exception => e
       $stderr << e.message << "\n"
     else
@@ -89,7 +89,6 @@ module Backlinks
 
     end
   end
-
 
 
   def find_links(driver, link_css)
@@ -178,7 +177,7 @@ module Backlinks
 
       max_count_page.times { |index_page|
 
-        backlinks += find_links(driver,  link_css)
+        backlinks += find_links(driver, link_css)
 
         nxt = find_next(driver, next_css)
 

@@ -44,7 +44,8 @@ module Browsers
     SCREENSHOT = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'screenshot')).realpath
     NO_REFERER = "noreferrer"
     DATA_URI = "datauri"
-
+    WITHOUT_LINKS = false #utiliser pour préciser que on ne recupere pas les links avec la fonction de l'extension javascript : get_details_cuurent_page
+    WITH_LINKS = true
     #----------------------------------------------------------------------------------------------------------------
     # attribut
     #----------------------------------------------------------------------------------------------------------------
@@ -479,9 +480,10 @@ module Browsers
 
       begin
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "keywords"}) if keywords.nil? or keywords==""
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "keywords"}) if engine_search.nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "engine_search"}) if engine_search.nil?
 
-        @driver.search(keywords, engine_search)
+        #@driver.search(keywords, engine_search)
+        engine_search.search(keywords, @driver)
 
         @@logger.an_event.debug "browser #{name} #{@id} submit search form #{engine_search.class}"
 
@@ -526,11 +528,11 @@ module Browsers
         begin
           @@logger.an_event.debug @driver.title
 
-          title = @driver.title.gsub(/\P{ASCII}/, '') #suppression des carracteres non ascii
+          title = @driver.title #suppression des carracteres non ascii
           @@logger.an_event.debug title
           output_file = Flow.new(SCREENSHOT, id_visitor, title[0..32], Date.today, vol, ".png")
           output_file.delete if output_file.exist?
-          Win32::Screenshot::Take.of(:window, :title => /#{@driver.title}/).write(output_file.absolute_path)
+          Win32::Screenshot::Take.of(:window, :title => /#{title}/).write(output_file.absolute_path)
 
         rescue Exception => e
           @@logger.an_event.error e.message

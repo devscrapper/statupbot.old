@@ -1,7 +1,9 @@
+#encoding:utf-8
 require 'uuid'
 require 'yaml'
 require 'trollop'
 require 'selenium-webdriver'
+require 'open-uri'
 require_relative '../lib/flow'
 require_relative '../lib/keyword'
 require_relative '../lib/backlink'
@@ -48,12 +50,14 @@ def get_referral(landing_url, driver, opts)
     backlinks.each { |bl| p bl }
     backlinks = evaluate(backlinks, landing_url, opts)
     p "Backlinks evaluated(#{backlinks.size}) => "
-    backlinks.each { |bl| p bl }
+    if backlinks.empty?
+      p "none backlink"
+    else
+      backlinks.each { |bl| p bl }
+    end
   rescue Exception => e
     $stderr << e.message << "\n"
-
   else
-
     uri = URI.parse(backlinks.shuffle![0])
     backlink = [uri.hostname, uri.path]
 
@@ -71,28 +75,17 @@ end
 # opts : ip / port du proxy si besoin
 #-------------------------------------------------------------------------------------------------------------------
 def get_title(url, opts)
-  uri = URI.parse(url)
 
 
   title = ""
   begin
-    res = Net::HTTP.start(uri.hostname, uri.port, opts[:ip], opts[:port], :use_ssl => uri.scheme == 'https') do |http|
-      request = Net::HTTP::Get.new uri.request_uri
-
-      response = http.request request # Net::HTTPResponse object
-
-    end
+    html = open(url, :proxy => "http://#{opts[:ip]}:#{opts[:port]}")
 
   rescue Exception => e
     $stderr << e.message << "\n"
-  else
 
-    case res
-      when Net::HTTPSuccess, Net::HTTPRedirection
-        title = Nokogiri::HTML(res.body).document.title
-      else
-        $stderr << res.message << "\n"
-    end
+  else
+    title = Nokogiri::HTML(html).title
 
   ensure
     return title
@@ -115,8 +108,11 @@ end
 #-------------------------------------------------------------------------------------------------------------------
 def get_keyword(landing_url, driver, title, opts)
   words = Keywords::scrape(landing_url, Keywords::KEYWORD_COUNT_MAX, opts)
-  p "Keywords => #{words}"
-  kw_valuable, kw_non_valuable = Keywords::evaluate(words, landing_url, driver)
+  p "Keywords => #{words}" unless words.nil?
+  p "Keywords => none" if words.nil?
+  kw_valuable = []
+  kw_non_valuable = []
+  kw_valuable, kw_non_valuable = Keywords::evaluate(words, landing_url, driver) unless words.nil?
   kw_valuable = [Keywords::Keyword.new(title, {:google => Keywords::KEYWORD_COUNT_MAX})] if kw_valuable.empty?
   p "Keywords valuable(#{kw_valuable.size})=>"
   kw_valuable.each { |kw| p kw }
@@ -150,7 +146,7 @@ TMP = Pathname(File.join(File.dirname(__FILE__), '..', 'tmp')).realpath
 #duree de lecture par defaut pour chaque page lue
 READING_TIME = 5
 # liste des regie publicitaires
-advertisings = [:adsense, :none]
+advertisings = [:none, :adsense]
 # localisation du robot visitor_bot
 visitor_bot = File.join(File.dirname(__FILE__), "visitor_bot.rb")
 
@@ -253,7 +249,7 @@ case opts[:geo]
 
       when "headless"
 
-        cmd = "#{webdriver_headless_path.join(File::SEPARATOR)} --webdriver=#{webdriver_listening_port} --load-images=false  --webdriver-loglevel='DEBUG'"
+        cmd = "#{webdriver_headless_path.join(File::SEPARATOR)} --webdriver=#{webdriver_listening_port} --proxy-type='none' --disk-cache=true --ignore-ssl-errors=true --load-images=false  --webdriver-loglevel='#{$debugging ? 'DEBUG' : 'FALSE' }'"
         raise "phantomjs runtime not found" unless File.exist?(webdriver_headless_path.join(File::SEPARATOR))
         phantomjs_pid = Process.spawn(cmd) #, [:out, :err] => [sahi_proxy_log_file, "w"])
         sleep 5
@@ -289,7 +285,7 @@ case opts[:geo]
         driver = Selenium::WebDriver.for :firefox, :profile => profile, :http_client => client
         driver.manage.timeouts.implicit_wait = 3
       when "headless" #--debug=true
-        cmd = "#{webdriver_headless_path.join(File::SEPARATOR)} --webdriver=#{webdriver_listening_port} --load-images=false --proxy=#{webdriver_pxy_ip}:#{webdriver_pxy_port} --proxy-auth=#{webdriver_pxy_user}:#{webdriver_pxy_pwd} --proxy-type=#{webdriver_pxy_type}"
+        cmd = "#{webdriver_headless_path.join(File::SEPARATOR)} --webdriver=#{webdriver_listening_port} --disk-cache=true --ignore-ssl-errors=true --load-images=false  --webdriver-loglevel='#{$debugging ? 'DEBUG' : 'FALSE' }' --proxy=#{webdriver_pxy_ip}:#{webdriver_pxy_port} --proxy-auth=#{webdriver_pxy_user}:#{webdriver_pxy_pwd} --proxy-type=#{webdriver_pxy_type}"
         phantomjs_pid = Process.spawn(cmd) #, [:out, :err] => [sahi_proxy_log_file, "w"])
         sleep 5
                                            #mettre un user agent dont on connait le comportement google
@@ -319,7 +315,8 @@ p "=======> title : #{title}"
 # GET REFERRAL : BACKLINK
 #--------------------------------------------------------------------------------------------------------------------
 referral_fqdn, referral_path = get_referral(url, driver, {:ip => local_proxy_sahi_ip, :port => local_proxy_sahi_port})
-p "=======> referral : #{referral_fqdn} : #{referral_path}"
+p "=======> referral : #{referral_fqdn} : #{referral_path}" unless referral_fqdn.nil? or referral_path.nil?
+p "=======> referral : none" if referral_fqdn.nil? or referral_path.nil?
 
 #--------------------------------------------------------------------------------------------------------------------
 # GET KEYWORDS
@@ -331,9 +328,12 @@ p "=======> organic : #{search_engine} : #{keywords}"
 # LISTE DE REFERRER
 #--------------------------------------------------------------------------------------------------------------------
 referrers = {:direct => {:referral_path => "(not set)", :source => "(direct)", :medium => "(none)", :keyword => "(not set)", :fqdn => opts[:fqdn], :page_path => opts[:page_path], :duration_referral => nil},
-             :referral => {:referral_path => referral_path, :source => referral_fqdn, :medium => "referral", :keyword => "(not set)", :fqdn => opts[:fqdn], :page_path => opts[:page_path], :duration_referral => 20},
-             :organic => {:referral_path => "(not set)", :source => search_engine.to_s, :medium => "organic", :keyword => keywords, :fqdn => opts[:fqdn], :page_path => opts[:page_path], :duration_referral => nil}
-}
+             :organic => {:referral_path => "(not set)", :source => search_engine.to_s, :medium => "organic", :keyword => keywords, :fqdn => opts[:fqdn], :page_path => opts[:page_path], :duration_referral => nil}}
+
+unless referral_fqdn.nil? or referral_path.nil?
+  referrers.merge!({:referral => {:referral_path => referral_path, :source => referral_fqdn, :medium => "referral", :keyword => "(not set)", :fqdn => opts[:fqdn], :page_path => opts[:page_path], :duration_referral => 20}})
+end
+
 
 #--------------------------------------------------------------------------------------------------------------------
 # STOP WEBDRIVER

@@ -94,36 +94,31 @@ module Browsers
     #     - une erreur est survenue lors de l'exécution de la fonction Sahi.prototype.get_details_current_page contenu
     #     dans le fichier lib/sahi.in.co/htdocs/spr/extensions.js
     #-----------------------------------------------------------------------------------------------------------------
-    #
+    # with_links = true  |false : si true alors on recupere les links. est utilisé pour le surf sur le website et le
+    # surf sur advertiser. le slinks ne sont pas recuperés pour le search
+    # RAF  : doit on recuperer les liks pour le start_page, le referer ?
     #-----------------------------------------------------------------------------------------------------------------
-    def get_details_current_page(url)
+    def get_details_current_page(url, with_links = true)
 
       details = nil
       count = 3
       i = 0
       begin
-        results = fetch("_sahi.current_page_details()")
+        results = fetch("_sahi.current_page_details(#{with_links})")
         @@logger.an_event.debug "results current page <#{results}>"
         raise "_sahi.current_page_details() not return details page #{url}" if results == "" or results.nil?
 
         details = JSON.parse(results)
         @@logger.an_event.debug "details current page #{details}"
 
-        #TODO à supprimer si aucun ecart n'est constaté entre count_links et details["links"]
-        count_links = details["links"].size
-        @@logger.an_event.debug "details count links #{count_links} before cleaning"
+
+
         details["links"].map! { |link|
-          if ["", "_top", "_self", "_parent"].include?(link["target"])
             link["element"] = link(link["href"])
             link
-          else
-            nil
-          end
-        }.compact
+        } if with_links
 
-        @@logger.an_event.debug "details count links #{details["links"].size} after cleaning"
-        @@logger.an_event.warn "some (#{count_links - details["links"].size}) links were cleaned" if  count_links - details["links"].size > 0
-        #TODO à supprimer
+
         @@logger.an_event.debug "driver catch details current page"
 
       rescue Exception => e
@@ -330,13 +325,14 @@ module Browsers
         @@logger.an_event.debug "engine_search.id_search #{engine_search.id_search}"
         @@logger.an_event.debug "engine_search.label_search_button #{engine_search.label_search_button}"
 
-        raise Error.new(TEXTBOX_SEARCH_NOT_FOUND) unless textbox(engine_search.id_search).exists?
-        raise Error.new(SUBMIT_SEARCH_NOT_FOUND) unless submit(engine_search.label_search_button).exists?
+        raise Error.new(TEXTBOX_SEARCH_NOT_FOUND) unless engine_search.input(self).exists?
+        raise Error.new(SUBMIT_SEARCH_NOT_FOUND) unless engine_search.submit(self).exists?
 
-        textbox(engine_search.id_search).value = !keywords.is_a?(String) ? keywords.to_s : keywords
+        engine_search.input(self).value  = !keywords.is_a?(String) ? keywords.to_s : keywords
+
         @@logger.an_event.debug "driver #{@browser_type} enter keywords #{keywords} in search form #{engine_search.class}"
 
-        submit(engine_search.label_search_button).click
+        engine_search.submit(self).click
 
 
       rescue Exception => e

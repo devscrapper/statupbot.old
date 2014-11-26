@@ -635,13 +635,14 @@ module Visitors
         landing_link = nil
         results_page.duration = durations[i]
         read(results_page)
-        landing_link = engine_search.exist_link?(results_page, landing_url)
+
+        landing_link = engine_search.landing_link(landing_url,@browser.driver)
 
       rescue Exception => e
         i += 1
         if i < durations.size
           begin
-            next_page_link = engine_search.next_page_link(results_page, i + 1)
+            next_page_link = engine_search.next_page_link(@browser.driver)
           rescue Exception => e
             # le nombre de page de resultat est inférieur au nombre de pages attendues
             @@logger.an_event.warn e.message
