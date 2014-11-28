@@ -20,7 +20,7 @@ class Messages
 
   #remplace les variables par les valeurs contenues dans values dans le message identifié par le code
   def [](code, values={})
-    m = @messages[code]
+    m = @messages[code].dup
     values.each_pair{|var, val| m.gsub!("[#{var.to_s}]", "[#{val}]")}
     m
   end

@@ -488,7 +488,7 @@ module Browsers
         @@logger.an_event.debug "browser #{name} #{@id} submit search form #{engine_search.class}"
 
         start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-        page_details = @driver.get_details_current_page(engine_search.page_url)
+        page_details = @driver.get_details_current_page(engine_search.page_url, WITHOUT_LINKS)
 
         @@logger.an_event.debug "browser #{name} #{@id} catch details search page"
 
@@ -532,7 +532,7 @@ module Browsers
           @@logger.an_event.debug title
           output_file = Flow.new(SCREENSHOT, id_visitor, title[0..32], Date.today, vol, ".png")
           output_file.delete if output_file.exist?
-          Win32::Screenshot::Take.of(:window, :title => /#{title}/).write(output_file.absolute_path)
+          #Win32::Screenshot::Take.of(:window, :title => title).write(output_file.absolute_path)
 
         rescue Exception => e
           @@logger.an_event.error e.message

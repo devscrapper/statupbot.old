@@ -12,7 +12,7 @@ module Backlinks
   def scrape(landing_url, driver)
     backlinks = []
     #
-    [[:yahoo, 'https://fr.yahoo.com/', 'p', 'h3 > a.yschttl.spt', 'a#pg-next'],
+    [[:yahoo, 'https://fr.search.yahoo.com/', 'p', 'h3 > a.yschttl.spt', 'a#pg-next'],
      [:google, 'https://www.google.fr/', 'q', 'h3.r > a', 'a#pnnext.pn'],
      [:bing, 'http://www.bing.com/', 'q', 'h2 > a', 'a.sb_pagN']].each { |search_engine, search_engine_url, input_css, link_css, next_css|
       backlinks += scrape_backlinks(search_engine, driver, landing_url, search_engine_url, input_css, link_css, next_css, INDEX_MAX)

@@ -301,7 +301,6 @@ module Visitors
         landing_page = @browser.click_on(landing_link)
 
 
-
       rescue Exception => e
         @browser.screenshot(@id, "ERROR")
         @@logger.an_event.error e.message
@@ -627,16 +626,16 @@ module Visitors
       #
       #---------------------------------------------------------------------------------------------------------------
       i = 0 # ne pas déplacer
+      raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "durations"}) if durations.nil? or durations.size == 0
+      raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing_url"}) if landing_url.nil?
+      landing_link = nil
+
       begin
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "durations"}) if durations.nil? or durations.size == 0
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing_url"}) if landing_url.nil?
 
-
-        landing_link = nil
         results_page.duration = durations[i]
         read(results_page)
 
-        landing_link = engine_search.landing_link(landing_url,@browser.driver)
+        l = engine_search.landing_link(landing_url, @browser.driver)
 
       rescue Exception => e
         i += 1
@@ -670,9 +669,9 @@ module Visitors
 
       else
         @@logger.an_event.info "visitor found landing link #{landing_url.to_s}"
-        return landing_link
+        landing_link = l
       ensure
-
+        landing_link
       end
     end
 

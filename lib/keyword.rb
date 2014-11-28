@@ -20,9 +20,10 @@ module Keywords
     end
 
     def evaluate(url, driver)
-      [[:yahoo, 'https://fr.yahoo.com/', 'p', 'h3 > a.yschttl.spt', 'a#pg-next'],
+      [[:yahoo, 'https://fr.search.yahoo.com/', 'p', 'h3 > a.yschttl.spt', 'a#pg-next'],
        [:google, 'https://www.google.fr/', 'q', 'h3.r > a', 'a#pnnext.pn'],
        [:bing, 'http://www.bing.com/', 'q', 'h2 > a', 'a.sb_pagN']].each { |search_engine, search_engine_url, input_css, link_css, next_css|
+        p "evaluate <#{@words}> with #{search_engine}"
         found, index_page = search_keywords(search_engine, driver, url, search_engine_url, input_css, link_css, next_css, INDEX_MAX)
         @index.merge!(found ? {search_engine => index_page} : {})
       }
@@ -89,8 +90,8 @@ module Keywords
         raise "not reach url : #{url}"
 
       else
-        crt_u = driver.current_url
-        raise "reach bad url : #{crt_u}" if crt_u != url
+        #crt_u = driver.current_url
+        #raise "reach bad url : #{crt_u}" if crt_u != url
       ensure
       end
     end
@@ -142,42 +143,7 @@ module Keywords
       end
     end
 
-    def search_keywords_old(driver, url, search_engine_url, input_css, link_css, next_css, max_count_page=3)
-      driver.navigate.to search_engine_url
-      element = driver.find_element(:name, input_css)
-      element.clear
-      element.send_keys @words
-      element.submit
-      sleep 1
-      i = 1
-      found = false
-      begin
-        #p driver.current_url
-        raise "not found landing url" unless driver.find_elements(:css, link_css).map { |e|
-          # p e.attribute('href')
-          e.attribute('href')
-        }.include?(url)
 
-
-      rescue Exception => e
-
-        case e.message
-          when "not found landing url"
-            driver.find_element(:css, next_css).click
-            sleep 1
-            if i < max_count_page
-              i+=1
-              retry
-            end
-          else
-            $stderr << e.message
-        end
-      else
-        found = true
-      ensure
-        return [found, i]
-      end
-    end
   end
 
 

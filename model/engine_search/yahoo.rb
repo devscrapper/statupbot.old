@@ -9,9 +9,9 @@ module EngineSearches
 
     #TODO finir yahoo search
     def initialize
-      @page_url = "https://fr.yahoo.com/"
+      @page_url = "https://fr.search.yahoo.com/"
       @id_search = 'p'
-      @label_search_button = "Recherche Web"
+      @label_search_button = "Rechercher"
       @id_next = "Suivante"
 
     end

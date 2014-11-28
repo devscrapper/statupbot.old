@@ -65,37 +65,37 @@ module EngineSearches
 
     def landing_link(landing_url, driver)
 
-         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing_url"}) if landing_url.nil?
+      raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing_url"}) if landing_url.nil?
 
-         link = nil
-         begin
-           link = driver.link(landing_url)
+      link = nil
+      begin
+        l = driver.link(landing_url)
+        raise "landing link not exist" unless l.exists?
 
-         rescue Exception => e
-           raise Error.new(ENGINE_NOT_FOUND_LANDING_LINK, :values => {:engine => self.class, :landing => landing_url}, :error => e)
+      rescue Exception => e
+        raise Error.new(ENGINE_NOT_FOUND_LANDING_LINK, :values => {:engine => self.class, :landing => landing_url}, :error => e)
 
-         else
-
-         ensure
-           return link
-
-         end
-       end
+      else
+        link = l
+      ensure
+        link
+      end
+    end
 
     def next_page_link(driver)
+
       next_link = nil
-
       begin
-
-        next_link = next_link_exists?(driver)
+        l = next_link_exists?(driver)
 
       rescue Exception => e
         raise Error.new(ENGINE_NOT_FOUND_NEXT_LINK, :values => {:engine => self.class}, :error => e)
 
       else
+        next_link = l
 
       ensure
-        return next_link
+        next_link
 
       end
     end
@@ -110,8 +110,8 @@ module EngineSearches
         @@logger.an_event.debug "engine_search.id_search #{@id_search}"
         @@logger.an_event.debug "engine_search.label_search_button #{@label_search_button}"
 
-        raise Error.new(TEXTBOX_SEARCH_NOT_FOUND, :values => {:textbox => @id_search}) unless input(driver).exists?
-        raise Error.new(SUBMIT_SEARCH_NOT_FOUND, :values => {:submit => @label_search_button}) unless driver.submit(@label_search_button).exists?
+        raise Error.new(TEXTBOX_SEARCH_NOT_FOUND, :values => {:engine => self.class, :textbox => @id_search}) unless input(driver).exists?
+        raise Error.new(SUBMIT_SEARCH_NOT_FOUND, :values => {:engine => self.class, :submit => @label_search_button}) unless driver.submit(@label_search_button).exists?
 
         input(driver).value = !keywords.is_a?(String) ? keywords.to_s : keywords
 

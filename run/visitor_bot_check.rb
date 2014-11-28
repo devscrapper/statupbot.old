@@ -197,8 +197,8 @@ Usage:
        visitor_bot_check [options]
 where [options] are:
   EOS
-  opt :fqdn, "fqdn (without http) of landing url to browse", :type => :string, :default => "www.toutjavascript.com"
-  opt :page_path, "path of landing url to browse", :type => :string, :default => "/reference/reference.php?ref=substr"
+  opt :fqdn, "fqdn (without http) of landing url to browse", :type => :string, :default => "www.pataweb.com"
+  opt :page_path, "path of landing url to browse", :type => :string, :default => "/s-trois-roles-du-seo-p110.html"
   opt :driver, "type of webdriver (withgui|headless)", :type => :string, :default => "withgui"
   opt :geo, "use or not geolocation (true|false)", :type => :boolean, :default => false
 end
@@ -322,7 +322,8 @@ p "=======> referral : none" if referral_fqdn.nil? or referral_path.nil?
 # GET KEYWORDS
 #--------------------------------------------------------------------------------------------------------------------
 search_engine, keywords = get_keyword(url, driver, title, {:ip => local_proxy_sahi_ip, :port => local_proxy_sahi_port})
-p "=======> organic : #{search_engine} : #{keywords}"
+p "=======> organic : #{search_engine} : "
+keywords.each{|k| p k}
 
 #--------------------------------------------------------------------------------------------------------------------
 # LISTE DE REFERRER
