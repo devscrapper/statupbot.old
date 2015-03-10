@@ -244,7 +244,7 @@ class VisitorFactory
       geo = @geolocation_factory.get(:country => with_advertising ? "fr" : nil,
                                      :protocol => with_google_engine ? "https" : nil)
 
-    rescue GeolocationError => e
+    rescue Exception => e
       @logger.an_event.warn e.message
       geo_to_s = ""
 

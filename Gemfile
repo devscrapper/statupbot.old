@@ -23,6 +23,9 @@ gem 'selenium-webdriver', '2.43.0'
 gem 'nokogiri', '1.6.0'
 gem 'ruby-progressbar', '1.1.1'
 gem 'thread', '0.1.4'
+gem 'hpricot'
+
+
 # fin new gem
 
 #group :development

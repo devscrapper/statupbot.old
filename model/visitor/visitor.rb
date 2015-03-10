@@ -490,18 +490,15 @@ module Visitors
       #TODO afficher la page google.fr, comme c'est le cas actuellement
       #TODO dans la derniere page des resultats, saisir les nouveaux mot clés dans la zone idoine.
       @@logger.an_event.debug "keywords #{referrer.keywords}"
-      @@logger.an_event.debug "engine_search #{referrer.engine_search}"
       @@logger.an_event.debug "landing_url #{referrer.landing_url}"
 
       i = 0 # ne pas déplacer sinon on passe jamais au mot clé suivant
       begin
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "keywords"}) if referrer.keywords.nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "engine_search"}) if referrer.engine_search.nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing_url"}) if referrer.landing_url.nil?
 
 
         landing_link = search(referrer.keywords[i][:words],
-                              referrer.engine_search,
                               referrer.keywords[i][:durations].map { |d| d },
                               referrer.landing_url)
 
@@ -593,7 +590,7 @@ module Visitors
     #-----------------------------------------------------------------------------------------------------------------
     #
     #-----------------------------------------------------------------------------------------------------------------
-    def search(keywords, engine_search, durations, landing_url)
+    def search(keywords, durations, landing_url)
       @@logger.an_event.debug "keywords #{keywords}"
       @@logger.an_event.debug "engine search #{engine_search}"
       @@logger.an_event.debug "durations #{durations}"
@@ -609,7 +606,7 @@ module Visitors
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "keywords"}) if keywords.nil? or keywords == ""
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "engine_search"}) if engine_search.nil?
 
-        results_page = @browser.search(keywords, engine_search)
+        results_page = @browser.search(keywords)
 
       rescue Exception => e
         @browser.screenshot(@id, "ERROR")

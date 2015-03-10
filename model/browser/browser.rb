@@ -6,6 +6,7 @@ require 'csv'
 require 'pathname'
 require 'win32/screenshot'
 
+require_relative '../engine_search/engine_search'
 require_relative '../page/link'
 require_relative '../page/page'
 require_relative '../../lib/error'
@@ -57,7 +58,8 @@ module Browsers
                 :height, :width, #dimension de la fenetre du browser
                 :method_start_page, # pour cacher le referrer aux yeux de GA, on utiliser 2 methodes choisies en focntion
                 # du type de browser.
-                :version # la version du browser
+                :version, # la version du browser
+                :engine_search  #moteur de recherche associé par defaut au navigateur
 
     #----------------------------------------------------------------------------------------------------------------
     # class methods
@@ -171,6 +173,7 @@ module Browsers
         @listening_port_proxy = browser_details[:listening_port_proxy]
         @width, @height = browser_details[:screen_resolution].split(/x/)
 
+        @engine_search = EngineSearch.build(browser_details[:engine_search])
 
         @driver = Browsers::Driver.new(browser_type,
                                        @listening_port_proxy)
@@ -473,22 +476,21 @@ module Browsers
     #   3-recupere les détails de la page recue
     #   4-retourne un objet Page
     #-----------------------------------------------------------------------------------------------------------------
-    def search(keywords, engine_search)
+    def search(keywords)
 
       @@logger.an_event.debug "keywords #{keywords}"
-      @@logger.an_event.debug "engine_search #{engine_search.class}"
 
       begin
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "keywords"}) if keywords.nil? or keywords==""
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "engine_search"}) if engine_search.nil?
 
-        #@driver.search(keywords, engine_search)
-        engine_search.search(keywords, @driver)
 
-        @@logger.an_event.debug "browser #{name} #{@id} submit search form #{engine_search.class}"
+
+        @engine_search.search(keywords, @driver)
+
+        @@logger.an_event.debug "browser #{name} #{@id} submit search form #{@engine_search.class}"
 
         start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-        page_details = @driver.get_details_current_page(engine_search.page_url, WITHOUT_LINKS)
+        page_details = @driver.get_details_current_page(@engine_search.page_url, WITHOUT_LINKS)
 
         @@logger.an_event.debug "browser #{name} #{@id} catch details search page"
 
@@ -497,7 +499,7 @@ module Browsers
 
       rescue Exception => e
         @@logger.an_event.error e.message
-        raise Error.new(BROWSER_NOT_SEARCH, :values => {:browser => name, :url => engine_search.page_url}, :error => e)
+        raise Error.new(BROWSER_NOT_SEARCH, :values => {:browser => name, :url => @engine_search.page_url}, :error => e)
 
       else
         @@logger.an_event.debug "browser #{name} create search page #{search_page.to_s}"
