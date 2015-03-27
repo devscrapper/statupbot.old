@@ -1,0 +1,10 @@
+
+development:
+  :nodejs_runtime_path: ['d:', 'personnel', 'nodejs', 'node.exe']
+  :debugging:  true
+test:
+  :nodejs_runtime_path: ['d:', 'personnel', 'nodejs', 'node.exe']
+  :debugging:  false
+production:
+  :nodejs_runtime_path: ['d:', 'personnel', 'nodejs', 'node.exe']
+  :debugging:  false
