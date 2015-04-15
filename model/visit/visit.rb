@@ -32,13 +32,13 @@ module Visits
     # attribut
     #----------------------------------------------------------------------------------------------------------------
     attr_reader :landing_url
-    attr :referrer,
-         :durations,
-         :advertising,
-         :start_date_time,
-         :id,
-         :visitor_details,
-         :around
+    attr :referrer
+    attr :durations
+    attr :advertising
+    attr :start_date_time
+    attr :id
+    attr :visitor_details
+    attr :around
 
 
     #----------------------------------------------------------------------------------------------------------------
@@ -93,7 +93,6 @@ module Visits
     #----------------------------------------------------------------------------------------------------------------
     def initialize(visit_details)
 
-
       @@logger.an_event.debug "id_visit #{visit_details[:id_visit]}"
       @@logger.an_event.debug "visitor #{visit_details[:visitor]}"
       @@logger.an_event.debug "start_date_time #{visit_details[:start_date_time]}"
@@ -101,7 +100,6 @@ module Visits
       @@logger.an_event.debug "many_account_ga #{visit_details[:website][:many_account_ga]}"
       @@logger.an_event.debug "fqdn #{visit_details[:landing][:fqdn]}"
       @@logger.an_event.debug "page_path #{visit_details[:landing][:page_path]}"
-
 
       begin
 
@@ -112,7 +110,6 @@ module Visits
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "many_account_ga"}) if visit_details[:website][:many_account_ga].nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "fqdn"}) if visit_details[:landing][:fqdn].nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "page_path"}) if visit_details[:landing][:page_path].nil?
-
 
         @id = visit_details[:id_visit]
         @visitor_details = visit_details[:visitor]
@@ -142,6 +139,7 @@ module Visits
     #----------------------------------------------------------------------------------------------------------------
     # input :
     #----------------------------------------------------------------------------------------------------------------
+    #TODO à supprimer
     def advertising?
       !@advertising.is_a?(NoAdvertising)
     end
