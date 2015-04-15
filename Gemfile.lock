@@ -17,7 +17,6 @@ GEM
       eventmachine
     em-socksify (0.3.0)
       eventmachine (>= 1.0.0.beta.4)
-    eventmachine (1.0.3)
     eventmachine (1.0.3-x86-mingw32)
     ffi (1.9.0-x86-mingw32)
     hpricot (0.8.6)
@@ -42,8 +41,10 @@ GEM
     polyglot (0.3.3)
     pony (1.10)
       mail (>= 2.0)
+    randexp (0.1.7)
     rautomation (0.15.0)
       ffi (= 1.9.0)
+    regexp-examples (1.1.0)
     ruby-progressbar (1.1.1)
     rubyzip (1.1.6)
     rufus-scheduler (2.0.17)
@@ -88,6 +89,8 @@ DEPENDENCIES
   logging (~> 1.8.1)
   nokogiri (= 1.6.0)
   pony (= 1.10)
+  randexp
+  regexp-examples
   ruby-progressbar (= 1.1.1)
   rufus-scheduler (~> 2.0.17)
   selenium-webdriver (= 2.43.0)
