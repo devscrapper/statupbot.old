@@ -9,19 +9,40 @@ module EngineSearches
 
     #TODO finir bing search
     def initialize
-      @page_url = "http://www.bing.com/"
-      @tag_search = :name
+      @fqdn = "http://www.bing.com"
+      @path = "/"
       @id_search = 'q'
-      @id_next = "Suivant"
+      @type_search = "searchbox"
       @label_search_button = "go"
     end
 
-
-    private
-    def next_link_exists?(driver)
-      driver.link(@id_next)
+    def links(body)
+      links = []
+      body.css('li.b_algo > h2 > a').each { |l|
+        links << {:href => l["href"], :text => l.text}
+      }
+      links
     end
 
+    #TODO valider next bing
+    def next(body)
+      if body.css('a.sb_pagN').empty?
+        {}
+      else
+        {:href => "#{@fqdn}#{body.css('a.sb_pagN').first["href"]}", :text => body.css('a.sb_pagN').text}
+      end
+    end
+
+
+     #TODO valider prev bing
+    def prev(body)
+      if body.css('a.sb_pagP').empty?
+        {}
+      else
+        {:href => body.css('a.sb_pagP').first["href"], :text => body.css('a.sb_pagP').first.text}
+      end
+    end
+    private
     def input(driver)
       driver.searchbox(@id_search)
     end

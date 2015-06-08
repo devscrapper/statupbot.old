@@ -6,18 +6,43 @@ module EngineSearches
     #----------------------------------------------------------------------------------------------------------------
     # attribut
     #----------------------------------------------------------------------------------------------------------------
-    #TODO rework google search avec primitive sahi et css
+
     def initialize
-      @page_url = "https://www.google.fr/"
+      @fqdn = "https://www.google.fr"
+      @path = "/"
       @id_search = 'q'
-      @id_next = "Suivant"
+      @type_search = "textbox"
       @label_search_button = "Recherche Google"
     end
 
-    private
-    def next_link_exists?(driver)
-      driver.span(@id_next)
+    def links(body)
+      links = []
+      body.css('h3.r > a').each { |l|
+        links << {:href => l["href"], :text => l.text}
+      }
+      links
     end
+
+    def next(body)
+      if body.css('a#pnnext.pn').empty?
+        {}
+      else
+        {:href => "#{@fqdn}#{body.css('a#pnnext.pn')[0]["href"]}", :text => body.css('a#pnnext.pn > span').text}
+      end
+    end
+
+
+
+    def prev(body)
+      if body.css('a#pnprev.pn').empty?
+        {}
+      else
+        {:href => "#{@fqdn}#{body.css('a#pnprev.pn')[0]["href"]}", :text => body.css('a#pnprev.pn > span').text}
+      end
+    end
+
+    private
+
 
     def input(driver)
       driver.textbox(@id_search)

@@ -6,11 +6,8 @@ development:
   :webdriver_pxy_ip:  muz11-wbsswsg.ca-technologies.fr
   :webdriver_pxy_port: 8080
   :webdriver_pxy_user: et00752
-  :webdriver_pxy_pwd: Bremb@11
-  :webdriver_withgui_path: ["c:" , "Program Files (x86)" ,"Mozilla Firefox","firefox.exe"]
-  :webdriver_headless_path: ["d:" , "personnel", "phantomjs" , "phantomjs.exe"]
-  :webdriver_listening_port: 9998
-  :ruby_path: ["d:" , "ruby193" , "bin" , "ruby.exe"]
+  :webdriver_pxy_pwd: Bremb@12
+  :ruby_path: ["d:" , "personnel" , "ruby200","bin" , "ruby.exe"]
   :debugging:  false
 test:
   :query_http_pxy_ip: 127.0.0.1
@@ -19,11 +16,8 @@ test:
   :webdriver_pxy_ip:  muz11-wbsswsg.ca-technologies.fr
   :webdriver_pxy_port: 8080
   :webdriver_pxy_user: et00752
-  :webdriver_pxy_pwd: Bremb@11
-  :webdriver_withgui_path: ["d:" , "FirefoxPortable" ,  "FirefoxPortable.exe"]
-  :webdriver_headless_path: ["d:" , "phantomjs" , "phantomjs.exe"]
-  :webdriver_listening_port: 9998
-  :ruby_path: ["d:" , "ruby193" , "bin" , "ruby.exe"]
+  :webdriver_pxy_pwd: Bremb@12
+  :ruby_path: ["d:" , "personnel" , "ruby200","bin" , "ruby.exe"]
   :debugging:  false
 production:
   :query_http_pxy_ip: 127.0.0.1
@@ -32,9 +26,6 @@ production:
   :webdriver_pxy_ip:  muz11-wbsswsg.ca-technologies.fr
   :webdriver_pxy_port: 8080
   :webdriver_pxy_user: et00752
-  :webdriver_pxy_pwd: Bremb@11
-  :webdriver_withgui_path: ["d:" , "FirefoxPortable" ,  "FirefoxPortable.exe"]
-  :webdriver_headless_path: ["d:" , "phantomjs" , "phantomjs.exe"]
-  :webdriver_listening_port: 9998
-  :ruby_path: ["d:" , "ruby193" , "bin" , "ruby.exe"]
+  :webdriver_pxy_pwd: Bremb@12
+  :ruby_path: ["d:" , "personnel" , "ruby200","bin" , "ruby.exe"]
   :debugging:  false

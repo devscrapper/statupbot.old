@@ -25,6 +25,7 @@ module Browsers
     DRIVER_NOT_ACCESS_URL = 210
     TEXTBOX_SEARCH_NOT_FOUND = 211
     SUBMIT_SEARCH_NOT_FOUND = 212
+    DRIVER_NOT_CATCH_LINKS = 213
 
     #----------------------------------------------------------------------------------------------------------------
     # include class
@@ -32,6 +33,10 @@ module Browsers
     #----------------------------------------------------------------------------------------------------------------
     # constant
     #----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
+    # variable de class
+    #----------------------------------------------------------------------------------------------------------------
+    @@logger = nil
     #----------------------------------------------------------------------------------------------------------------
     # attribut
     #----------------------------------------------------------------------------------------------------------------
@@ -44,6 +49,7 @@ module Browsers
     #----------------------------------------------------------------------------------------------------------------
     # instance methods
     #----------------------------------------------------------------------------------------------------------------
+
 
     #-----------------------------------------------------------------------------------------------------------------
     # close
@@ -79,66 +85,8 @@ module Browsers
       end
     end
 
-    #-----------------------------------------------------------------------------------------------------------------
-    # get_details_current_page
-    #-----------------------------------------------------------------------------------------------------------------
-    # input : none
-    # output : les informations contenu dans la page :
-    #   - liste des liens
-    #   - url de la page courante
-    #   - referrer de la page courante
-    #   - title de la page
-    #   - cookies de la page
-    # exception :
-    # StandardError :
-    #     - une erreur est survenue lors de l'exécution de la fonction Sahi.prototype.get_details_current_page contenu
-    #     dans le fichier lib/sahi.in.co/htdocs/spr/extensions.js
-    #-----------------------------------------------------------------------------------------------------------------
-    # with_links = true  |false : si true alors on recupere les links. est utilisé pour le surf sur le website et le
-    # surf sur advertiser. le slinks ne sont pas recuperés pour le search
-    # RAF  : doit on recuperer les liks pour le start_page, le referer ?
-    #-----------------------------------------------------------------------------------------------------------------
-    def get_details_current_page(url, with_links = true)
-
-      details = nil
-      count = 3
-      i = 0
-      begin
-        results = fetch("_sahi.current_page_details(#{with_links})")
-        @@logger.an_event.debug "results current page <#{results}>"
-        raise "_sahi.current_page_details() not return details page #{url}" if results == "" or results.nil?
-
-        details = JSON.parse(results)
-        @@logger.an_event.debug "details current page #{details}"
 
 
-
-        details["links"].map! { |link|
-            link["element"] = link(link["href"])
-            link
-        } if with_links
-
-
-        @@logger.an_event.debug "driver catch details current page"
-
-      rescue Exception => e
-        if i < count
-          @@logger.an_event.warn e.message
-          i += 1
-          retry
-        else
-          @@logger.an_event.fatal e.message
-          raise Error.new(CATCH_PROPERTIES_PAGE_FAILED, :values => {:url => url}, :error => e)
-        end
-
-      else
-        @@logger.an_event.debug "details #{details.nil? ? "empty" : details}"
-        return details
-
-      ensure
-
-      end
-    end
 
 
     #-----------------------------------------------------------------------------------------------------------------
@@ -157,6 +105,7 @@ module Browsers
     #
     #-----------------------------------------------------------------------------------------------------------------
     def initialize(browser_type, listening_port_sahi)
+      @@logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
       @@logger.an_event.debug "browser_type #{browser_type}"
       @@logger.an_event.debug "listening_port_sahi #{listening_port_sahi}"
 
@@ -267,83 +216,8 @@ module Browsers
     end
 
 
-    #-----------------------------------------------------------------------------------------------------------------
-    # set_title
-    #-----------------------------------------------------------------------------------------------------------------
-    # input : title de la fenetre du browser
-    # output : title de la fenetre mis a jour
-    # exception :
-    # StandardError :
-    #     - une erreur est survenue lors de l'exécution de la fonction Sahi.prototype.set_title contenu
-    #     dans le fichier lib/sahi.in.co/htdocs/spr/extensions.js
-    # StandardError :
-    #     - title n'est pas défini ou absent
-    #-----------------------------------------------------------------------------------------------------------------
-    #
-    #-----------------------------------------------------------------------------------------------------------------
-    #def set_title(title)
-    #  @@logger.an_event.debug "BEGIN Driver.set_title"
-    #  @@logger.an_event.debug "title : #{title}"
-    #  raise StandardError, PARAM_NOT_DEFINE if title.nil?
-    #  title_update = ""
-    #  begin
-    #    title_update = fetch("_sahi.set_title(\"#{title}\")")
-    #    @@logger.an_event.debug "title update : #{title_update}, title : #{title}"
-    #  rescue Exception => e
-    #    @@logger.an_event.debug e.message
-    #    @@logger.an_event.fatal "driver not set title #{title}"
-    #    raise StandardError, SET_TITLE_FAILED
-    #  ensure
-    #    @@logger.an_event.debug "END Driver.set_title"
-    #    title_update
-    #  end
-    #end
-
-    #-----------------------------------------------------------------------------------------------------------------
-    # search
-    #-----------------------------------------------------------------------------------------------------------------
-    # input : les mots cle que on veut rechercher, l'objet moteur de recherche
-    # output : RAS
-    # exception :
-    # StandardError :
-    #     - une erreur est survenue lors de l'exécution de la fonction Sahi.prototype.set_title contenu
-    #     dans le fichier lib/sahi.in.co/htdocs/spr/extensions.js
-    # StandardError :
-    #     - title n'est pas défini ou absent
-    #-----------------------------------------------------------------------------------------------------------------
-    #
-    #-----------------------------------------------------------------------------------------------------------------
-    def search(keywords, engine_search)
-      @@logger.an_event.debug "keywords #{keywords}"
-      @@logger.an_event.debug "engine_search #{engine_search.class}"
 
 
-      begin
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => keywords}) if keywords.nil? or keywords==""
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => engine_search}) if engine_search.nil?
 
-        @@logger.an_event.debug "engine_search.id_search #{engine_search.id_search}"
-        @@logger.an_event.debug "engine_search.label_search_button #{engine_search.label_search_button}"
-
-        raise Error.new(TEXTBOX_SEARCH_NOT_FOUND) unless engine_search.input(self).exists?
-        raise Error.new(SUBMIT_SEARCH_NOT_FOUND) unless engine_search.submit(self).exists?
-
-        engine_search.input(self).value  = !keywords.is_a?(String) ? keywords.to_s : keywords
-
-        @@logger.an_event.debug "driver #{@browser_type} enter keywords #{keywords} in search form #{engine_search.class}"
-
-        engine_search.submit(self).click
-
-
-      rescue Exception => e
-        @@logger.an_event.error e.message
-        raise Error.new(DRIVER_SEARCH_FAILED)
-      else
-        @@logger.an_event.debug "driver #{@browser_type} submit search form #{engine_search.class}"
-      ensure
-
-      end
-
-    end
   end
 end

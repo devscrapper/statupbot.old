@@ -148,7 +148,7 @@ module Browsers
         @@logger.an_event.debug "start_page_visit_url : #{start_page_visit_url}"
 
         start_page = super("_sahi.open_start_page_ch", start_page_visit_url)
-
+        #TODO à corriger
         link = start_page.link_by_url(start_url)
 
         page = click_on(link)

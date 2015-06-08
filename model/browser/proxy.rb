@@ -49,7 +49,10 @@ module Browsers
             File.join(DIR_SAHI, 'extlib', 'c3p0', 'mchange-commons-java-0.2.6.2'))
 
     #BIN_JAVA_PATH = "\"C:/Program Files (x86)/Java/jre6/bin/java\""
-
+    #----------------------------------------------------------------------------------------------------------------
+    # variable de class
+    #----------------------------------------------------------------------------------------------------------------
+    @@logger = nil
     #----------------------------------------------------------------------------------------------------------------
     # attribut
     #----------------------------------------------------------------------------------------------------------------
@@ -89,6 +92,8 @@ module Browsers
     #----------------------------------------------------------------------------------------------------------------
 
     def initialize(visitor_dir, listening_port_proxy, ip_geo_proxy, port_geo_proxy, user_geo_proxy, pwd_geo_proxy)
+      @@logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
+
       @@logger.an_event.debug "visitor_dir #{visitor_dir}"
       @@logger.an_event.debug "listening_port_proxy #{listening_port_proxy}"
       @@logger.an_event.debug "ip_geo_proxy #{ip_geo_proxy}"

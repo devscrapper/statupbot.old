@@ -18,6 +18,10 @@ module EngineSearches
     TEXTBOX_SEARCH_NOT_FOUND = 905
     SUBMIT_SEARCH_NOT_FOUND = 906
     SEARCH_FAILED = 907
+        #----------------------------------------------------------------------------------------------------------------
+    # variable de class
+    #----------------------------------------------------------------------------------------------------------------
+    @@logger = nil
     #----------------------------------------------------------------------------------------------------------------
     # attribut
     #----------------------------------------------------------------------------------------------------------------
@@ -28,26 +32,24 @@ module EngineSearches
     #| :tag_search          |    X     |      |
     #| :id_search           |    X     |   X  |
     #| :label_search_button |          |   X  |
-    #| :id_next             |          |   X  |
     #+----------------------------------------+
-    attr_reader :page_url,
-                :tag_search,
-                :id_search,
-                :label_search_button,
-                :id_next,
-                :id_link
+    attr_reader :fqdn,  #fqdn de la page du moteur ded recherche
+                :path, #le path de la page du moteur de recherche
+                :id_search, # id de de lobjet javascript qui contient les mot clé à saisir
+                :type_search, #le type de lobjet javascript qui contient les mot clé à saisir
+                :label_search_button
 
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
     def self.build(engine)
-
+      @@logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
       case engine
-        when "google"
+        when :google
           return Google.new
-        when "bing"
+        when :bing
           return Bing.new
-        when "yahoo"
+        when :yahoo
           return Yahoo.new
         else
           raise Error.new(ENGINE_UNKNOWN, :values => {:engine => engine})
@@ -63,72 +65,30 @@ module EngineSearches
 
     end
 
-    def landing_link(landing_url, driver)
+    # def landing_link(landing_url, driver)
+    #
+    #   raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing_url"}) if landing_url.nil?
+    #
+    #   link = nil
+    #   begin
+    #     l = driver.link(landing_url)
+    #     raise "landing link not exist" unless l.exists?
+    #
+    #   rescue Exception => e
+    #     raise Error.new(ENGINE_NOT_FOUND_LANDING_LINK, :values => {:engine => self.class, :landing => landing_url}, :error => e)
+    #
+    #   else
+    #     link = l
+    #   ensure
+    #     link
+    #   end
+    # end
 
-      raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing_url"}) if landing_url.nil?
-
-      link = nil
-      begin
-        l = driver.link(landing_url)
-        raise "landing link not exist" unless l.exists?
-
-      rescue Exception => e
-        raise Error.new(ENGINE_NOT_FOUND_LANDING_LINK, :values => {:engine => self.class, :landing => landing_url}, :error => e)
-
-      else
-        link = l
-      ensure
-        link
-      end
-    end
-
-    def next_page_link(driver)
-
-      next_link = nil
-      begin
-        l = next_link_exists?(driver)
-
-      rescue Exception => e
-        raise Error.new(ENGINE_NOT_FOUND_NEXT_LINK, :values => {:engine => self.class}, :error => e)
-
-      else
-        next_link = l
-
-      ensure
-        next_link
-
-      end
+    def page_url
+      "#{@fqdn}#{path}"
     end
 
 
-    def search(keywords, driver)
-      @@logger.an_event.debug "keywords #{keywords}"
-
-      begin
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => keywords}) if keywords.nil? or keywords==""
-
-        @@logger.an_event.debug "engine_search.id_search #{@id_search}"
-        @@logger.an_event.debug "engine_search.label_search_button #{@label_search_button}"
-
-        raise Error.new(TEXTBOX_SEARCH_NOT_FOUND, :values => {:engine => self.class, :textbox => @id_search}) unless input(driver).exists?
-        raise Error.new(SUBMIT_SEARCH_NOT_FOUND, :values => {:engine => self.class, :submit => @label_search_button}) unless driver.submit(@label_search_button).exists?
-
-        input(driver).value = !keywords.is_a?(String) ? keywords.to_s : keywords
-
-        @@logger.an_event.debug "search engine #{self.class} enter keywords #{keywords} in search form"
-
-        driver.submit(@label_search_button).click
-
-      rescue Exception => e
-        @@logger.an_event.error e.message
-        raise Error.new(SEARCH_FAILED, :values => {:engine => self.class}, :error => e)
-
-      else
-        @@logger.an_event.debug "search engine #{self.class} submit search"
-
-      ensure
-      end
-    end
 
     private
 

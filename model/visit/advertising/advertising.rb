@@ -1,4 +1,3 @@
-require_relative '../visit'
 require_relative '../../../lib/error'
 module Visits
   module Advertisings
@@ -10,19 +9,20 @@ module Visits
       #----------------------------------------------------------------------------------------------------------------
       # Message exception
       #----------------------------------------------------------------------------------------------------------------
-       ARGUMENT_UNDEFINE = 1200
+      ARGUMENT_UNDEFINE = 1200
       ADVERTISING_NOT_BUILD = 1201
-      ADVERT_NOT_FOUND = 1202
+      ADVERTISING_NOT_FOUND = 1202
       NONE_ADVERT = 1203
       ADVERTISING_UNKNOWN = 1204
-      attr_reader :domains,
-                  # tableau de nom de domain de la iframe contenant les advert.
-                  # IMPORTANT : si l'advert n'est pas dans un iframe alors le tableau doit contenir la chaine "nil", exemple
-                  # @domains = ["nil"]
-                  :link_identifiers
-      # tableau d'identifiant de la balise html <a> qui heberge le lien vers l'advertiser
-      # cet identifiant peut être un attribut de la balise <a> : id, class, href combiné avec une expression réguliere
+      #----------------------------------------------------------------------------------------------------------------
+      # variable class
+      #----------------------------------------------------------------------------------------------------------------
+      @@logger = nil
+      #----------------------------------------------------------------------------------------------------------------
+      # attribut
+      #----------------------------------------------------------------------------------------------------------------
 
+      attr_reader :domain # le domain de la frame contenantla pub
       attr :advertiser # le site dont on fait la promotion
       #---------------------------------------------------------------------------------------------------------------
       # l'existence du click pour une visit est calculé par enginebot suite aux exigences de statupweb.
@@ -38,6 +38,7 @@ module Visits
       #---------------------------------------------------------------------------------------------------------------
       #---------------------------------------------------------------------------------------------------------------
       def self.build(pub_details)
+        @@logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
 
         @@logger.an_event.debug "advertising #{pub_details[:advertising]}"
         @@logger.an_event.debug "advertiser #{pub_details[:advertiser]}"
@@ -73,8 +74,10 @@ module Visits
       end
 
       def to_s
-        "domains : #{@domains}, link identifiers : #{@link_identifiers}, advertiser : #{@advertiser}"
+        "domain : #{@domain}\n" +
+            "advertiser : #{@advertiser}\n"
       end
+
 
     end
   end

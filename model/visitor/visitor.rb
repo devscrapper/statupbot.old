@@ -1,17 +1,11 @@
 require_relative '../../model/browser/browser'
 require_relative '../visit/referrer/referrer'
 require_relative '../visit/advertising/advertising'
+require_relative '../page/website'
 require_relative '../../lib/error'
 require 'pathname'
 
 module Visitors
-  #----------------------------------------------------------------------------------------------------------------
-  # include class
-  #----------------------------------------------------------------------------------------------------------------
-  include Browsers
-  include Visits::Referrers
-  include Visits::Advertisings
-
 
   class Visitor
     #----------------------------------------------------------------------------------------------------------------
@@ -21,47 +15,82 @@ module Visitors
     include Browsers
     include Visits::Referrers
     include Visits::Advertisings
+    include Pages
 
     #----------------------------------------------------------------------------------------------------------------
     # Message exception
     #----------------------------------------------------------------------------------------------------------------
 
     ARGUMENT_UNDEFINE = 600
-    VISITOR_NOT_CREATE = 601 # à remonter en code retour de statupbot
-    SEARCH_NOT_FOUND_LANDING_LINK = 602 # à remonter en code retour de statupbot
-    VISITOR_NOT_BORN = 603 # à remonter en code retour de statupbot
-    VISITOR_NOT_BROWSE_LANDING_PAGE = 604 # à remonter en code retour de statupbot
-    VISITOR_NOT_BROWSE_REFERRAL_REFERRER = 605 # à remonter en code retour de statupbot
-    VISITOR_NOT_FOUND_LANDING_LINK = 606 # à remonter en code retour de statupbot
-    VISITOR_NOT_BROWSE_SEARCH_REFERRER = 607 # à remonter en code retour de statupbot
-    VISITOR_NOT_INHUME = 608 # à remonter en code retour de statupbot
-    NO_MORE_RESULT_PAGE = 609
-    VISIT_NOT_COMPLETE = 610
-    CANNOT_CLICK_ON_LINK_OF_NEXT_PAGE = 611
-    VISITOR_NOT_CLOSE = 612
-    VISITOR_NOT_DIE = 613
-    NONE_KEYWORDS_FIND_LANDING_LINK = 614
-    VISITOR_NOT_OPEN = 615
-    LOG_VISITOR_NOT_DELETE = 616
-    VISITOR_NOT_FOUND_ADVERT = 617
-    VISITOR_NOT_CLICK_ON_ADVERT = 618
-    VISITOR_NOT_BROWSE_DIRECT_REFERRER = 619
-    VISITOR_NOT_FOUND_RESULTS_WITH_KEYWORD = 620
+    VISITOR_NOT_CREATE = 601
+    VISITOR_NOT_BORN = 602
+    VISITOR_NOT_INHUME = 603
+    VISITOR_NOT_FULL_EXECUTE_VISIT = 604
+    VISITOR_NOT_CLOSE = 605
+    VISITOR_NOT_DIE = 606
+    VISITOR_NOT_OPEN = 607
+    LOG_VISITOR_NOT_DELETE = 608
+    VISITOR_NOT_CLICK_ON_ADVERT = 609
+    VISITOR_NOT_CLICK_ON_LINK = 610
+    VISITOR_NOT_CLICK_ON_LINK_ON_WEBSITE = 611
+    VISITOR_NOT_CLICK_ON_LINK_ON_ADVERTISER = 612
+    VISITOR_NOT_CLICK_ON_LINK_ON_UNKNOWN = 613
+    VISITOR_NOT_START_LANDING = 614
+    VISITOR_NOT_START_ENGINE_SEARCH = 615
+    VISITOR_NOT_GO_BACK = 616
+    VISITOR_NOT_CLICK_ON_RESULT = 617
+    VISITOR_NOT_SUBMIT_FINAL_SEARCH = 618
+    VISITOR_NOT_CLICK_ON_LANDING = 619
+    VISITOR_NOT_GO_TO_LANDING = 620
+    VISITOR_NOT_GO_TO_ENGINE_SEARCH = 621
+    VISITOR_NOT_GO_TO_REFERRAL = 622
+    VISITOR_NOT_CLICK_ON_NEXT= 623
+    VISITOR_NOT_CLICK_ON_PREV = 624
+    VISITOR_NOT_SUBMIT_SEARCH = 625
+    VISITOR_NOT_KNOWN_ACTION = 626
+    VISITOR_NOT_READ_PAGE = 627
+    VISITOR_NOT_CHOOSE_LINK = 628
+    VISITOR_NOT_CHOOSE_ADVERT = 629
+    VISITOR_NOT_FOUND_LANDING = 630
     #----------------------------------------------------------------------------------------------------------------
     # constants
     #----------------------------------------------------------------------------------------------------------------
     DIR_VISITORS = Pathname(File.join(File.dirname(__FILE__), '..', '..', 'visitors')).realpath
+
+    COMMANDS = {"a" => "go_to_start_landing",
+                "b" => "go_to_start_engine_search",
+                "c" => "go_back",
+                "d" => "go_to_landing",
+                "e" => "go_to_referral",
+                "f" => "go_to_search_engine",
+                "A" => "cl_on_next",
+                "B" => "cl_on_prev",
+                "C" => "cl_on_link_on_result",
+                "D" => "cl_on_landing",
+                "E" => "cl_on_link_on_website",
+                "F" => "cl_on_advert",
+                "G" => "cl_on_link_on_unknown",
+                "H" => "cl_on_link_on_advertiser",
+                "0" => "sb_search",
+                "2" => "sb_search",
+                "1" => "sb_final_search"}
+
+    #----------------------------------------------------------------------------------------------------------------
+    # variable de class
+    #----------------------------------------------------------------------------------------------------------------
+    @@logger = nil
+
     #----------------------------------------------------------------------------------------------------------------
     # attributs
     #----------------------------------------------------------------------------------------------------------------
-    attr_accessor :id,
-                  :browser,
-                  :home, #repertoire d'execution du visitor
-                  :proxy, #sahi : utilise le proxy sahi
-                  # webdriver : n'utilise pas le proxy
-                  :geolocation # webdriver : utilise la geolocation car il n'y a pas de proxy,
-    # sahi : n'utilise pas geolocation car pris en charge par le proxy sahi
-
+    attr_reader :id, #id du visitor
+                :browser, #browser utilisé par le visitor
+                :visit, #la visit à exécuter
+                :current_page, #page encours de visualisation par le visitor
+                :home, #repertoire d'execution du visitor
+                :proxy, #sahi : utilise le proxy sahi
+                :failed_links, #liste links sur lesquels le visior a cliquer et une eexception a été elvée
+                :history # liste des pages vues par le visitor lors du surf
 
     #----------------------------------------------------------------------------------------------------------------
     # class methods
@@ -84,6 +113,7 @@ module Visitors
     #-----------------------------------------------------------------------------------------------------------------
     def born
       begin
+
         @proxy.start
 
       rescue Exception => e
@@ -91,7 +121,7 @@ module Visitors
         raise Error.new(VISITOR_NOT_BORN, :error => e)
 
       else
-        @@logger.an_event.info "visitor is born"
+        @@logger.an_event.info "visitor #{@id} is born"
 
       ensure
 
@@ -102,27 +132,18 @@ module Visitors
     #----------------------------------------------------------------------------------------------------------------
     # initialize
     #----------------------------------------------------------------------------------------------------------------
-    # crée un visitor :
     # - crée le visitor, le browser, la geolocation
     #----------------------------------------------------------------------------------------------------------------
     # input :
-    # une visite qui est une ligne du flow : published-visits_label_date_hour.json, sous forme de hash
-    #["return_visitor", "true"]
-    #["browser", "Firefox"]
-    #["browser_version", "16.0"]
-    #["operating_system", "Windows"]
-    #["operating_system_version", "7"]
-    #["flash_version", "11.4 r402"]
-    #["java_enabled", "No"]
-    #["screens_colors", "24-bit"]
-    #["screen_resolution", "1366x768"]
     #----------------------------------------------------------------------------------------------------------------
     def initialize(visitor_details)
+      @@logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
       @@logger.an_event.debug "visitor detail #{visitor_details}"
-
 
       begin
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "visitor_details"}) if visitor_details.nil?
+        @history = []
+        @failed_links = []
 
         @id = visitor_details[:id]
 
@@ -175,7 +196,7 @@ module Visitors
         raise Error.new(VISITOR_NOT_CREATE, :error => e)
 
       else
-        @@logger.an_event.info "visitor create runtime directory, config his proxy Sahi and config his browser"
+        @@logger.an_event.info "visitor #{@id} create runtime directory, config proxy Sahi and browser"
 
       ensure
 
@@ -184,169 +205,6 @@ module Visitors
 
     end
 
-    #----------------------------------------------------------------------------------------------------------------
-    # initialize
-    #----------------------------------------------------------------------------------------------------------------
-    # demarre un proxy :
-    # inputs
-
-    # output
-    # StandardError
-    # StandardError
-    #----------------------------------------------------------------------------------------------------------------
-    #----------------------------------------------------------------------------------------------------------------
-    #
-    #----------------------------------------------------------------------------------------------------------------
-    def browse_landing_page(referrer)
-      begin
-        landing_page = nil
-
-        case referrer
-          #---------------------------------------------------------------------------------------------------------------
-          #
-          # Referrer DIRECT
-          #
-          #---------------------------------------------------------------------------------------------------------------
-          when Direct
-            landing_page = browse_direct(referrer)
-          #---------------------------------------------------------------------------------------------------------------
-          #
-          # Referrer REFERRAL
-          #
-          #---------------------------------------------------------------------------------------------------------------
-          when Referral
-            landing_page = browse_referral(referrer)
-          #---------------------------------------------------------------------------------------------------------------
-          #
-          # Referrer SEARCH
-          #
-          #---------------------------------------------------------------------------------------------------------------
-          when Search
-            landing_page = browse_search(referrer)
-        end
-      rescue Exception => e
-        @@logger.an_event.error e.message
-        raise Error.new(VISITOR_NOT_BROWSE_LANDING_PAGE, :error => e)
-      else
-        @@logger.an_event.debug "visitor browse landing page"
-        return landing_page
-      ensure
-
-      end
-    end
-
-
-    def browse_direct(referrer)
-      begin
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing_url"}) if referrer.landing_url.nil?
-
-        landing_page = @browser.display_start_page(referrer.landing_url, @id)
-
-      rescue Exception => e
-        @browser.screenshot(@id, "ERROR")
-        @@logger.an_event.error e.message
-        raise Error.new(VISITOR_NOT_BROWSE_DIRECT_REFERRER, :error => e)
-      else
-        return landing_page
-
-      ensure
-
-      end
-    end
-
-    def browse_referral(referrer)
-
-      begin
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "page_url"}) if referrer.page_url.nil?
-        referral_page = nil
-        landing_link = nil
-        referral_page = @browser.display_start_page(referrer.page_url, @id)
-
-        @@logger.an_event.info "visitor browse referral page #{referral_page.url.to_s}"
-
-        referral_page.duration = referrer.duration
-        read(referral_page)
-
-        landing_link = referral_page.link_by_url(referrer.landing_url)
-
-        @@logger.an_event.info "visitor found landing link #{referrer.landing_url.to_s} in referral page #{referral_page.url.to_s}"
-
-        landing_page = @browser.click_on(landing_link)
-
-      rescue Exception => e
-        @browser.screenshot(@id, "ERROR")
-        @@logger.an_event.error e.message
-        raise Error.new(VISITOR_NOT_BROWSE_REFERRAL_REFERRER, :error => e)
-      else
-        return landing_page
-      ensure
-
-      end
-
-    end
-
-    def browse_search(referrer)
-
-      begin
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "keywords"}) if referrer.keywords.nil?
-
-        referrer.keywords = [referrer.keywords] if referrer.keywords.is_a?(String)
-
-        @browser.display_start_page(referrer.engine_search.page_url, @id)
-
-        @@logger.an_event.info "visitor browse engine search page #{referrer.engine_search.page_url}"
-
-        landing_link = many_search(referrer)
-
-        landing_page = @browser.click_on(landing_link)
-
-
-      rescue Exception => e
-        @browser.screenshot(@id, "ERROR")
-        @@logger.an_event.error e.message
-        raise Error.new(VISITOR_NOT_BROWSE_SEARCH_REFERRER, :error => e)
-
-      else
-        @@logger.an_event.info "visitor click on landing url #{landing_link.url.to_s}"
-        return landing_page
-
-      ensure
-
-      end
-    end
-
-
-    #----------------------------------------------------------------------------------------------------------------
-    # select_click_on_advert
-    #----------------------------------------------------------------------------------------------------------------
-    #
-    # inputs : objet page
-    # output : objet page pointant sur l'advertiser
-    # StandardError
-    #----------------------------------------------------------------------------------------------------------------
-    #----------------------------------------------------------------------------------------------------------------
-    #
-    #----------------------------------------------------------------------------------------------------------------
-    def click_on_advert(advert)
-      @@logger.an_event.debug "advert #{advert}"
-
-      begin
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "advert"}) if advert.nil?
-        advertiser_page = @browser.click_on(advert)
-
-      rescue Exception => e
-        @browser.screenshot(@id, "ERROR")
-        @@logger.an_event.error e.message
-        raise Error.new(VISITOR_NOT_CLICK_ON_ADVERT, :error => e)
-      else
-        @@logger.an_event.info "visitor click on advert url #{advert.url.to_s}"
-
-        return advertiser_page
-      ensure
-
-      end
-
-    end
 
     #----------------------------------------------------------------------------------------------------------------
     # close_browser
@@ -371,7 +229,7 @@ module Visitors
         raise Error.new(VISITOR_NOT_CLOSE, :error => e)
 
       else
-        @@logger.an_event.info "visitor close browser"
+        @@logger.an_event.info "visitor #{@id} close browser"
       ensure
 
       end
@@ -394,10 +252,10 @@ module Visitors
         @proxy.stop
 
       rescue Exception => e
-        @@logger.an_event.error "visitor #{@id} not die : #{e.message}"
-        raise Error.new(VISITOR_NOT_DIE, e), "visitor #{@id} not die"
+        @@logger.an_event.error e.message
+        raise Error.new(VISITOR_NOT_DIE, :error => e)
       else
-        @@logger.an_event.info "visitor die"
+        @@logger.an_event.info "visitor #{@id} die"
       ensure
 
       end
@@ -427,7 +285,83 @@ module Visitors
         raise Error.new(LOG_VISITOR_NOT_DELETE, :error => e)
 
       else
-        @@logger.an_event.info "visitor delete log"
+        @@logger.an_event.info "visitor #{@id} delete log"
+
+      ensure
+
+      end
+    end
+
+    #----------------------------------------------------------------------------------------------------------------
+    # execute
+    #----------------------------------------------------------------------------------------------------------------
+    # execute une visite
+    # inputs : object visit
+    # output : RAS
+    # StandardError  : ???
+    #----------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------------------------------
+    def execute (visit)
+
+      begin
+        @visit = visit
+
+        script = @visit.script
+
+        @@logger.an_event.debug "script #{script}"
+
+        count_actions = 0
+
+        for action in script
+          @@logger.an_event.info "visitor #{@id} execute action <#{COMMANDS[action]}>."
+
+          begin
+
+            raise Error.new(VISITOR_NOT_KNOWN_ACTION, :values => {:action => action}) if COMMANDS[action].nil?
+            eval(COMMANDS[action])
+
+          rescue Errors::Error => e
+            case e.code
+              when VISITOR_NOT_READ_PAGE
+                # ajout dans le script d'action pour revenir à la page précédent pour refaire l'action qui a planté.
+                # ceci s'arretera quand il n'y aura plus de lien sur lesquel clickés ; lien choisi dans les 3 actions
+                script.insert(count_actions + 1, ["c", action]).flatten!
+                @@logger.an_event.info "visitor #{@id} go back to make action #{COMMANDS[action]} again"
+
+              when VISITOR_NOT_CLICK_ON_RESULT,
+                  VISITOR_NOT_CLICK_ON_LINK_ON_ADVERTISER,
+                  VISITOR_NOT_CLICK_ON_LINK_ON_UNKNOWN,
+                  VISITOR_NOT_CLICK_ON_LINK_ON_WEBSITE
+                # ajout dand le script d'une action pour choisir un autres results
+                #  ceci s'arretera quand il n'y aura plus de lien sur lesquel clickés
+                script.insert(count_actions + 1, action)
+                @@logger.an_event.info "visitor #{@id} make action <#{COMMANDS[action]}> again"
+              else
+                raise e
+            end
+
+
+          rescue Exception => e
+            raise e
+
+          else
+            count_actions +=1
+            @@logger.an_event.info "visitor #{@id} executed #{count_actions}/#{script.size}(#{(count_actions * 100 /script.size).round(0)}%) actions."
+
+          end
+
+        end
+
+
+      rescue Exception => e
+        take_screenshot
+        @@logger.an_event.error e.message
+        raise Error.new(VISITOR_NOT_FULL_EXECUTE_VISIT, :error => e)
+
+      else
+        @@logger.an_event.info "visitor #{@id} execute visit."
 
       ensure
 
@@ -464,61 +398,12 @@ module Visitors
         @@logger.an_event.error e.message
         raise Error.new(VISITOR_NOT_INHUME, :error => e)
       else
-        @@logger.an_event.info "visitor inhume"
+        @@logger.an_event.info "visitor #{@id} inhume"
       ensure
 
       end
     end
 
-#-----------------------------------------------------------------------------------------------------------------
-# many_search
-#-----------------------------------------------------------------------------------------------------------------
-# input : objet Referrer
-# output : un objet Page
-# exception :
-# StandardError :
-# si Referrer n'est pas defini
-# si landing_link not found dans les pages de resultats de toutes les recherches
-#-----------------------------------------------------------------------------------------------------------------
-# permet de realiser plusieurs recherche avec à chaque fois une list de mot clé différent
-# cette liste de mot clé sera calculé par scraperbot en fonction d'un paramètage de statupweb
-# cela permettra par exemple de realiser des recherches qui échouent
-#-----------------------------------------------------------------------------------------------------------------
-    def many_search(referrer)
-
-      #TODO meo plusieurs methodes pour saisir les mots clés et les choisir aléatoirement :
-      #TODO afficher la page google.fr, comme c'est le cas actuellement
-      #TODO dans la derniere page des resultats, saisir les nouveaux mot clés dans la zone idoine.
-      @@logger.an_event.debug "keywords #{referrer.keywords}"
-      @@logger.an_event.debug "landing_url #{referrer.landing_url}"
-
-      i = 0 # ne pas déplacer sinon on passe jamais au mot clé suivant
-      begin
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "keywords"}) if referrer.keywords.nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing_url"}) if referrer.landing_url.nil?
-
-
-        landing_link = search(referrer.keywords[i][:words],
-                              referrer.keywords[i][:durations].map { |d| d },
-                              referrer.landing_url)
-
-      rescue Exception => e
-
-        i+=1
-        if i < referrer.keywords.size
-          @@logger.an_event.warn e.message
-          retry
-        else
-          @@logger.an_event.error e.message
-          raise Error.new(NONE_KEYWORDS_FIND_LANDING_LINK, :error => e)
-        end
-      else
-        return landing_link
-
-      ensure
-
-      end
-    end
 
     #----------------------------------------------------------------------------------------------------------------
     # open_browser
@@ -542,8 +427,631 @@ module Visitors
         raise Error.new(VISITOR_NOT_OPEN, :error => e)
 
       else
-        @@logger.an_event.info "visitor open his browser"
+        @@logger.an_event.info "visitor #{@id} open his browser"
 
+      ensure
+
+      end
+    end
+
+
+    #-----------------------------------------------------------------------------------------------------------------
+    # take_screenshot
+    #-----------------------------------------------------------------------------------------------------------------
+    # input : none
+    # output : none
+    # exception : none
+    #-----------------------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------------------------
+    def take_screenshot
+      @browser.take_screenshot(@id, "ERROR")
+    end
+
+    private
+    # permet de choisir un link en s'assurant que ce link n'est pas un lien comme déja identifié ne fonctionnant pas car
+    # il apprtient à la liste des failed_links connnu du visitor
+    # les links déjà parcourus ne sont pas éliminé du choix car un visitor peut avoir envie
+    # de revenir sur un lien déjà consulté
+    # quand il n'y a plus de lien, on relais l'exception
+
+    def choose_link(around = nil)
+      begin
+
+        link = @current_page.link(around) unless around.nil?
+        link = @current_page.link if around.nil?
+        while @failed_links.include?(link.url)
+          link = @current_page.link(around) unless around.nil?
+          link = @current_page.link if around.nil?
+        end
+
+      rescue Exception => e
+        raise Error.new(VISITOR_NOT_CHOOSE_LINK, :error => e)
+
+      else
+        link
+
+      end
+
+    end
+
+    def cl_on_advert
+
+
+      @@logger.an_event.debug "action #{__method__}"
+      #--------------------------------------------------------------------------------------------------------
+      # Chose link
+      #--------------------------------------------------------------------------------------------------------
+      begin
+        #Contrairement aux links qui sont calculés lors de la creation de l'objet Page, les liens des Adverts sont calculés
+        #seulement avant de cliquer dessus car on evite de rechercher des liens pour rien.
+        @@logger.an_event.debug "domain #{@visit.advertising.domain}"
+
+        frame = @browser.driver.domain(@visit.advertising.domain)
+        @@logger.an_event.debug "frame #{frame}"
+
+        links = @browser.driver.link("/.*/").collect_similar
+       for i in links
+         @@logger.an_event.info @browser.driver.link(i).fetch("href")
+       end
+        frames = []
+        frames << @browser.driver
+        frames << frame  unless frame.nil?
+
+        @@logger.an_event.debug "frames #{frames}"
+
+        advert = @visit.advertising.advert(frames)
+        @@logger.an_event.debug "advert #{advert}"
+
+      rescue Exception => e
+
+        @@logger.an_event.error "visitor #{@id} not found advert on website."
+        raise Error.new(VISITOR_NOT_CHOOSE_ADVERT, :error => e)
+
+      else
+        @@logger.an_event.info "visitor #{@id} chose advert on website."
+
+      end
+
+      #--------------------------------------------------------------------------------------------------------
+      # Click on link
+      #--------------------------------------------------------------------------------------------------------
+      begin
+
+        @browser.click_on(advert)
+
+      rescue Exception => e
+
+        @@logger.an_event.warn "visitor #{@id} not clicked on link advert on website : #{e.message}."
+        raise Error.new(VISITOR_NOT_CLICK_ON_ADVERT, :error => e)
+
+      else
+        @@logger.an_event.info "visitor #{@id} clicked on link advert on website."
+
+      end
+
+      #--------------------------------------------------------------------------------------------------------
+      # read Page
+      #--------------------------------------------------------------------------------------------------------
+      count_retry = 0
+      begin
+        @current_page = Pages::Unmanage.new(@visit.advertising.advertiser.next_duration,
+                                            @browser)
+
+      rescue Errors::Error => e
+        case e.code
+          when Pages::Page::PAGE_NONE_INSIDE_LINKS
+            count_retry += 1
+            sleep 5
+            @@logger.an_event.warn "visitor #{@id} try catch links again #{count_retry} times"
+            retry if count_retry < 3
+        end
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      rescue Exception => e
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      else
+        read(@current_page)
+
+      end
+    end
+
+    def cl_on_landing
+
+      @@logger.an_event.debug "action #{__method__}"
+
+      #--------------------------------------------------------------------------------------------------------
+      # Click on link
+      #--------------------------------------------------------------------------------------------------------
+      begin
+        link = @current_page.landing_link #Object Link
+
+        @browser.click_on(link)
+
+      rescue Exception => e
+
+        @@logger.an_event.warn "visitor #{@id} not clicked on landing link #{link.url} on results page : #{e.message}."
+        raise Error.new(VISITOR_NOT_CLICK_ON_LANDING, :error => e)
+
+      else
+        @@logger.an_event.info "visitor #{@id} clicked on link #{link.url} on results page."
+
+      end
+
+      #--------------------------------------------------------------------------------------------------------
+      # read Page
+      #--------------------------------------------------------------------------------------------------------
+      count_retry = 0
+      begin
+        @current_page = Pages::Website.new(@visit, @browser)
+
+      rescue Errors::Error => e
+        case e.code
+          when Pages::Page::PAGE_NONE_INSIDE_LINKS
+            count_retry += 1
+            sleep 10
+            @@logger.an_event.warn "visitor #{@id} try catch links again #{count_retry} times"
+            retry if count_retry < 3
+        end
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      rescue Exception => e
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      else
+        read(@current_page)
+
+      end
+
+
+    end
+
+
+    def cl_on_link_on_advertiser
+      @@logger.an_event.debug "action #{__method__}"
+      #--------------------------------------------------------------------------------------------------------
+      # Chose link
+      #--------------------------------------------------------------------------------------------------------
+      begin
+
+        link = choose_link(@visit.advertising.advertiser.next_around)
+
+      rescue Exception => e
+
+        @@logger.an_event.error e.message
+        raise Error.new(VISITOR_NOT_CHOOSE_LINK, :error => e)
+
+      else
+        @@logger.an_event.info "visitor #{@id} chose link <#{link.url}> on advertiser website."
+
+      end
+
+      #--------------------------------------------------------------------------------------------------------
+      # Click on link
+      #--------------------------------------------------------------------------------------------------------
+      begin
+
+        @browser.click_on(link)
+
+      rescue Exception => e
+        @failed_links << link.url
+        @@logger.an_event.warn "visitor #{@id} not clicked on link #{link.url} on advertiser website : #{e.message}."
+        raise Error.new(VISITOR_NOT_CLICK_ON_LINK_ON_ADVERTISER, :error => e)
+
+      else
+        @@logger.an_event.info "visitor #{@id} clicked on link #{link.url}> on advertiser website."
+
+      end
+
+      #--------------------------------------------------------------------------------------------------------
+      # read Page
+      #--------------------------------------------------------------------------------------------------------
+      count_retry = 0
+      begin
+
+        @current_page = Pages::Unmanage.new(@visit.advertising.advertiser.next_duration,
+                                            @browser)
+
+      rescue Errors::Error => e
+        case e.code
+          when Pages::Page::PAGE_NONE_INSIDE_LINKS
+            count_retry += 1
+            sleep 10
+            @@logger.an_event.warn "visitor #{@id} try catch links again #{count_retry} times"
+            retry if count_retry < 3
+        end
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      rescue Exception => e
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      else
+        read(@current_page)
+
+      end
+    end
+
+    def cl_on_link_on_result
+      @@logger.an_event.debug "action #{__method__}"
+      #--------------------------------------------------------------------------------------------------------
+      # Chose link
+      #--------------------------------------------------------------------------------------------------------
+      begin
+
+        link = choose_link
+
+      rescue Exception => e
+
+        @@logger.an_event.error e.message
+        raise Error.new(VISITOR_NOT_CHOOSE_LINK, :error => e)
+
+      else
+        @@logger.an_event.info "visitor #{@id} chose link <#{link.url}> on results search."
+
+      end
+
+      #--------------------------------------------------------------------------------------------------------
+      # Click on link
+      #--------------------------------------------------------------------------------------------------------
+      begin
+
+        @browser.click_on(link)
+
+      rescue Exception => e
+        @failed_links << link.url
+        @@logger.an_event.warn "visitor #{@id} not clicked on link #{link.url} on results page : #{e.message}."
+        raise Error.new(VISITOR_NOT_CLICK_ON_RESULT, :error => e)
+
+      else
+        @@logger.an_event.info "visitor #{@id} clicked on link #{link.url} on results page."
+
+      end
+
+      #--------------------------------------------------------------------------------------------------------
+      # read Page
+      #--------------------------------------------------------------------------------------------------------
+      count_retry = 0
+      begin
+
+        @current_page = Pages::Unmanage.new(@visit.referrer.search_duration,
+                                            @browser)
+
+      rescue Errors::Error => e
+        case e.code
+          when Pages::Page::PAGE_NONE_INSIDE_LINKS
+            count_retry += 1
+            sleep 10
+            @@logger.an_event.warn "visitor #{@id} try catch links again #{count_retry} times"
+            retry if count_retry < 3
+        end
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      rescue Exception => e
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      else
+        read(@current_page)
+
+      end
+    end
+
+    def cl_on_link_on_unknown
+      @@logger.an_event.debug "action #{__method__}"
+      #--------------------------------------------------------------------------------------------------------
+      # Chose link
+      #--------------------------------------------------------------------------------------------------------
+      begin
+
+        link = choose_link(:inside_fqdn)
+
+      rescue Exception => e
+
+        @@logger.an_event.error e.message
+        raise Error.new(VISITOR_NOT_CHOOSE_LINK, :error => e)
+
+      else
+        @@logger.an_event.info "visitor #{@id} chose link <#{link.url}> on unknown website."
+
+      end
+
+      #--------------------------------------------------------------------------------------------------------
+      # Click on link
+      #--------------------------------------------------------------------------------------------------------
+      begin
+
+        @browser.click_on(link)
+
+      rescue Exception => e
+        @failed_links << link.url
+        @@logger.an_event.warn "visitor #{@id} not clicked on link #{link.url} on unknown website : #{e.message}."
+        raise Error.new(VISITOR_NOT_CLICK_ON_LINK_ON_UNKNOWN, :error => e)
+
+      else
+        @@logger.an_event.info "visitor #{@id} clicked on link <#{link.url}> on unknown website."
+
+      end
+
+      #--------------------------------------------------------------------------------------------------------
+      # read Page
+      #--------------------------------------------------------------------------------------------------------
+      count_retry = 0
+      begin
+        @current_page = Pages::Unmanage.new(@visit.referrer.surf_duration,
+                                            @browser)
+
+      rescue Errors::Error => e
+        case e.code
+          when Pages::Page::PAGE_NONE_INSIDE_LINKS, Pages::Page::PAGE_NONE_LINK
+            count_retry += 1
+            sleep 10
+            @@logger.an_event.warn "visitor #{@id} try catch links again #{count_retry} times"
+            retry if count_retry < 3
+        end
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      rescue Exception => e
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      else
+        read(@current_page)
+
+      end
+    end
+
+    def cl_on_link_on_website
+      @@logger.an_event.debug "action #{__method__}"
+
+      #--------------------------------------------------------------------------------------------------------
+      # Chose link
+      #--------------------------------------------------------------------------------------------------------
+      begin
+
+        link = choose_link(@visit.around)
+
+      rescue Exception => e
+
+        @@logger.an_event.error e.message
+        raise Error.new(VISITOR_NOT_CHOOSE_LINK, :error => e)
+
+      else
+        @@logger.an_event.info "visitor #{@id} chose link <#{link.url}> on website."
+
+      end
+
+      #--------------------------------------------------------------------------------------------------------
+      # Click on link
+      #--------------------------------------------------------------------------------------------------------
+      begin
+
+        @browser.click_on(link)
+
+      rescue Exception => e
+        @failed_links << link.url
+        @@logger.an_event.warn "visitor #{@id} not clicked on link #{link.url} on website : #{e.message}."
+        raise Error.new(VISITOR_NOT_CLICK_ON_LINK_ON_WEBSITE, :error => e)
+
+      else
+        @@logger.an_event.info "visitor #{@id} clicked on link #{link.url} on website."
+
+      end
+
+      #--------------------------------------------------------------------------------------------------------
+      # read Page
+      #--------------------------------------------------------------------------------------------------------
+      count_retry = 0
+      begin
+
+        @current_page = Pages::Website.new(@visit, @browser)
+
+      rescue Errors::Error => e
+        case e.code
+          when Pages::Page::PAGE_NONE_INSIDE_LINKS
+            count_retry += 1
+            sleep 10
+            @@logger.an_event.warn "visitor #{@id} try catch links again #{count_retry} times"
+            retry if count_retry < 3
+        end
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      rescue Exception => e
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      else
+        read(@current_page)
+
+      end
+
+    end
+
+    def cl_on_next
+      begin
+        @@logger.an_event.debug "action #{__method__}"
+
+        nxt = @current_page.next
+        @@logger.an_event.debug "nxt #{nxt}"
+
+        @browser.click_on(nxt)
+        @@logger.an_event.debug "click on next"
+
+        @current_page = Pages::Results.new(@visit, @browser)
+
+      rescue Exception => e
+        @@logger.an_event.error e.message
+        raise Error.new(VISITOR_NOT_CLICK_ON_NEXT, :error => e)
+
+      else
+
+        @@logger.an_event.info "visitor #{@id} clicked on next <#{nxt.text}>"
+        read(@current_page)
+      ensure
+
+      end
+    end
+
+    def cl_on_prev
+      begin
+
+        prv = @current_page.prev
+        @browser.click_on(prv)
+
+        @current_page = Pages::Results.new(@visit, @browser)
+
+
+      rescue Exception => e
+        @@logger.an_event.error e.message
+        raise Error.new(VISITOR_NOT_CLICK_ON_PREV, :error => e)
+
+      else
+
+        @@logger.an_event.info "visitor #{@id} clicked on prev #{prv.text}"
+
+        read(@current_page)
+      ensure
+
+      end
+    end
+
+
+    def go_back
+      begin
+        @@logger.an_event.debug "action #{__method__}"
+
+        @current_page = @history[@history.size - 2].dup
+        while @current_page.url != @browser.url
+          @browser.go_back
+          @@logger.an_event.debug "visitor #{@id} went back to #{@browser.url}"
+
+        end
+
+      rescue Exception => e
+        @@logger.an_event.error e.message
+        raise Error.new(VISITOR_NOT_GO_BACK, :error => e)
+
+      else
+
+        @@logger.an_event.info "visitor #{@id} went back to previous page <#{@current_page.url}>"
+
+        read(@current_page)
+      ensure
+
+      end
+    end
+
+    def go_to_landing
+      begin
+        @@logger.an_event.debug "action #{__method__}"
+        url = @visit.landing_link.url
+        @browser.go_to(url)
+
+        @current_page = Pages::Website.new(@visit, @browser)
+
+      rescue Exception => e
+        @@logger.an_event.error e.message
+        raise Error.new(VISITOR_NOT_GO_TO_LANDING, :error => e)
+
+      else
+
+        @@logger.an_event.info "visitor #{@id} went to landing page #{url}."
+
+        read(@current_page)
+      ensure
+
+      end
+    end
+
+    def go_to_referral
+      begin
+        @@logger.an_event.debug "action #{__method__}"
+
+        url = @visit.referrer.page_url
+        @browser.go_to(url)
+
+        @current_page = Pages::Unmanage.new(visit.referrer.duration, @browser)
+
+
+      rescue Exception => e
+        @@logger.an_event.error e.message
+        raise Error.new(VISITOR_NOT_GO_TO_REFERRAL, :error => e)
+
+      else
+
+        @@logger.an_event.info "visitor #{@id} went to referral #{url}"
+
+        read(@current_page)
+      ensure
+
+      end
+    end
+
+    def go_to_search_engine
+      begin
+        @@logger.an_event.debug "action #{__method__}"
+
+        url = @browser.engine_search.page_url
+        @browser.go_to(url)
+
+        @current_page = Pages::EngineSearch.new(@visit,
+                                                @browser)
+
+      rescue Exception => e
+        @@logger.an_event.error e.message
+        raise Error.new(VISITOR_NOT_GO_TO_ENGINE_SEARCH, :error => e)
+
+      else
+
+        @@logger.an_event.info "visitor #{@id} went to engine search page #{url}"
+
+        read(@current_page)
+      ensure
+
+      end
+    end
+
+    def go_to_start_engine_search
+
+      begin
+        @@logger.an_event.debug "action #{__method__}"
+
+        @browser.display_start_page(@browser.engine_search.page_url, @id)
+
+        @current_page = Pages::EngineSearch.new(@visit,
+                                                @browser)
+
+
+      rescue Exception => e
+        @@logger.an_event.error e.message
+        raise Error.new(VISITOR_NOT_START_ENGINE_SEARCH, :error => e)
+
+      else
+
+        @@logger.an_event.info "visitor #{@id} went to engine search page"
+
+        read(@current_page)
+      ensure
+
+      end
+    end
+
+    def go_to_start_landing
+
+      begin
+        @@logger.an_event.debug "action #{__method__}"
+
+        url = @visit.landing_link.url
+        @browser.display_start_page(url, @id)
+
+        @current_page = Pages::Website.new(@visit, @browser)
+
+
+      rescue Exception => e
+        @@logger.an_event.error e.message
+        raise Error.new(VISITOR_NOT_START_LANDING, :error => e)
+
+      else
+
+        @@logger.an_event.info "visitor #{@id} went to landing page <#{url}>"
+
+        read(@current_page)
       ensure
 
       end
@@ -565,188 +1073,115 @@ module Visitors
 
       raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "page"}) if page.nil?
 
-      @@logger.an_event.info "visitor read #{page.url.to_s} during #{page.sleeping_time}s"
+      @@logger.an_event.info "visitor #{@id} begin reading <#{page.title}> during #{page.sleeping_time}s"
 
-      @browser.wait_on(page)
+      @history << @current_page
+      sleep page.sleeping_time
+
+      @@logger.an_event.debug "visitor #{@id} finish reading on page <#{page.title}/#{page.url}>"
+
 
     end
 
-    #-----------------------------------------------------------------------------------------------------------------
-    # search
-    #-----------------------------------------------------------------------------------------------------------------
-    # input :
-    # keywords : les mots de la recherche
-    # engine_search : le moteur utilisé pou la recherche
-    # durations : le temps d'attente pas page de résultat de la recherche, fixe egalement le nombre de page de la recherche
-    # landing_url : l'url recherchée dans chaque page de résultat
-    # output : un objet Page
-    # exception :
-    # StandardError :
-    # si keywords n'est pas defini
-    # si engine_search n'est pas défini
-    # di durations n'est pas défini
-    # si landing url n'est pas defini
-    # si landing_link not found dans les pages de resultats de la recherche avce ces mots clés
-    #-----------------------------------------------------------------------------------------------------------------
-    #
-    #-----------------------------------------------------------------------------------------------------------------
-    def search(keywords, durations, landing_url)
-      @@logger.an_event.debug "keywords #{keywords}"
-      @@logger.an_event.debug "engine search #{engine_search}"
-      @@logger.an_event.debug "durations #{durations}"
-      @@logger.an_event.debug "landing url #{landing_url}"
-
-
-      #---------------------------------------------------------------------------------------------------------------
-      #
-      # search keyword in engine
-      #
-      #---------------------------------------------------------------------------------------------------------------
+    def sb_final_search
       begin
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "keywords"}) if keywords.nil? or keywords == ""
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "engine_search"}) if engine_search.nil?
+        @@logger.an_event.debug "action #{__method__}"
 
-        results_page = @browser.search(keywords)
+        keywords = @visit.referrer.keywords
+
+        #permet d'utiliser des methodes differentes en fonction des moteur de recherche qui n'identifie pas l'input
+        #des mot clé avec le même objet html
+        eval("@browser.#{@current_page.type}(@current_page.input, keywords)")
+
+        @browser.submit(@current_page.submit_button)
 
       rescue Exception => e
-        @browser.screenshot(@id, "ERROR")
         @@logger.an_event.error e.message
-        raise Error.new(VISITOR_NOT_FOUND_RESULTS_WITH_KEYWORD, :values => {:keywords => "keywords"}, :error => e)
+        raise Error.new(VISITOR_NOT_SUBMIT_FINAL_SEARCH, :error => e)
 
       else
-        @@logger.an_event.info "visitor browse first results page with keywords #{keywords}"
+
+        @@logger.an_event.info "visitor #{@id} submited final search <#{keywords}>."
+
       end
 
-      #---------------------------------------------------------------------------------------------------------------
-      #
-      # parcours les pages de resultats selon duration
-      #
-      #---------------------------------------------------------------------------------------------------------------
-      i = 0 # ne pas déplacer
-      raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "durations"}) if durations.nil? or durations.size == 0
-      raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing_url"}) if landing_url.nil?
-      landing_link = nil
 
+      #--------------------------------------------------------------------------------------------------------
+      # read Page
+      #--------------------------------------------------------------------------------------------------------
+      count_retry = 0
       begin
 
-        results_page.duration = durations[i]
-        read(results_page)
+        @current_page = Pages::Results.new(@visit, @browser)
 
-        l = engine_search.landing_link(landing_url, @browser.driver)
-
-      rescue Exception => e
-        i += 1
-        if i < durations.size
-          begin
-            next_page_link = engine_search.next_page_link(@browser.driver)
-          rescue Exception => e
-            # le nombre de page de resultat est inférieur au nombre de pages attendues
-            @@logger.an_event.warn e.message
-            raise Error.new(NO_MORE_RESULT_PAGE, :values => {:keywords => keywords}, :error => e)
-          else
-            @@logger.an_event.info "visitor found next page"
-          end
-
-          begin
-            results_page = @browser.click_on(next_page_link)
-
-          rescue Exception => e
-            #un erreur survient lors du click sur le lien de la page suivante.
-            @browser.screenshot(@id, "ERROR")
-            @@logger.an_event.error e.message
-            raise Error.new(CANNOT_CLICK_ON_LINK_OF_NEXT_PAGE, :error => e)
-          else
-            @@logger.an_event.info "visitor click on next link"
-          end
-          retry # on recommence le begin
-        else
-          #toutes les pages ont été passées en revue et le landing link n'a pas été trouvé
-          raise Error.new(SEARCH_NOT_FOUND_LANDING_LINK, :values => {:keywords => keywords})
+      rescue Errors::Error => e
+        case e.code
+          when Pages::Page::PAGE_NONE_INSIDE_LINKS
+            count_retry += 1
+            sleep 10
+            @@logger.an_event.warn "visitor #{@id} try catch links again #{count_retry} times"
+            retry if count_retry < 3
         end
-
-      else
-        @@logger.an_event.info "visitor found landing link #{landing_url.to_s}"
-        landing_link = l
-      ensure
-        landing_link
-      end
-    end
-
-#-----------------------------------------------------------------------------------------------------------------
-# surf
-#-----------------------------------------------------------------------------------------------------------------
-# input :
-# durations : un tableau de durée de lecture de chaucne des pages
-# page : la page de départ
-# around : un tableau de périmètre de sélection des link pour chaque page
-# advertising : la régie publicitaire de la visit (option)
-# output : un objet Page : la derniere
-# exception :
-# StandardError :
-#-----------------------------------------------------------------------------------------------------------------
-# le surf sur l'advertiser a un advertising == nil
-#-----------------------------------------------------------------------------------------------------------------
-
-    def surf(durations, page, around, advertising = nil)
-
-
-      @@logger.an_event.debug "durations #{durations.inspect}"
-      @@logger.an_event.debug "page #{page.to_s}"
-      @@logger.an_event.debug "arounds #{around.inspect}"
-      @@logger.an_event.debug "advertising #{advertising}"
-
-
-      begin
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "durations"}) if durations.nil? or durations.size == 0
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "page"}) if  page.nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "around"}) if around.nil? or around.size == 0
-
-        link = nil
-        # le surf sur le website prend en entrée un around => arounds est rempli avec cette valeur
-        # le surf sur l'advertiser prend en entrée un array de around pré calculé par engine bot en fonction des paramètre saisis au moyen de statupweb
-        arounds = (around.is_a?(Array)) ? around : Array.new(durations.size, around)
-
-        durations.each_index { |i|
-          page.duration = durations[i]
-          read(page)
-          if i < durations.size - 1
-            link = page.link_by_around(arounds[i])
-
-            page = @browser.click_on(link)
-
-            @@logger.an_event.info "visitor click on link #{link.url.to_s}"
-
-          end # on ne clique pas quand on est sur la derniere page
-        }
-
-        # quand on surf sur le site :
-        # si on est sur l'avant derniere page de la visit et qu'une publicité est planifiée par la visit alors
-        # il faut rechercher dans la dernière page affichée, les liens des publicités exposés par la régie publicité
-        # quand on surf sur l'advertiser :
-        # on ne recherche pas de publicité.
-        page.advert = advertising.advert { |domain, link_identifier| @browser.find_links(domain, link_identifier) } unless advertising.nil?
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
 
       rescue Exception => e
-        @browser.screenshot(@id, "ERROR")
-        @@logger.an_event.error e.message
-        raise Error.new(VISIT_NOT_COMPLETE, :error => e)
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
       else
-        @@logger.an_event.info "visitor stop surfing"
-        return page
-      ensure
+        read(@current_page)
+
       end
+
     end
 
-    #-----------------------------------------------------------------------------------------------------------------
-    # take_screenshot
-    #-----------------------------------------------------------------------------------------------------------------
-    # input : none
-    # output : none
-    # exception : none
-    #-----------------------------------------------------------------------------------------------------------------
-    #-----------------------------------------------------------------------------------------------------------------
-    def take_screenshot
-      @browser.screenshot(@id)
+    def sb_search
+      begin
+        @@logger.an_event.debug "action #{__method__}"
+
+        keywords = @visit.referrer.next_keyword
+
+        #permet d'utiliser des methodes differentes en fonction des moteur de recherche qui n'identifie pas l'input
+        #des mot clé avec le même objet html
+        eval("@browser.#{@current_page.type}(@current_page.input, keywords)")
+
+        @browser.submit(@current_page.submit_button)
+
+      rescue Exception => e
+        @@logger.an_event.error e.message
+        raise Error.new(VISITOR_NOT_SUBMIT_SEARCH, :error => e)
+
+      else
+
+        @@logger.an_event.info "visitor #{@id} submited search <#{keywords}>."
+
+      ensure
+
+      end
+      #--------------------------------------------------------------------------------------------------------
+      # read Page
+      #--------------------------------------------------------------------------------------------------------
+      count_retry = 0
+      begin
+
+        @current_page = Pages::Results.new(@visit, @browser)
+
+      rescue Errors::Error => e
+        case e.code
+          when Pages::Page::PAGE_NONE_INSIDE_LINKS
+            count_retry += 1
+            sleep 10
+            @@logger.an_event.warn "visitor #{@id} try catch links again #{count_retry} times"
+            retry if count_retry < 3
+        end
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      rescue Exception => e
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      else
+        read(@current_page)
+
+      end
     end
   end
 

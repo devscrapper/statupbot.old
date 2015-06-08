@@ -1,8 +1,27 @@
-require 'uri'
 require_relative '../../lib/error'
 
 module Pages
-  class Link
+  #----------------------------------------------------------------------------------------------------------------
+  # action                    | id | produce Page
+  #----------------------------------------------------------------------------------------------------------------
+  # go_to_start_landing	      | a	 | Website
+  # go_to_start_engine_search	| b	 | SearchEngine
+  # go_back_engine_search	    | c	 | SearchEngine
+  # go_to_landing	            | d	 | Website
+  # go_to_referral	          | e	 | UnManage
+  # go_to_search_engine 	    | f	 | SearchEngine
+  # sb_search 	              | 0	 | Results
+  # sb_final_search 	        | 1	 | Results
+  # cl_on_next 	              | A	 | Results
+  # cl_on_previous 	          | B	 | Results
+  # cl_on_result 	            | C	 | UnManage
+  # cl_on_landing 	          | D	 | Website
+  # cl_on_link_on_website 	  | E	 | Website
+  # cl_on_advert	            | F	 | UnManage
+  # cl_on_link_on_unknown	    | G	 | UnManage
+  # cl_on_link_on_advertiser	| H	 | UnManage
+  #----------------------------------------------------------------------------------------------------------------
+  class EngineSearch < Page
     #----------------------------------------------------------------------------------------------------------------
     # include class
     #----------------------------------------------------------------------------------------------------------------
@@ -11,108 +30,59 @@ module Pages
     #----------------------------------------------------------------------------------------------------------------
     # message exception
     #----------------------------------------------------------------------------------------------------------------
-    ARGUMENT_UNDEFINE = 400
-    LINK_NOT_FIRE = 401
-    LINK_NOT_EXIST = 402
-    LINK_NOT_CREATE = 403
-    #----------------------------------------------------------------------------------------------------------------
-    # include class
-    #----------------------------------------------------------------------------------------------------------------
     #----------------------------------------------------------------------------------------------------------------
     # constant
     #----------------------------------------------------------------------------------------------------------------
     #----------------------------------------------------------------------------------------------------------------
     # variable de class
     #----------------------------------------------------------------------------------------------------------------
-    @@logger = nil
     #----------------------------------------------------------------------------------------------------------------
     # attribut
     #----------------------------------------------------------------------------------------------------------------
-    attr_reader :uri,                  #URI object
-                :uri_escape,  #URI object
-                :window_tab,
-                :text # le texte du lien
+    attr_reader :input, # zone de saisie des mot clés
+                :type, #type de la zone de saisie
+                :submit_button # bouton de validation du formulaire de recherche
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
-
     #----------------------------------------------------------------------------------------------------------------
     # instance methods
     #----------------------------------------------------------------------------------------------------------------
     #----------------------------------------------------------------------------------------------------------------
     # initialize
     #----------------------------------------------------------------------------------------------------------------
-    # crÃ©e un proxy :
-    # inputs
-    # url,
-    # referrer,
-    # title,
-    # window_tab,
-    # links,
-    # cookies,
-    # duration_search_link=0
-    # output
-    # LinkError.new(ARGUMENT_UNDEFINE)
-    # LinkError.new(ARGUMENT_UNDEFINE)
     #----------------------------------------------------------------------------------------------------------------
     #----------------------------------------------------------------------------------------------------------------
     #
     #----------------------------------------------------------------------------------------------------------------
-    def initialize(url, window_tab, text)
-      @@logger ||= Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
 
-      @@logger.an_event.debug "url #{ url.to_s}"
-      @@logger.an_event.debug "text #{text}"
-
+    def initialize(visit, browser)
       begin
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "url"}) if url.nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "text"}) if text.nil? or text == ""
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "visit"}) if visit.nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser"}) if browser.nil?
 
-        @uri_escape = URI.parse(URI.escape(url))
-        @uri = URI.parse(url)
-        @window_tab = window_tab
-        @text = text
+        start_time = Time.now
+
+
+        @input = browser.engine_search.id_search
+        @type = browser.engine_search.type_search
+        @submit_button = browser.engine_search.label_search_button
+
+        super(browser.url,
+              browser.title,
+              visit.referrer.search_duration,
+              Time.now - start_time)
 
       rescue Exception => e
-        @@logger.an_event.debug e.message
-        raise Error.new(LINK_NOT_CREATE, :values => {:link => url})
-      else
-        @@logger.an_event.debug self.to_s
+        @@logger.an_event.error e.message
+        raise Error.new(PAGE_NOT_CREATE, :error => e)
 
       ensure
+        @@logger.an_event.debug "page engine search #{self.to_s}"
 
       end
     end
 
-    def exists?
-      count_try = 1
-      max_count_try = 10
-      found = @element.exists?
-      while count_try < max_count_try and !found
-        @@logger.an_event.warn "link #{@url} not found, try #{count_try}"
-        count_try += 1
-        sleep 1
-        #TODO controler qu'il ne faut pas utiliser @element.displayed? and @element.enabled?
-        found = @element.exists?
-      end
-      #@element.displayed? and @element.enabled?
-      raise Error.new(LINK_NOT_EXIST, :values => {:link => @text}) unless found
-    end
 
-    def url
-      @uri.to_s
-    end
-
-    def url_escape
-      @uri_escape.to_s
-    end
-
-    def to_s
-      "uri_escape #{@uri_escape}\n" +
-          "uri #{@uri}\n" +
-          "text #{@text}\n" +
-          "window tab #{@window_tab}"
-
-    end
   end
 end

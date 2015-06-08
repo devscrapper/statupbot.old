@@ -4,9 +4,11 @@ module Visits
     class Direct < Referrer
 
 
-      def initialize(landing_page)
-        super(landing_page)
+      def initialize
+        super()
       end
+
+
 
     end
   end

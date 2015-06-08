@@ -1,4 +1,3 @@
-require_relative '../visit'
 module Visits
   module Referrers
 
@@ -53,11 +52,14 @@ module Visits
       ARGUMENT_UNDEFINE = 800
       REFERRER_NOT_CREATE = 801
       MEDIUM_UNKNOWN = 802
-
+      #----------------------------------------------------------------------------------------------------------------
+      # variable de class
+      #----------------------------------------------------------------------------------------------------------------
+      @@logger = nil
       #----------------------------------------------------------------------------------------------------------------
       # attribut
       #----------------------------------------------------------------------------------------------------------------
-      attr :landing_url
+
 
       #----------------------------------------------------------------------------------------------------------------
       # class methods
@@ -79,19 +81,19 @@ module Visits
       #["source", "(direct)"]
       #["medium", "(none)"]
       #["keyword", "(not set)"]
-      def self.build(referer_details, landing_page)
+      def self.build(referer_details)
+        @@logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
+
         begin
           case referer_details[:medium]
-            when "(none)"
-              return Direct.new(landing_page)
+            when :none
+              return Direct.new
 
-            when "organic"
-              return Search.new(referer_details,
-                                landing_page)
+            when :organic
+              return Search.new(referer_details)
 
-            when "referral"
-              return Referral.new(referer_details,
-                                  landing_page)
+            when :referral
+              return Referral.new(referer_details)
 
             else
               raise Error.new(MEDIUM_UNKNOWN, :values => {:medium => referer_details[:medium]})
@@ -110,11 +112,9 @@ module Visits
 
         end
       end
-
-      def initialize(landing_url)
-        @landing_url = landing_url
+      def to_s
+        "#{self.class.name}\n"
       end
-
     end
   end
 end

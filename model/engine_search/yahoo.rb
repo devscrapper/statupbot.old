@@ -7,20 +7,47 @@ module EngineSearches
     # attribut
     #----------------------------------------------------------------------------------------------------------------
 
-    #TODO finir yahoo search
-    def initialize
-      @page_url = "https://fr.search.yahoo.com/"
-      @id_search = 'p'
-      @label_search_button = "Rechercher"
-      @id_next = "Suivante"
 
+    def initialize
+      @fqdn = "https://fr.search.yahoo.com"
+      @path = "/"
+      @id_search = 'p'
+      @type_search = "textbox"
+      @label_search_button = "Rechercher"
     end
+
+    def links(body)
+      links = []
+      body.css('h3.title > a.td-u').each { |link|
+        begin
+          uri = URI.parse(link.attributes["href"].value)
+        rescue Exception => e
+        else
+          links << {:href => /\/RU=(?<href>.+)\/RK=/.match(URI.decode(uri.path))[:href], :text => link.text}
+        end
+      }
+      links
+    end
+
+    def next(body)
+      if body.css('a.next').empty?
+        {}
+      else
+        {:href => body.css('a.next').first.attributes["href"].value, :text => body.css('a.next').first.text}
+      end
+    end
+
+
+    def prev(body)
+      if body.css('a.prev').empty?
+        {}
+      else
+        {:href => body.css('a.prev').first.attributes["href"].value, :text => body.css('a.prev').first.text}
+      end
+    end
+
 
     private
-    def next_link_exists?(driver)
-      driver.link(@id_next)
-    end
-
     def input(driver)
       driver.textbox(@id_search)
     end

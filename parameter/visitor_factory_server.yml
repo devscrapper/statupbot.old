@@ -1,5 +1,5 @@
 development:
-  :runtime_ruby: ["d:", "ruby193", "bin", "ruby.exe"]
+  :runtime_ruby: ["d:","personnel" ,"ruby200", "bin", "ruby.exe"]
   :delay_periodic_scan: 5 #en seconde
   :delay_periodic_pool_size_monitor: 5 #en minute
   :delay_periodic_load_geolocations: 60 #en minute

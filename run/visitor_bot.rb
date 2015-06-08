@@ -92,7 +92,9 @@ Trollop::die :proxy_port, "is require with proxy" if opts[:proxy_type] != "none"
 OK = 0
 KO = 1
 NO_AD = 2
-def visitor_is_no_slave(opts)
+NO_LANDING = 3
+
+def visitor_is_no_slave(opts, logger)
   visit = nil
   visitor = nil
   landing_page = nil
@@ -105,31 +107,28 @@ def visitor_is_no_slave(opts)
   #---------------------------------------------------------------------------------------------------------------------
   begin
 
-    visit_details = Visit.build(opts[:visit_file_name])
+    visit_details = Visit.load(opts[:visit_file_name])
 
   rescue Exception => e
 
-    Monitoring.send_failure(e, opts[:visit_file_name], @@logger)
+    Monitoring.send_failure(e, opts[:visit_file_name], logger)
     return KO
 
   end
 
   context = ["visit=#{visit_details[:id_visit]}"]
-  @@logger.ndc context
+  logger.ndc context
 
   #---------------------------------------------------------------------------------------------------------------------
   # Creation de la visit
   #---------------------------------------------------------------------------------------------------------------------
-
-  visit_details[:visitor][:browser][:proxy_system] = opts[:proxy_system] == "yes"
-
   begin
 
-    visit = Visit.new(visit_details)
+    visit = Visit.build(visit_details)
 
   rescue Exception => e
 
-    Monitoring.send_failure(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, logger)
     return KO
 
   end
@@ -138,6 +137,7 @@ def visitor_is_no_slave(opts)
   #---------------------------------------------------------------------------------------------------------------------
 
   visitor_details = visit_details[:visitor]
+  visitor_details[:browser][:proxy_system] = opts[:proxy_system] == "yes"
   visitor_details[:browser][:listening_port_proxy] = opts[:listening_port_sahi_proxy]
   visitor_details[:browser][:proxy_ip] = opts[:proxy_ip]
   visitor_details[:browser][:proxy_port] = opts[:proxy_port]
@@ -150,7 +150,7 @@ def visitor_is_no_slave(opts)
 
   rescue Exception => e
 
-    Monitoring.send_failure(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, logger)
     return KO
 
   end
@@ -164,7 +164,7 @@ def visitor_is_no_slave(opts)
 
   rescue Exception => e
 
-    Monitoring.send_failure(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, logger)
     return KO
 
   end
@@ -178,41 +178,27 @@ def visitor_is_no_slave(opts)
 
   rescue Exception => e
 
-    Monitoring.send_failure(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, logger)
     visitor.die
     return KO
 
   end
 
-  #---------------------------------------------------------------------------------------------------------------------
-  # Visitor browse referrer
-  #---------------------------------------------------------------------------------------------------------------------
-  begin
-
-    landing_page = visitor.browse_landing_page(visit.referrer)
-
-  rescue Exception => e
-
-    Monitoring.send_failure(e, visit_details, @@logger)
-    visitor.close_browser
-    visitor.die
-    return KO
-
-  end
-
-  #---------------------------------------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------------------------
   # Visitor execute visit
   #---------------------------------------------------------------------------------------------------------------------
   begin
 
-    final_visit_page = visitor.surf(visit.durations, landing_page, visit.around, visit.advertising)
+    final_visit_page = visitor.execute(visit)
 
   rescue Exception => e
 
-    Monitoring.send_failure(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, logger)
     visitor.close_browser
     visitor.die
-    if e.history.include?(Visits::Advertisings::Advertising::NONE_ADVERT)
+    if e.history.include?(Browsers::Browser::BROWSER_NOT_FOUND_LINK)
+      cr = NO_LANDING
+    elsif e.history.include?(Visits::Advertisings::Advertising::NONE_ADVERT)
       cr = NO_AD
     else
       cr = KO
@@ -221,60 +207,14 @@ def visitor_is_no_slave(opts)
 
   end
 
-  #---------------------------------------------------------------------------------------------------------------------
-  # Visitor click on advert
-  #---------------------------------------------------------------------------------------------------------------------
-  begin
 
-    if visit.advertising?
-      #TODO a decommenter lorsque :
-      # TODO le service de proxy de geolocation sera en ligne  et 100% operationnel
-      # TODO un site sera founir avec un compte adsens dédié
-      advertiser_landing_page = visitor.click_on_advert(final_visit_page.advert)
-
-    end
-
-  rescue Exception => e
-
-    Monitoring.send_failure(e, visit_details, @@logger)
-    visitor.close_browser
-    visitor.die
-    return KO
-
-  end
-
-  #---------------------------------------------------------------------------------------------------------------------
-  # Visitor surf on advertiser
-  #---------------------------------------------------------------------------------------------------------------------
-  begin
-
-    if visit.advertising?
-      #TODO a decommenter lorsque le service de proxy de geolocation sera en ligne
-      final_advertiser_page = visitor.surf(visit.advertising.advertiser.durations, advertiser_landing_page, visit.advertising.advertiser.arounds)
-
-      Monitoring.send_advert_select(visit_details, @@logger)
-
-      MailSender.new("advert@visitor_bot.fr", "olinouane@gmail.com", "advert select", final_visit_page.advert.to_s).send
-    end
-
-  rescue Exception => e
-
-    Monitoring.send_failure(e, visit_details, @@logger)
-    visitor.close_browser
-    visitor.die
-    return KO
-
-  end
-  #---------------------------------------------------------------------------------------------------------------------
-  # Visitor close its browser
-  #---------------------------------------------------------------------------------------------------------------------
   begin
 
     visitor.close_browser
 
   rescue Exception => e
 
-    Monitoring.send_failure(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, logger)
     visitor.die
     return KO
 
@@ -289,7 +229,7 @@ def visitor_is_no_slave(opts)
 
   rescue Exception => e
 
-    Monitoring.send_failure(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, logger)
     return KO
 
   end
@@ -303,13 +243,13 @@ def visitor_is_no_slave(opts)
 
   rescue Exception => e
 
-    Monitoring.send_failure(e, visit_details, @@logger)
+    Monitoring.send_failure(e, visit_details, logger)
     return KO
 
   end
 
 
-  Monitoring.send_success(visit_details, @@logger)
+  Monitoring.send_success(visit_details, logger)
   OK
 end
 
@@ -331,18 +271,18 @@ else
 
   visitor_id = YAML::load(File.read(opts[:visit_file_name]))[:visitor][:id]
 
-  @@logger = Logging::Log.new(self, :staging => $staging, :id_file => File.join("#{File.basename(__FILE__, ".rb")}_#{visitor_id}"), :debugging => $debugging)
-  @@logger.an_event.debug "File Parameters begin------------------------------------------------------------------------------"
-  @@logger.a_log.info "java runtime path : #{$java_runtime_path}"
-  @@logger.a_log.info "java key tool path : #{$java_key_tool_path}"
-  @@logger.a_log.info "start page server ip : #{$start_page_server_ip}"
-  @@logger.a_log.info "start page server port: #{$start_page_server_port}"
-  @@logger.a_log.info "debugging : #{$debugging}"
-  @@logger.a_log.info "staging : #{$staging}"
-  @@logger.an_event.debug "File Parameters end------------------------------------------------------------------------------"
-  @@logger.an_event.debug "Start Parameters begin------------------------------------------------------------------------------"
-  @@logger.an_event.debug opts.to_yaml
-  @@logger.an_event.debug "Start Parameters end--------------------------------------------------------------------------------"
+  logger = Logging::Log.new(self, :staging => $staging, :id_file => File.join("#{File.basename(__FILE__, ".rb")}_#{visitor_id}"), :debugging => $debugging)
+  logger.an_event.debug "File Parameters begin------------------------------------------------------------------------------"
+  logger.a_log.info "java runtime path : #{$java_runtime_path}"
+  logger.a_log.info "java key tool path : #{$java_key_tool_path}"
+  logger.a_log.info "start page server ip : #{$start_page_server_ip}"
+  logger.a_log.info "start page server port: #{$start_page_server_port}"
+  logger.a_log.info "debugging : #{$debugging}"
+  logger.a_log.info "staging : #{$staging}"
+  logger.an_event.debug "File Parameters end------------------------------------------------------------------------------"
+  logger.an_event.debug "Start Parameters begin------------------------------------------------------------------------------"
+  logger.an_event.debug opts.to_yaml
+  logger.an_event.debug "Start Parameters end--------------------------------------------------------------------------------"
 
   if $java_runtime_path.nil? or
       $java_key_tool_path.nil? or
@@ -357,11 +297,11 @@ else
   # MAIN
   #--------------------------------------------------------------------------------------------------------------------
 
-  @@logger.an_event.debug "begin execution visitor_bot"
+  logger.an_event.debug "begin execution visitor_bot"
   state = OK
   #state = visitor_is_slave(opts) if opts[:slave] == "yes"  pour gerer le return visitor
-  state = visitor_is_no_slave(opts) if opts[:slave] == "no"
-  @@logger.an_event.debug "end execution visitor_bot, with state #{state}"
+  state = visitor_is_no_slave(opts, logger) if opts[:slave] == "no"
+  logger.an_event.debug "end execution visitor_bot, with state #{state}"
   Process.exit(state)
 end
 
