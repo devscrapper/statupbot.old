@@ -216,7 +216,10 @@ module Sahi
     # evaluates a javascript expression on the browser and fetches its value
     def fetch(expression)
       key = "___lastValue___" + Time.now.getutc.to_s;
-      execute_step("_sahi.setServerVarPlain('"+key+"', " + expression + ")")
+      #remplacement de cette ligne
+      # execute_step("_sahi.setServerVarPlain('"+key+"', " + expression + ")")
+      # par celle ci depuis la version 6.0.1 de SAHI
+      execute_step("_sahi.setServerVarForFetchPlain('"+key+"', " + expression + ")")
       return check_nil(exec_command("getVariable", {"key" => key}))
     end
 

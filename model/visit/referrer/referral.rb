@@ -28,6 +28,7 @@ module Visits
   #                                   Random(1,5) de recherche avec click avec combinaison de 4 mots par keyword
   #----------------------------------------------------------------------------------------------------------------
   module Referrers
+    #TODO terminer REFERRAL ; REFERRAL non testé
     class Referral < Referrer
 
       attr :page_url, # URI de la page referral
@@ -46,7 +47,7 @@ module Visits
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "duration"}) if referer_details[:duration].nil?
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "source"}) if referer_details[:source].nil?
 
-          super(landing_page)
+          super(landing_page)  #TODO à supprimer
           @keywords = referer_details[:keyword]
 
           arr = @keywords.split (" ")

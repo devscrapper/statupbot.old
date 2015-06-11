@@ -67,6 +67,7 @@ module Pages
         start_time = Time.now
 
         @body = browser.body
+        @@logger.an_event.debug "body #{@body}"
         nxt = browser.engine_search.next(@body)
         prv = browser.engine_search.prev(@body)
         @links = browser.engine_search.links(@body)
@@ -143,7 +144,7 @@ module Pages
           "next : #{@next}\n" +
           "prev : #{@prev}\n" +
           "landing_link : #{@landing_link}\n" +
-          "links (#{@links.size}): #{@links}\n" +
+          "links (#{@links.size}): \n#{@links.map{|t| "#{t}\n"}.join("")}\n" +
           "body : #{}\n"
     end
 

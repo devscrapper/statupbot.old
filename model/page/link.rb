@@ -108,9 +108,9 @@ module Pages
     end
 
     def to_s
-      "uri_escape #{@uri_escape}\n" +
-          "uri #{@uri}\n" +
-          "text #{@text}\n" +
+      "uri_escape #{@uri_escape} | " +
+          "uri #{@uri} | " +
+          "text #{@text} | " +
           "window tab #{@window_tab}"
 
     end

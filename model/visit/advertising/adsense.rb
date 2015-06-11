@@ -22,6 +22,7 @@ module Visits
 
       #advert retourne un Link_element ElementStub) contenant dans les zones advert identifiées par <frame>
       def advert(frames)
+        #TODO trouver une solution en etudiant les bouts de code injectés par Adsense dans le site
         @@logger.an_event.debug "frames #{frames}"
 
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "frames"}) if frames.nil? or frames.empty?

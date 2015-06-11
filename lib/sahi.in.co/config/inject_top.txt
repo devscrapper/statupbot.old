@@ -7,6 +7,7 @@ $metaHeaders
 <script src='/_s_/spr/touch.js'></script>
 <script src='/_s_/spr/sfl.js'></script>
 <script src='/_s_/spr/json_for_ie.js'></script>
+<script src='/_s_/spr/extensions.js'></script>
 <script src="/_s_/dyn/SessionState_userExtensions/user_extensions.js"></script>
 <script src='http://$commonDomain/_s_/dyn/SessionState/state.js'></script>
 <!--extra_js_placeholder-->
@@ -14,8 +15,8 @@ $metaHeaders
 <script src='/_s_/spr/language_pack.js' id='langpack'></script>
 <script>/*<![CDATA[*//*---->*/_sahi.createSahiCookie();_sahi.loadXPathScript()/*--*//*]]>*/</script>
 <script>/*<![CDATA[*//*---->*/eval(_sahi.sendToServer("/_s_/dyn/Player_script/script.js"));/*--*//*]]>*/</script>
+<script src='/_s_/spr/applet2.js'></script>
+<script src="/_s_/dyn/SessionState_userExtensions/user_extensions.js"></script>
 <script src='/_s_/spr/playback.js'></script>
-<script src='/_s_/spr/applet.js'></script>
-<script src='/_s_/spr/extensions.js'></script>
 <!--SAHI_INJECT_END-->
 

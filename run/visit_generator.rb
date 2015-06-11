@@ -172,7 +172,7 @@ class Visit
     $stderr << "browser not define\n" if @browser.empty?
     if !@browser.empty? and !@website.empty?
       visit_filename = "visit_#{@type}_#{@referrer}_#{@advert}_#{@engine}_#{Browser[@browser.to_i, @engine][:name].strip}_#{Browser[@browser.to_i, @engine][:version].strip}.yml"
-
+      visit_filename.gsub!(" ", "_")
       visit = {:id_visit => UUID.generate,
                :start_date_time => Time.now,
                :type => @type,
@@ -191,7 +191,6 @@ class Visit
           case @referrer
             when :none
             when :referral
-              p Website[@website.to_i].referral_uri
               visit[:referrer].merge!({:random_search => {:min => 5, :max => 10},
                                        :random_surf => {:min => 5, :max => 10},
                                        :keyword => Website[@website.to_i].referral_kw,

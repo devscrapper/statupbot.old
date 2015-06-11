@@ -165,7 +165,10 @@ module Browsers
       i = 0
       begin
         results_str = @driver.fetch("_sahi.links()")
-        @@logger.an_event.debug "results_str #{results_str}"
+       # results_collect = @driver.fetch("_sahi._collect(\"_link\", \"/.*/\")")
+       # @@logger.an_event.debug "results_collect #{results_collect}"
+       # @@logger.an_event.debug "results_str #{results_str}"
+       # @@logger.an_event.info "count links #{results_str.size} | #{results_collect.size}"
         raise "_sahi.links() not return links of page" if results_str == "" or results_str.nil?
 
         results_hsh = JSON.parse(results_str)
@@ -223,16 +226,22 @@ module Browsers
     #----------------------------------------------------------------------------------------------------------------
     def body
       count_retry = 0
-      begin
-        src = @driver.fetch("window.document.body.innerHTML")
+      src = ""
 
+      begin
+        src = ""
+
+        src = @driver.fetch("window.document.body.innerHTML")
+        @@logger.an_event.debug "src : #{src}"
+
+        raise "body #{url} is empty" if src.empty?
           #@@logger.an_event.debug src
 
       rescue Exception => e
         @@logger.an_event.warn "browser #{@id} #{e.message}"
         count_retry += 1
         sleep 1
-        retry if count_retry < 3
+        retry if count_retry < 20
         @@logger.an_event.error "browser #{@id} #{e.message}"
         raise Error.new(BROWSER_NOT_FOUND_BODY, :values => {:browser => name}, :error => e)
 
@@ -318,7 +327,8 @@ module Browsers
         raise Error.new(BROWSER_NOT_FOUND_LINK, :values => {:browser => name}, :error => e)
 
       else
-        @@logger.an_event.debug "browser #{name} #{@id} found link #{link.url}"
+        @@logger.an_event.debug "browser #{name} #{@id} found link #{link}"   if link.is_a?(String)
+        @@logger.an_event.debug "browser #{name} #{@id} found link #{link.url}"   unless link.is_a?(String)
         @@logger.an_event.debug "link_element #{link_element.to_s}"
 
       end
@@ -332,6 +342,7 @@ module Browsers
           @@logger.an_event.debug "url before #{url_before}"
           @@logger.an_event.debug "url #{u}"
           link_element.click
+          @@logger.an_event.debug "click on #{link_element}"
         end
 
       rescue Exception => e
@@ -340,7 +351,8 @@ module Browsers
         raise Error.new(BROWSER_NOT_CLICK, :values => {:browser => name}, :error => e)
 
       else
-        @@logger.an_event.debug "browser #{name} #{@id} click on url #{link.url}"
+        @@logger.an_event.debug "browser #{name} #{@id} click on url #{link}" if link.is_a?(String)
+        @@logger.an_event.debug "browser #{name} #{@id} click on url #{link.url}" unless link.is_a?(String)
 
       ensure
 
@@ -884,12 +896,16 @@ module Browsers
     #
     #-----------------------------------------------------------------------------------------------------------------
     def url
-
+        count = 0
       begin
         url = nil
         url = @driver.fetch("window.location.href")
-
+        raise "url empty" if url.empty? or url.nil?
       rescue Exception => e
+        @@logger.an_event.warn e.message
+        count += 1
+        sleep 1
+        retry if count < 10
         @@logger.an_event.error e.message
         raise Error.new(BROWSER_NOT_FOUND_URL, :values => {:browser => name}, :error => e)
 
@@ -897,9 +913,6 @@ module Browsers
 
         @@logger.an_event.debug "browser #{name} #{@id} found url #{url} of current page"
         url
-
-      ensure
-
       end
     end
   end

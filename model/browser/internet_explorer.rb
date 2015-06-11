@@ -75,7 +75,7 @@ module Browsers
         file_name = File.join(visitor_dir, 'proxy', 'config', 'browser_types', 'win64.xml')
         file_custom = File.read(file_name)
         file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
-        file_custom.gsub!(/tool_sandboxing_browser_runtime_path/, Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'sahi.in.co', 'tools', 'sandboxing_browser.rb')).realpath.to_s)
+        #file_custom.gsub!(/tool_sandboxing_browser_runtime_path/, Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'sahi.in.co', 'tools', 'sandboxing_browser.rb')).realpath.to_s)
         File.write(file_name, file_custom)
 
         # id_visitor\proxy\config\browser_types\win32.xml :
@@ -83,7 +83,7 @@ module Browsers
         file_name = File.join(visitor_dir, 'proxy', 'config', 'browser_types', 'win32.xml')
         file_custom = File.read(file_name)
         file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
-        file_custom.gsub!(/tool_sandboxing_browser_runtime_path/, Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'sahi.in.co', 'tools', 'sandboxing_browser.rb')).realpath.to_s)
+        #file_custom.gsub!(/tool_sandboxing_browser_runtime_path/, Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'sahi.in.co', 'tools', 'sandboxing_browser.rb')).realpath.to_s)
         File.write(file_name, file_custom)
       rescue Exception => e
         @@logger.an_event.fatal e.message

@@ -291,7 +291,7 @@ def Chrome(browser_versions)
     icon = "chrome.png"
     path = details["runtime_path"]
     options = "--user-data-dir=$userDir\\browser\\chrome\\profiles\\sahi$threadNo
-                --proxy-server=localhost:listening_port_proxy --disable-popup-blocking --window-size=width_browser,height_browser
+                --proxy-server=localhost:listening_port_proxy --disable-popup-blocking --always-authorize-plugins --allow-outdated-plugins --incognito --window-size=width_browser,height_browser
                 --window-position=0,0"
     process_name = "chrome.exe"
 

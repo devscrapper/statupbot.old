@@ -917,8 +917,15 @@ module Visitors
         @@logger.an_event.debug "action #{__method__}"
 
         @current_page = @history[@history.size - 2].dup
+        @@logger.an_event.debug "current page = #{@current_page}"
+        @@logger.an_event.debug "@browser.url = #{@browser.url}"
         while @current_page.url != @browser.url
+          url = @browser.url
           @browser.go_back
+          # pour gérer le retour vers une page de resultats google pour IE : lors du go_back, IE execute à nouveau le redirect Google
+          # porté par le lien resultat => boucle
+          # comportement différent pour Chrome/FF qui ne réexécute pas la redirection.
+          @browser.go_to(@current_page.url) if @browser.url == url
           @@logger.an_event.debug "visitor #{@id} went back to #{@browser.url}"
 
         end

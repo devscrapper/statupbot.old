@@ -95,6 +95,10 @@ class Visit
     Dir[File.join(INPUT, "visit_*.yml")].each { |v| p "#{i+=1} - #{v}" }
   end
 
+  def self.list
+    Dir[File.join(INPUT, "visit_*.yml")]
+  end
+
   def initialize
     @types = [:rank, :traffic, :advert]
     @referrers = [:none, :referral, :organic]
@@ -179,12 +183,16 @@ module MyKeyboardHandler
     end
   end
 
+  def execute_all
+      Visit.list.each_index  { |i| execute(i)}
+  end
+
   def display
     begin
       p " Visits list : -----------------------------------------------------------------------------------------------"
       Visit.display
       p " Commands : --------------------------------------------------------------------------------------------------"
-      p " [e]xecute visit from list : 1|2...|all"
+      p " [e]xecute visit from list : #{Array.new(Visit.list.size) { |i| i }.join("|")}|all"
       p " [r]eload visits"
       p "x -> exit"
       p "--------------------------------------------------------------------------------------------------------------"
@@ -202,7 +210,16 @@ module MyKeyboardHandler
     p value
     case cmd
       when "e"
-        execute(value)
+        if value == "all"
+          execute_all
+        else
+          if value.to_i >= 0 and value.to_i <= Visit.list.size - 1
+          execute(value)
+          else
+            $stderr << "id visit #{value} unknown\n"
+            end
+        end
+
       when "r"
         display
       when "x"

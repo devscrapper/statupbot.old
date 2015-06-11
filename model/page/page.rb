@@ -120,59 +120,7 @@ module Pages
     end
 
 
-    #----------------------------------------------------------------------------------------------------------------
-    # link_by_url
-    #----------------------------------------------------------------------------------------------------------------
-    # #Retourne un link au hasard de la liste d’ url fournie ou url:
-    # inputs
-    #url
-    # output
-    # StandardError
-    # StandardError
-    #----------------------------------------------------------------------------------------------------------------
-    #----------------------------------------------------------------------------------------------------------------
-    #      #Retourne un link au hasard de la liste d’ url fournie ou url
-    # url peut être :
-    # soit un array d'url au format string
-    # soit un array d'url au format URI => transformation dans al fonction en string
-    # soit une url au format string
-    # soit une url au format URI   => transformation dans al fonction en string
-    #Pour rechercher landing_url dans referral_page : Referral_Page.link_by_url(landing_url)
-    #----------------------------------------------------------------------------------------------------------------
 
-    def link_by_url(url)
-
-      begin
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "url"}) if url.nil?
-
-        urls = (url.is_a?(Array)) ? url.map { |u| (u.is_a?(URI)) ? u.to_s : u } : [(url.is_a?(URI)) ? url.to_s : url]
-        @@logger.an_event.debug "urls #{urls}"
-        @@logger.an_event.debug "count links of page #{@links.size}"
-
-        res = @links.select { |l|
-          @@logger.an_event.debug "link #{l.url.to_s}"
-          @@logger.an_event.debug "include? #{urls.include?(l.url.to_s)}"
-          urls.include?(l.url.to_s)
-        }
-
-      rescue Exception => e
-        @@logger.an_event.error e.message
-        raise Error.new(PAGE_NONE_LINK_BY_URL, :values => {:url => url.to_s}, :error => e)
-
-      else
-        if res == []
-          raise Error.new(PAGE_NONE_LINK_BY_URL, :values => {:url => url.to_s})
-
-        else
-          return res.shuffle[0]
-
-        end
-
-      ensure
-
-      end
-
-    end
 
     #----------------------------------------------------------------------------------------------------------------
     # sleeping_time

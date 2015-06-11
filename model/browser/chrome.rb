@@ -149,9 +149,9 @@ module Browsers
 
         start_page = super("_sahi.open_start_page_ch", start_page_visit_url)
         #TODO à corriger
-        link = start_page.link_by_url(start_url)
 
-        page = click_on(link)
+
+        page = click_on(start_url)
 
       rescue Exception => e
         @@logger.an_event.fatal e.message
