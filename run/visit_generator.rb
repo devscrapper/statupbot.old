@@ -112,7 +112,7 @@ class Website
   end
 
   def referral_uri
-     @referral_uri.nil? ? "" : @referral_uri
+    @referral_uri.nil? ? "" : @referral_uri
   end
 
   def save
@@ -243,108 +243,109 @@ module MyKeyboardHandler
 
   def receive_line data
 
-    #/(?<cmd>[a,b,c,e,f,g,i,k,l,n,p,q,r,s,t,v,w,x])[[:blank:]]+(?<value>([[:word:]]|[[:punct:]]|[[:blank:]])*)[[:blank:]]+(\|(?<value2>([[:word:]]|[[:punct:]]|[[:blank:]])*))?[[:blank:]]+(\|(?<value3>([[:word:]]|[[:punct:]]|[[:blank:]])*)?)/u =~ data.force_encoding("utf-8")
     /(?<cmd>[a,b,c,e,f,g,i,k,l,n,p,q,r,s,t,v,w,x])[[:blank:]]*(?<value>([[:word:]]|[[:punct:]]|[[:blank:]]|\|)*)/u =~ data.force_encoding("utf-8")
-    p "cmd #{cmd}"
-    p "value <#{value}>"
-    cmd = cmd.strip
-    value = value.strip
-    p "cmd <#{cmd}>"
-    p "value <#{value}>"
+    if !cmd.nil? and !cmd.empty?
+      p "cmd #{cmd}"
+      p "value <#{value}>"
+      cmd = cmd.strip
+      value = value.strip
+      p "cmd <#{cmd}>"
+      p "value <#{value}>"
 
-    case cmd
-      when "a"
-        if @visit.adverts.include?(value.to_sym)
-          @visit.advert = value.to_sym
-          if @visit.advert == :none
-            @visit.type = :traffic
+      case cmd
+        when "a"
+          if @visit.adverts.include?(value.to_sym)
+            @visit.advert = value.to_sym
+            if @visit.advert == :none
+              @visit.type = :traffic
+            else
+              @visit.type = :advert
+            end
           else
-            @visit.type = :advert
+            $stderr << "value #{value} for advert unacceptable"
           end
-        else
-          $stderr << "value #{value} for advert unacceptable"
-        end
-      when "b"
-        if value.to_i < Browser.list.size
-          @visit.browser = value
-        else
-          $stderr << "value #{value} for browser unacceptable"
-        end
-      when "c"
-      when "e"
-        @website.text = value
-      when "f"
-        begin
+        when "b"
+          if value.to_i < Browser.list.size
+            @visit.browser = value
+          else
+            $stderr << "value #{value} for browser unacceptable"
+          end
+        when "c"
+        when "e"
+          @website.text = value
+        when "f"
+          begin
 
-          @website.referral_uri = URI.parse(value.split("|")[0].strip)
-          @website.referral_text = value.split("|")[1].strip
+            @website.referral_uri = URI.parse(value.split("|")[0].strip)
+            @website.referral_text = value.split("|")[1].strip
             @website.referral_kw = value.split("|")[2].strip
-        rescue Exception => e
-          $stderr << e.message
-        end
-      when "g"
-        @visit.generate
-      when "i"
-        @website.index = value
-      when "k"
-        @website.keywords = value
-      when "l"
-        @website.label = value
-      when "n"
-        if @visit.engines.include?(value.to_sym)
-          @visit.engine = value.to_sym
-        else
-          $stderr << "value #{value} for engine unacceptable"
-        end
-      when "p"
-        @website.path = value
-      when "q"
-        @website.fqdn = value
-      when "r"
-        if @visit.referrers.include?(value.to_sym)
-          @visit.referrer = value.to_sym
-        else
-          $stderr << "value #{value} for referrer unacceptable"
-        end
-      when "s"
-        @website.scheme = value
-      when "t"
-        if @visit.types.include?(value.to_sym)
-          @visit.type = value.to_sym
-          if @visit.type == :rank
-            @visit.engine = :google
-            @visit.referrer = :organic
-            @visit.advert = :none
-          elsif @visit.type == :advert
-            @visit.advert = :adsense
-          else
-            @visit.advert = :none
+          rescue Exception => e
+            $stderr << e.message
           end
+        when "g"
+          @visit.generate
+        when "i"
+          @website.index = value
+        when "k"
+          @website.keywords = value
+        when "l"
+          @website.label = value
+        when "n"
+          if @visit.engines.include?(value.to_sym)
+            @visit.engine = value.to_sym
+          else
+            $stderr << "value #{value} for engine unacceptable"
+          end
+        when "p"
+          @website.path = value
+        when "q"
+          @website.fqdn = value
+        when "r"
+          if @visit.referrers.include?(value.to_sym)
+            @visit.referrer = value.to_sym
+          else
+            $stderr << "value #{value} for referrer unacceptable"
+          end
+        when "s"
+          @website.scheme = value
+        when "t"
+          if @visit.types.include?(value.to_sym)
+            @visit.type = value.to_sym
+            if @visit.type == :rank
+              @visit.engine = :google
+              @visit.referrer = :organic
+              @visit.advert = :none
+            elsif @visit.type == :advert
+              @visit.advert = :adsense
+            else
+              @visit.advert = :none
+            end
+          else
+            $stderr << "value #{value} for type unacceptable"
+          end
+        when "v"
+          @website.save
+        when "w"
+          if value.to_i < Website.list.size
+            @visit.website = value
+            @website.label = Website[@visit.website.to_i].label
+            @website.scheme = Website[@visit.website.to_i].scheme
+            @website.fqdn = Website[@visit.website.to_i].fqdn
+            @website.path = Website[@visit.website.to_i].path
+            @website.text = Website[@visit.website.to_i].text
+            @website.index = Website[@visit.website.to_i].index
+            @website.keywords = Website[@visit.website.to_i].keywords
+            @website.referral_uri = Website[@visit.website.to_i].referral_uri unless Website[@visit.website.to_i].referral_uri.nil?
+            @website.referral_text = Website[@visit.website.to_i].referral_text unless Website[@visit.website.to_i].referral_text.nil?
+            @website.referral_kw = Website[@visit.website.to_i].referral_kw unless Website[@visit.website.to_i].referral_kw.nil?
+          else
+            $stderr << "value #{value} for website unacceptable"
+          end
+        when "x"
+          EM.stop
         else
-          $stderr << "value #{value} for type unacceptable"
-        end
-      when "v"
-        @website.save
-      when "w"
-        if value.to_i < Website.list.size
-          @visit.website = value
-          @website.label = Website[@visit.website.to_i].label
-          @website.scheme = Website[@visit.website.to_i].scheme
-          @website.fqdn = Website[@visit.website.to_i].fqdn
-          @website.path = Website[@visit.website.to_i].path
-          @website.text = Website[@visit.website.to_i].text
-          @website.index = Website[@visit.website.to_i].index
-          @website.keywords = Website[@visit.website.to_i].keywords
-          @website.referral_uri = Website[@visit.website.to_i].referral_uri unless  Website[@visit.website.to_i].referral_uri.nil?
-          @website.referral_text = Website[@visit.website.to_i].referral_text  unless  Website[@visit.website.to_i].referral_text.nil?
-          @website.referral_kw = Website[@visit.website.to_i].referral_kw  unless  Website[@visit.website.to_i].referral_kw.nil?
-        else
-          $stderr << "value #{value} for website unacceptable"
-        end
-      when "x"
-        EM.stop
-      else
-        p "cmd #{cmd} unknown"
+          p "cmd #{cmd} unknown"
+      end
     end
     display
   end

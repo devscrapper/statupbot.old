@@ -12,7 +12,7 @@ require_relative '../page/link'
 require_relative '../page/page'
 require_relative '../../lib/error'
 require_relative '../../lib/flow'
-require_relative '../../lib/sahi'
+#require_relative '../../lib/sahi'
 
 module Browsers
   class Browser
@@ -164,11 +164,8 @@ module Browsers
       count = 5
       i = 0
       begin
-        results_str = @driver.fetch("_sahi.links()")
-       # results_collect = @driver.fetch("_sahi._collect(\"_link\", \"/.*/\")")
-       # @@logger.an_event.debug "results_collect #{results_collect}"
-       # @@logger.an_event.debug "results_str #{results_str}"
-       # @@logger.an_event.info "count links #{results_str.size} | #{results_collect.size}"
+        results_str = @driver.links
+
         raise "_sahi.links() not return links of page" if results_str == "" or results_str.nil?
 
         results_hsh = JSON.parse(results_str)
@@ -231,7 +228,7 @@ module Browsers
       begin
         src = ""
 
-        src = @driver.fetch("window.document.body.innerHTML")
+        src = @driver.body
         @@logger.an_event.debug "src : #{src}"
 
         raise "body #{url} is empty" if src.empty?
@@ -374,18 +371,16 @@ module Browsers
     # StandardError :
     # Si il est impossible de recuperer les propriétés de la page
     #----------------------------------------------------------------------------------------------------------------
-    def display_start_page (sahi_cmd, url_start_page)
+    def display_start_page (url_start_page, window_parameters)
 
       @@logger.an_event.debug "url_start_page : #{url_start_page}"
-      @@logger.an_event.debug "sahi_cmd : #{sahi_cmd}"
 
       begin
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "url_start_page"}) if url_start_page.nil? or url_start_page == ""
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "sahi_cmd"}) if sahi_cmd.nil? or sahi_cmd == ""
 
         old_page_title = @driver.title
 
-        @driver.fetch("#{sahi_cmd}(\"#{url_start_page}\")")
+        @driver.display_start_page(url_start_page, window_parameters)
 
         url = url_start_page.split(",")[0]
         hostname = URI.parse(url[0..url.size - 2]).hostname
@@ -397,16 +392,6 @@ module Browsers
         raise Error.new(BROWSER_NOT_ACCESS_URL, :values => {:browser => name, :url => url_start_page}) if new_page_title == old_page_title
 
         @@logger.an_event.debug "browser #{name} #{@id} open start page #{url}"
-
-          # start_time = Time.now # permet de déduire du temps de lecture de la page le temps passé à chercher les liens
-          #
-          # page_details = @driver.get_details_current_page(url_start_page)
-          #
-          # @@logger.an_event.debug "browser #{name} #{@id} catch details start page #{url_start_page}"
-          #
-          # start_page = Page.new(page_details["url"], page_details["referrer"], page_details["title"], nil, page_details["links"], page_details["cookies"], Time.now - start_time)
-          #
-          # @@logger.an_event.debug "browser #{name} #{@id} create start page #{start_page.to_s}"
 
       rescue Exception => e
         @@logger.an_event.fatal e.message
@@ -438,7 +423,7 @@ module Browsers
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "link"}) if link.nil?
 
         exist = false
-        if link.is_a?(Sahi::ElementStub)
+        if link.is_a?(Browsers::Sahi::ElementStub)
           link_element = link
           raise "link #{link.to_s} not exist" unless link_element.exists?
 
@@ -482,87 +467,6 @@ module Browsers
     end
 
     #----------------------------------------------------------------------------------------------------------------
-    # find_link
-    #----------------------------------------------------------------------------------------------------------------
-    # retourne un link identifié par le domain de la page html et un attribut de la balise html <a>
-    #----------------------------------------------------------------------------------------------------------------
-    # input : nom de domaine, identifier du link
-    # output : un objet sahi représentant le link ou nil si non trouvé
-    #----------------------------------------------------------------------------------------------------------------
-    def find_link(domain = nil, identifier)
-
-      @@logger.an_event.debug "domain : #{domain}"
-      @@logger.an_event.debug "identifier : #{identifier}"
-
-      link = nil
-
-      begin
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "identifier"}) if identifier.nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "domain"}) if domain.nil?
-
-        link = @driver.domain(domain).link(identifier)
-
-      rescue Exception => e
-        @@logger.an_event.error e.message
-        raise Error.new(BROWSER_NOT_FOUND_LINK, :values => {:domain => domain, :identifier => identifier}, :error => e)
-
-      else
-        @@logger.an_event.debug "link #{domain} #{identifier} found : #{link.to_s}"
-
-        return link
-
-      ensure
-
-      end
-    end
-
-
-    #----------------------------------------------------------------------------------------------------------------
-    # find_links
-    #----------------------------------------------------------------------------------------------------------------
-    # retourne un array de link identifié par le domain de la page html et un attribut de la balise html <a>
-    #----------------------------------------------------------------------------------------------------------------
-    # input : nom de domaine, identifier du link
-    # output : un objet sahi représentant le link ou nil si non trouvé
-    #----------------------------------------------------------------------------------------------------------------
-    def find_links(identifier, domain = "")
-
-      @@logger.an_event.debug "domain : #{domain}"
-      @@logger.an_event.debug "identifier : #{identifier}"
-
-
-      links = []
-
-      begin
-
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "identifier"}) if identifier.nil?
-
-
-        if !domain.empty?
-          frame = @driver.domain(domain)
-          if frame.exists?
-            links = frame.link(identifier).collect_similar
-          end
-
-        else
-          links = @driver.link(identifier).collect_similar
-        end
-
-      rescue Exception => e
-        @@logger.an_event.error e.message
-        raise Error.new(BROWSER_NOT_FOUND_LINK, :values => {:domain => domain, :identifier => identifier}, :error => e)
-
-      else
-        @@logger.an_event.debug "links #{domain} #{identifier} found : #{links.to_s}"
-
-        return links
-
-      ensure
-
-      end
-    end
-
-    #----------------------------------------------------------------------------------------------------------------
     # go_back
     #----------------------------------------------------------------------------------------------------------------
     # cick sur le bouton back du navigateur
@@ -572,7 +476,7 @@ module Browsers
     #----------------------------------------------------------------------------------------------------------------
     def go_back
       begin
-        @driver.fetch("_sahi.go_back()")
+        @driver.back
 
       rescue Exception => e
         @@logger.an_event.error e.message
@@ -654,7 +558,7 @@ module Browsers
 
         @engine_search = EngineSearch.build(browser_details[:engine_search])
 
-        @driver = Browsers::Driver.new(browser_type,
+        @driver = Sahi::Browser.new(browser_type,
                                        @listening_port_proxy)
 
         customize_properties (visitor_dir)
@@ -820,13 +724,10 @@ module Browsers
         begin
           @@logger.an_event.debug @driver.title
 
-          title = @driver.title #suppression des carracteres non ascii
+          title = title
           @@logger.an_event.debug title
           output_file = Flow.new(SCREENSHOT, id_visitor, title[0..32], Date.today, vol, ".png")
           output_file.delete if output_file.exist?
-            #     @driver.execute_step("_sahi._focusWindow()")
-            #    @driver.execute_step("_sahi._takeScreenShot()")
-            #@driver.fetch("_sahi._takeScreenShot(#{output_file.absolute_path})")
 
         rescue Exception => e
           @@logger.an_event.error e.message
@@ -870,7 +771,7 @@ module Browsers
 
       begin
         title = nil
-        title = @driver.fetch("window.document.title")
+        title = @driver.title
 
       rescue Exception => e
         @@logger.an_event.error e.message
@@ -899,8 +800,9 @@ module Browsers
         count = 0
       begin
         url = nil
-        url = @driver.fetch("window.location.href")
+        url = @driver.current_url
         raise "url empty" if url.empty? or url.nil?
+
       rescue Exception => e
         @@logger.an_event.warn e.message
         count += 1

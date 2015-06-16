@@ -1,9 +1,15 @@
 require_relative '../../lib/os'
 require_relative '../../lib/error'
 require 'rexml/document'
+require 'sahi'
 
-module Browsers
-  class Driver < Sahi::Browser
+
+#----------------------------------------------------------------------------------------------------------------
+# enrichissment, surcharge pour personnaliser ou corriger le gem Sahi standard
+#----------------------------------------------------------------------------------------------------------------
+
+module Sahi
+  class Browser
     #----------------------------------------------------------------------------------------------------------------
     # include class
     #----------------------------------------------------------------------------------------------------------------
@@ -50,6 +56,13 @@ module Browsers
     # instance methods
     #----------------------------------------------------------------------------------------------------------------
 
+    def back
+      fetch("_sahi.go_back()")
+    end
+
+    def body
+      fetch("window.document.body.innerHTML")
+    end
 
     #-----------------------------------------------------------------------------------------------------------------
     # close
@@ -85,9 +98,24 @@ module Browsers
       end
     end
 
+    def current_url
+      fetch("window.location.href")
+    end
 
 
+    def display_start_page (url, window_parameters)
+      fetch("_sahi.display_start_page(\"#{url}\", \"#{window_parameters}\")")
+    end
 
+    # evaluates a javascript expression on the browser and fetches its value
+    def fetch(expression)
+      key = "___lastValue___" + Time.now.getutc.to_s;
+      #remplacement de cette ligne
+      # execute_step("_sahi.setServerVarPlain('"+key+"', " + expression + ")")
+      # par celle ci depuis la version 6.0.1 de SAHI
+      execute_step("_sahi.setServerVarForFetchPlain('"+key+"', " + expression + ")")
+      return check_nil(exec_command("getVariable", {"key" => key}))
+    end
 
     #-----------------------------------------------------------------------------------------------------------------
     # initialize
@@ -157,6 +185,10 @@ module Browsers
 
     end
 
+    def links
+      fetch("_sahi.links()")
+    end
+
 
     #-----------------------------------------------------------------------------------------------------------------
     # open
@@ -216,8 +248,25 @@ module Browsers
     end
 
 
+  end
+  class ElementStub
+    # returns count of elements similar to this element
+    def count_similar
+      # return Integer(@browser.fetch("_sahi._count(\"_#{@type}\", #{concat_identifiers(@identifiers).join(", ")})"))
+      @browser.fetch("_sahi._count(\"_#{@type}\", #{concat_identifiers(@identifiers).join(", ")})").to_i
+    end
 
 
-
+    def setAttribute(attr=nil, value="")
+      if attr
+        if attr.include? "."
+          return @browser.fetch("#{self.to_s()}.#{attr}")
+        else
+          return @browser.fetch("_sahi.setAttribute(#{self.to_s()}, #{Utils.quoted(attr)}, #{Utils.quoted(value)})")
+        end
+      else
+        return @browser.fetch("#{self.to_s()}")
+      end
+    end
   end
 end

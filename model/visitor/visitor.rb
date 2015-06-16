@@ -1019,7 +1019,8 @@ module Visitors
       begin
         @@logger.an_event.debug "action #{__method__}"
 
-        @browser.display_start_page(@browser.engine_search.page_url, @id)
+        url = @browser.engine_search.page_url
+        @browser.display_start_page(url, @id)
 
         @current_page = Pages::EngineSearch.new(@visit,
                                                 @browser)
@@ -1031,7 +1032,7 @@ module Visitors
 
       else
 
-        @@logger.an_event.info "visitor #{@id} went to engine search page"
+        @@logger.an_event.info "visitor #{@id} went to engine search page <#{url}>"
 
         read(@current_page)
       ensure

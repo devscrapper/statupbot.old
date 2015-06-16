@@ -216,10 +216,10 @@ module Sahi
     # evaluates a javascript expression on the browser and fetches its value
     def fetch(expression)
       key = "___lastValue___" + Time.now.getutc.to_s;
-      #remplacement de cette ligne
-      # execute_step("_sahi.setServerVarPlain('"+key+"', " + expression + ")")
-      # par celle ci depuis la version 6.0.1 de SAHI
-      execute_step("_sahi.setServerVarForFetchPlain('"+key+"', " + expression + ")")
+
+      execute_step("_sahi.setServerVarPlain('"+key+"', " + expression + ")")
+
+
       return check_nil(exec_command("getVariable", {"key" => key}))
     end
 
@@ -571,17 +571,6 @@ module Sahi
       end
     end
 
-    def setAttribute(attr=nil, value="")
-      if attr
-        if attr.include? "."
-          return @browser.fetch("#{self.to_s()}.#{attr}")
-        else
-          return @browser.fetch("_sahi.setAttribute(#{self.to_s()}, #{Utils.quoted(attr)}, #{Utils.quoted(value)})")
-        end
-      else
-        return @browser.fetch("#{self.to_s()}")
-      end
-    end
 
     # returns boolean value of attribute. returns true only if fetch returns "true"
     def fetch_boolean(attr=nil)
@@ -717,8 +706,8 @@ module Sahi
 
     # returns count of elements similar to this element
     def count_similar
-      # return Integer(@browser.fetch("_sahi._count(\"_#{@type}\", #{concat_identifiers(@identifiers).join(", ")})"))
-      @browser.fetch("_sahi._count(\"_#{@type}\", #{concat_identifiers(@identifiers).join(", ")})").to_i
+      return Integer(@browser.fetch("_sahi._count(\"_#{@type}\", #{concat_identifiers(@identifiers).join(", ")})"))
+
     end
 
     # returns array elements similar to this element

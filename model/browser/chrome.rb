@@ -144,27 +144,24 @@ module Browsers
         window_parameters = "width=#{@width},height=#{@height},fullscreen=0,left=0,menubar=1,status=1,titlebar=1,top=0"
         @@logger.an_event.debug "windows parameters : #{window_parameters}"
 
-        start_page_visit_url = "http://#{$start_page_server_ip}:#{$start_page_server_port}/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}\",\"#{window_parameters}"
+
+        start_page_visit_url = "http://#{$start_page_server_ip}:#{$start_page_server_port}/start_link?method=#{@method_start_page}&url=#{start_url}&visitor_id=#{visitor_id}"
         @@logger.an_event.debug "start_page_visit_url : #{start_page_visit_url}"
 
-        start_page = super("_sahi.open_start_page_ch", start_page_visit_url)
-        #TODO à corriger
+        super(start_page_visit_url, window_parameters)
 
-
-        page = click_on(start_url)
+        click_on(start_url)
 
       rescue Exception => e
-        @@logger.an_event.fatal e.message
-        raise Error.new(BROWSER_NOT_DISPLAY_PAGE, :values => {:browser => name, :page => start_url}, :error => e)
-
+        raise e
       else
         @@logger.an_event.debug "#{name} display start page #{start_url}"
-
-        return page
 
       ensure
 
       end
+
+
     end
   end
 end

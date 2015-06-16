@@ -84,9 +84,14 @@ module Pages
 
         # suppression du landing dans les resultats pour ne pas cliquer dessus
         # suppression des liens sur des pdf
+        # maj du text du landing_link de l'objet Visit avec celui trouvé dans les résultats car les search engine ne publient pas
+        # tous le même texte et celui retourné par engine bot n'est peut être pas le bon
         @links.delete_if { |l|
-          true if l[:href] == @landing_link.url or !l[:href].rindex(".pdf").nil?
-
+           if l[:href] == @landing_link.url
+             visit.landing_link.text = l[:text]
+             true
+           end
+           true if !l[:href].rindex(".pdf").nil?
         }
         @links.map! { |l|
           begin
