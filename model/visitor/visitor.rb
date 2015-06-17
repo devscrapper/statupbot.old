@@ -306,7 +306,8 @@ module Visitors
     #
     #----------------------------------------------------------------------------------------------------------------
     def execute (visit)
-
+       #TODO tenter d'utiliser un Object Link pour les actions click
+      #TODO tenter d'utiliser un Object Uri pour les actions go_to
       begin
         @visit = visit
 

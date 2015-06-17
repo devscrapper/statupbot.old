@@ -64,39 +64,6 @@ module Sahi
       fetch("window.document.body.innerHTML")
     end
 
-    #-----------------------------------------------------------------------------------------------------------------
-    # close
-    #-----------------------------------------------------------------------------------------------------------------
-    # input : none
-    # output : none
-    # exception :
-    # StandardError :
-    #     - sahi ne peut arreter le navigateur car plusieurs occurences du navigateur s'exécute
-    #     - tout autre erreur
-    #-----------------------------------------------------------------------------------------------------------------
-    #
-    #-----------------------------------------------------------------------------------------------------------------
-    def close
-      #TODO etudier la suppression de cette méthode au profit de celle fournie par Sahi ...
-
-      begin
-        exec_command("kill");
-
-      rescue Timeout::Error => e
-        @@logger.an_event.error e.message
-        raise Error.new(CLOSE_DRIVER_TIMEOUT, :values => {:browser_type => "page"}, :error => e)
-
-      rescue Exception => e
-        @@logger.an_event.error e.message
-        raise Error.new(CLOSE_DRIVER_FAILED, :values => {:browser_type => "page"}, :error => e)
-
-      else
-        @@logger.an_event.debug "driver #{@browser_type} close"
-
-      ensure
-
-      end
-    end
 
     def current_url
       fetch("window.location.href")
