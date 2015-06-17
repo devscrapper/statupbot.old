@@ -324,8 +324,11 @@ module Browsers
         raise Error.new(BROWSER_NOT_FOUND_LINK, :values => {:browser => name}, :error => e)
 
       else
-        @@logger.an_event.debug "browser #{name} #{@id} found link #{link}"   if link.is_a?(String)
-        @@logger.an_event.debug "browser #{name} #{@id} found link #{link.url}"   unless link.is_a?(String)
+        @@logger.an_event.debug "browser #{name} #{@id} found link #{link}" if link.is_a?(String)
+        @@logger.an_event.debug "browser #{name} #{@id} found link #{link.url}" if link.is_a?(Pages::Link)
+        @@logger.an_event.debug "browser #{name} #{@id} found link #{link.to_s}" if link.is_a?(URI)
+        @@logger.an_event.debug "browser #{name} #{@id} found link #{link.identifiers}" if link.is_a?(Sahi::ElementStub)
+
         @@logger.an_event.debug "link_element #{link_element.to_s}"
 
       end
@@ -349,8 +352,9 @@ module Browsers
 
       else
         @@logger.an_event.debug "browser #{name} #{@id} click on url #{link}" if link.is_a?(String)
-        @@logger.an_event.debug "browser #{name} #{@id} click on url #{link.url}" unless link.is_a?(String)
-
+        @@logger.an_event.debug "browser #{name} #{@id} click on url #{link.url}" if link.is_a?(Pages::Link)
+        @@logger.an_event.debug "browser #{name} #{@id} click on url #{link.to_s}" if link.is_a?(URI)
+        @@logger.an_event.debug "browser #{name} #{@id} click on url #{link.identifiers}" if link.is_a?(Sahi::ElementStub)
       ensure
 
       end
@@ -559,7 +563,7 @@ module Browsers
         @engine_search = EngineSearch.build(browser_details[:engine_search])
 
         @driver = Sahi::Browser.new(browser_type,
-                                       @listening_port_proxy)
+                                    @listening_port_proxy)
 
         customize_properties (visitor_dir)
 
@@ -797,7 +801,7 @@ module Browsers
     #
     #-----------------------------------------------------------------------------------------------------------------
     def url
-        count = 0
+      count = 0
       begin
         url = nil
         url = @driver.current_url

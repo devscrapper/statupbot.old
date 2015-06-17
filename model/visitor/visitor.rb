@@ -52,6 +52,7 @@ module Visitors
     VISITOR_NOT_CHOOSE_LINK = 628
     VISITOR_NOT_CHOOSE_ADVERT = 629
     VISITOR_NOT_FOUND_LANDING = 630
+    VISITOR_NOT_CLICK_ON_REFERRAL = 631
     #----------------------------------------------------------------------------------------------------------------
     # constants
     #----------------------------------------------------------------------------------------------------------------
@@ -71,6 +72,7 @@ module Visitors
                 "F" => "cl_on_advert",
                 "G" => "cl_on_link_on_unknown",
                 "H" => "cl_on_link_on_advertiser",
+                "I" => "cl_on_referral",
                 "0" => "sb_search",
                 "2" => "sb_search",
                 "1" => "sb_final_search"}
@@ -324,6 +326,12 @@ module Visitors
 
           rescue Errors::Error => e
             case e.code
+              when VISITOR_NOT_CLICK_ON_REFERRAL
+                # le click sur le link du referral dans la page de results a échoué
+                # force l'accès au referral par un accès direct
+                act = "e"
+                script.insert(count_actions + 1, act)
+                @@logger.an_event.info "visitor #{@id} make action <#{COMMANDS[act]}> instead of  <#{COMMANDS[action]}>"
               when VISITOR_NOT_READ_PAGE
                 # ajout dans le script d'action pour revenir à la page précédent pour refaire l'action qui a planté.
                 # ceci s'arretera quand il n'y aura plus de lien sur lesquel clickés ; lien choisi dans les 3 actions
@@ -490,12 +498,12 @@ module Visitors
         @@logger.an_event.debug "frame #{frame}"
 
         links = @browser.driver.link("/.*/").collect_similar
-       for i in links
-         @@logger.an_event.info @browser.driver.link(i).fetch("href")
-       end
+        for i in links
+          @@logger.an_event.info @browser.driver.link(i).fetch("href")
+        end
         frames = []
         frames << @browser.driver
-        frames << frame  unless frame.nil?
+        frames << frame unless frame.nil?
 
         @@logger.an_event.debug "frames #{frames}"
 
@@ -564,7 +572,7 @@ module Visitors
       # Click on link
       #--------------------------------------------------------------------------------------------------------
       begin
-        link = @current_page.landing_link #Object Link
+        link = @visit.landing_link #Object Link
 
         @browser.click_on(link)
 
@@ -911,6 +919,53 @@ module Visitors
       end
     end
 
+    def cl_on_referral
+      @@logger.an_event.debug "action #{__method__}"
+
+      #--------------------------------------------------------------------------------------------------------
+      # Click on link referral
+      #--------------------------------------------------------------------------------------------------------
+      begin
+        link = @visit.referrer.link #Object Link
+
+        @browser.click_on(link)
+
+      rescue Exception => e
+
+        @@logger.an_event.warn "visitor #{@id} not clicked on referral link #{link.url} on results page : #{e.message}."
+        raise Error.new(VISITOR_NOT_CLICK_ON_REFERRAL, :error => e)
+
+      else
+        @@logger.an_event.info "visitor #{@id} clicked on link #{link.url} on results page."
+
+      end
+
+      #--------------------------------------------------------------------------------------------------------
+      # read Page
+      #--------------------------------------------------------------------------------------------------------
+      count_retry = 0
+      begin
+        @current_page = Pages::Unmanage.new(visit.referrer.duration, @browser)
+
+      rescue Errors::Error => e
+        case e.code
+          when Pages::Page::PAGE_NONE_INSIDE_LINKS
+            count_retry += 1
+            sleep 10
+            @@logger.an_event.warn "visitor #{@id} try catch links again #{count_retry} times"
+            retry if count_retry < 3
+        end
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      rescue Exception => e
+        raise Error.new(VISITOR_NOT_READ_PAGE, :error => e)
+
+      else
+        read(@current_page)
+
+      end
+
+    end
 
     def go_back
       begin
@@ -982,7 +1037,7 @@ module Visitors
 
       else
 
-        @@logger.an_event.info "visitor #{@id} went to referral #{url}"
+        @@logger.an_event.info "visitor #{@id} went to referral #{url.to_s}"
 
         read(@current_page)
       ensure

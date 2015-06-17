@@ -79,7 +79,7 @@ end
 class Website
   TMP = Pathname(File.join(File.dirname(__FILE__), "..", "tmp")).realpath
   WEBSITES = "websites.yml"
-  attr_accessor :label, :many_hostname, :many_account_ga, :scheme, :fqdn, :path, :text, :index, :keywords, :referral_text, :referral_kw
+  attr_accessor :label, :many_hostname, :many_account_ga, :index, :keywords, :referral_kw, :uri #Object URI
   attr_writer :referral_uri
   @@websites = nil
 
@@ -103,11 +103,9 @@ class Website
     #valeurs par defaut
     @many_hostname = :true
     @many_account_ga = :no
-    @scheme = :http
     @@websites = []
     YAML::load(File.open(File.join(TMP, WEBSITES)), "r:UTF-8").each { |w| @@websites << w } if File.exist?(File.join(TMP, WEBSITES))
     @referral_uri = nil
-    @referral_text = ""
     @referral_kw = ""
   end
 
@@ -127,10 +125,9 @@ class Website
   end
 
   def landing
-    {:scheme => @scheme,
-     :fqdn => @fqdn,
-     :path => @path,
-     :text => @text}
+    {:scheme => @uri.scheme,
+     :fqdn => @uri.host,
+     :path => @uri.path}
   end
 end
 #--------------------------------------------------------------------------------------------------------------------
@@ -197,7 +194,6 @@ class Visit
                                        :durations => Array.new(Website[@website.to_i].index.to_i).fill(2),
                                        :referral_path => Website[@website.to_i].referral_uri.path,
                                        :source => Website[@website.to_i].referral_uri.hostname,
-                                       :title => Website[@website.to_i].referral_text.strip,
                                        :duration => 5})
             when :organic
               visit[:referrer].merge!({:random_search => {:min => 5, :max => 10},
@@ -243,7 +239,7 @@ module MyKeyboardHandler
 
   def receive_line data
 
-    /(?<cmd>[a,b,c,e,f,g,i,k,l,n,p,q,r,s,t,v,w,x])[[:blank:]]*(?<value>([[:word:]]|[[:punct:]]|[[:blank:]]|\|)*)/u =~ data.force_encoding("utf-8")
+    /(?<cmd>[a,b,e,f,g,i,k,l,n,o,p,r,s,t,u,v,w,x])[[:blank:]]*(?<value>([[:word:]]|[[:punct:]]|[[:blank:]]|\|)*)/u =~ data.force_encoding("utf-8")
     if !cmd.nil? and !cmd.empty?
       p "cmd #{cmd}"
       p "value <#{value}>"
@@ -270,15 +266,11 @@ module MyKeyboardHandler
           else
             $stderr << "value #{value} for browser unacceptable"
           end
-        when "c"
-        when "e"
-          @website.text = value
+
         when "f"
           begin
-
             @website.referral_uri = URI.parse(value.split("|")[0].strip)
-            @website.referral_text = value.split("|")[1].strip
-            @website.referral_kw = value.split("|")[2].strip
+            @website.referral_kw = value.split("|")[1].strip
           rescue Exception => e
             $stderr << e.message
           end
@@ -296,10 +288,8 @@ module MyKeyboardHandler
           else
             $stderr << "value #{value} for engine unacceptable"
           end
-        when "p"
-          @website.path = value
-        when "q"
-          @website.fqdn = value
+        when "o"
+          display
         when "r"
           if @visit.referrers.include?(value.to_sym)
             @visit.referrer = value.to_sym
@@ -307,7 +297,7 @@ module MyKeyboardHandler
             $stderr << "value #{value} for referrer unacceptable"
           end
         when "s"
-          @website.scheme = value
+          @website.save
         when "t"
           if @visit.types.include?(value.to_sym)
             @visit.type = value.to_sym
@@ -322,21 +312,23 @@ module MyKeyboardHandler
             end
           else
             $stderr << "value #{value} for type unacceptable"
+            end
+        when "u"
+          begin
+            @website.uri = URI.parse(value.strip)
+          rescue Exception => e
+            $stderr << e.message
           end
-        when "v"
-          @website.save
+
+
         when "w"
           if value.to_i < Website.list.size
             @visit.website = value
             @website.label = Website[@visit.website.to_i].label
-            @website.scheme = Website[@visit.website.to_i].scheme
-            @website.fqdn = Website[@visit.website.to_i].fqdn
-            @website.path = Website[@visit.website.to_i].path
-            @website.text = Website[@visit.website.to_i].text
+            @website.uri = Website[@visit.website.to_i].uri
             @website.index = Website[@visit.website.to_i].index
             @website.keywords = Website[@visit.website.to_i].keywords
             @website.referral_uri = Website[@visit.website.to_i].referral_uri unless Website[@visit.website.to_i].referral_uri.nil?
-            @website.referral_text = Website[@visit.website.to_i].referral_text unless Website[@visit.website.to_i].referral_text.nil?
             @website.referral_kw = Website[@visit.website.to_i].referral_kw unless Website[@visit.website.to_i].referral_kw.nil?
           else
             $stderr << "value #{value} for website unacceptable"
@@ -353,15 +345,12 @@ module MyKeyboardHandler
   def display
     begin
       p " Website properties : ----------------------------------------------------------------------------------------"
-      p " [l]abel     : <label>       => crt value : #{@website.label}"
-      p " [s]cheme    : http|https    => crt value : #{@website.scheme}"
-      p " f[q]dn      : <fqdn>        => crt value : #{@website.fqdn}"
-      p " [p]ath      : <path>        => crt value : #{@website.path}"
-      p " t[e]xte     : <title>       => crt value : #{@website.text}"
-      p " [i]ndex     : <index>       => crt value : #{@website.index}"
-      p " [k]eywords  : <keywords>    => crt value : #{@website.keywords}"
-      p " re[f]erral  : <uri>|<title> => crt value : #{@website.referral_uri.to_s}  | #{@website.referral_text.strip} "
-      p "                                                                           | #{@website.referral_kw.strip}"
+      p " [l]abel     : <label>           => crt value : #{@website.label}"
+      p " [u]ri       : <uri>             => crt value : #{@website.uri.to_s}"
+      p " [i]ndex     : <index>           => crt value : #{@website.index}"
+      p " [k]eywords  : <keywords>        => crt value : #{@website.keywords}"
+      p " re[f]erral  : <uri> |<keywords> => crt value : #{@website.referral_uri.to_s}"
+      p "                                              | #{@website.referral_kw.strip}"
       p " Website list : ----------------------------------------------------------------------------------------------"
       Website.display
       p " Browser list : ----------------------------------------------------------------------------------------------"
@@ -376,8 +365,9 @@ module MyKeyboardHandler
       p " Visits list : -----------------------------------------------------------------------------------------------"
       Visit.display
       p " Commands : --------------------------------------------------------------------------------------------------"
-      p "sa{v]e website properties to list."
+      p "[s]ave website properties to list."
       p "[g]enerate visit with current website properties"
+      p "rel[o]ad : websites, browsers & visits"
       p "x -> exit"
       p "--------------------------------------------------------------------------------------------------------------"
     rescue Exception => e

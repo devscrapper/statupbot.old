@@ -31,11 +31,14 @@ module Visits
     #TODO terminer REFERRAL ; REFERRAL non testé
     class Referral < Referrer
 
-      attr :page_url, # URI de la page referral
-           :duration
+      attr :page_url, # Objet URI de la page referral
+           :link, # objet Link referencant le referral dans la page result
+           :durations, # for keywords to find referral
+           :duration, #for referral
+           :keywords, # String : keyword dont la recherche aboutie forc?ment ? la pr?sence d'un landing link dans les results
+           :fake_keywords
 
       include Errors
-
 
 
       def initialize(referer_details)
@@ -46,31 +49,21 @@ module Visits
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "referral_path"}) if referer_details[:referral_path].nil?
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "duration"}) if referer_details[:duration].nil?
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "source"}) if referer_details[:source].nil?
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "keyword"}) if referer_details[:keyword].nil?
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "random_search.min"}) if referer_details[:random_search][:min].nil?
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "random_search.max"}) if referer_details[:random_search][:max].nil?
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "random_surf.max"}) if referer_details[:random_surf][:max].nil?
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "random_surf.min"}) if referer_details[:random_surf][:min].nil?
 
-          super(landing_page)  #TODO à supprimer
+
           @keywords = referer_details[:keyword]
 
           arr = @keywords.split (" ")
-          case @keywords.size
-            when 1
-              @fake_keywords1 = []
-              @fake_keywords2 = [] << @keywords
-            when 2
-              @fake_keywords1 = []
-              @fake_keywords2 = arr.combination(1).to_a
-            when 3
-              @fake_keywords1 = arr.combination(1).to_a
-              @fake_keywords2 = arr.combination(2).to_a
-            when 4
-              @fake_keywords1 = arr.combination(2).to_a
-              @fake_keywords2 = arr.combination(3).to_a
-            when 5
-              @fake_keywords1 = arr.combination(3).to_a
-              @fake_keywords2 = arr.combination(4).to_a
-            else
 
-          end
-
+          @fake_keywords = []
+          (@keywords.size - 1).times { |i|
+            @fake_keywords += arr.combination(i + 1).to_a
+          }
 
           @random_search_min = referer_details[:random_search][:min]
           @random_search_max =referer_details[:random_search][:max]
@@ -79,7 +72,9 @@ module Visits
           @page_url = referer_details[:source].start_with?("http:") ?
               URI.join(referer_details[:source], referer_details[:referral_path]) :
               URI.join("http://#{referer_details[:source]}", referer_details[:referral_path])
+          @link = Pages::Link.new(@page_url.to_s)
           @duration = referer_details[:duration]
+          @durations = referer_details[:durations]
 
         rescue Exception => e
           @@logger.an_event.error e.message
@@ -93,11 +88,29 @@ module Visits
         end
       end
 
+      #retourne tj une string contenant les mots cl?, m?me si engine bot a fourni un tableau de mot cl?
+      def keywords
+        #TODO ? supprimer qd on sera sur qu'il n'ya plus de tableau
+        @keywords.is_a?(Array) ? @keywords.sample : @keywords
+      end
+
+      def next_keyword
+        @fake_keywords.sample.join(" ")
+      end
+
+
+      def search_duration
+        Random.new.rand(@random_search_min .. @random_search_max)
+      end
+
+      def surf_duration
+        Random.new.rand(@random_surf_min .. @random_surf_max)
+      end
 
       def to_s
         super.to_s +
-        "page url : #{@page_url} \n" +
-        "duration : #{@duration} \n"
+            "page url : #{@page_url} \n" +
+            "duration : #{@duration} \n"
       end
     end
   end

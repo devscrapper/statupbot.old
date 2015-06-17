@@ -212,7 +212,6 @@ module Visits
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "many_account_ga"}) if visit_details[:website][:many_account_ga].nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing link fqdn"}) if visit_details[:landing][:fqdn].nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing link path"}) if visit_details[:landing][:path].nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing link text"}) if visit_details[:landing][:text].nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing link scheme"}) if visit_details[:landing][:scheme].nil?
 
         @id = visit_details[:id_visit]
@@ -221,9 +220,8 @@ module Visits
         @durations = visit_details[:durations]
         @around = (visit_details[:website][:many_hostname] == :true and visit_details[:website][:many_account_ga] == :no) ? :inside_hostname : :inside_fqdn
 
-        @landing_link = Pages::Link.new("#{visit_details[:landing][:scheme]}://#{visit_details[:landing][:fqdn]}#{visit_details[:landing][:path]}",
-                                        "",
-                                        visit_details[:landing][:text])
+        @landing_link = Pages::Link.new("#{visit_details[:landing][:scheme]}://#{visit_details[:landing][:fqdn]}#{visit_details[:landing][:path]}")
+
         @referrer = Referrer.build(visit_details[:referrer])
 
 

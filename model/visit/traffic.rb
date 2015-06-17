@@ -35,7 +35,7 @@ module Visits
   # type    | random search | random suf | referrer | advertising | expression reguliere
   #--------------------------------------------------------------------------------------------------------------------
   # traffic | NON           | NON        | Direct   | NON         | aE{i-1}
-  # traffic | OUI           | OUI        | Referral | NON         |
+  # traffic | OUI           | OUI        | Referral | NON         | b((2+0A{1,q-1}CG{1,p-1})f){k}1A{f-1}IDE{i-1}
   # traffic | OUI           | OUI        | Search   | NON         | b((2+0A{1,q-1}CG{1,p})f){1,k}1A{f-1}DE{i-1}
   #--------------------------------------------------------------------------------------------------------------------
   #----------------------------------------------------------------------------------------------------------------
@@ -81,11 +81,11 @@ module Visits
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "i"}) if @durations.size == 0
 
           i = @durations.size
-          k = @referrer.fake_keywords.size > 1 ? Random.new.rand(1 .. @fake_keywords.size - 1) : 0
+          k = @referrer.fake_keywords.size > 1 ? Random.new.rand(1 .. @referrer.fake_keywords.size - 1) : 0
           f = @referrer.durations.size
           q = 3
           p = 3
-          @regexp = "b((2|0A{1,#{q-1}}CG{1,#{p-1}})f){#{k}}1A{#{f-1}}eDE{#{i-1}}"
+          @regexp = "b((2|0A{1,#{q-1}}CG{1,#{p-1}})f){#{k}}1A{#{f-1}}IDE{#{i-1}}"
           @@logger.an_event.debug "@regexp #{@regexp}"
 
           @actions = /#{@regexp}/.random_example

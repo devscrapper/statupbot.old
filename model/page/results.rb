@@ -40,7 +40,7 @@ module Pages
     # attribut
     #----------------------------------------------------------------------------------------------------------------
     attr_reader :links,
-                :landing_link,
+               # :landing_link,
                 :next,
                 :prev,
                 :body
@@ -72,7 +72,7 @@ module Pages
         prv = browser.engine_search.prev(@body)
         @links = browser.engine_search.links(@body)
 
-        @landing_link = visit.landing_link
+      #  @landing_link = visit.landing_link
 
         super(browser.url,
               browser.title,
@@ -87,7 +87,7 @@ module Pages
         # maj du text du landing_link de l'objet Visit avec celui trouvé dans les résultats car les search engine ne publient pas
         # tous le même texte et celui retourné par engine bot n'est peut être pas le bon
         @links.delete_if { |l|
-           if l[:href] == @landing_link.url
+           if l[:href] == visit.landing_link.url
              visit.landing_link.text = l[:text]
              true
            end
@@ -111,19 +111,6 @@ module Pages
       end
     end
 
-    #----------------------------------------------------------------------------------------------------------------
-    # landing
-    #----------------------------------------------------------------------------------------------------------------
-    # input : RAS
-    # ouput : landing link
-    # exception : landing link not found
-    #----------------------------------------------------------------------------------------------------------------
-    #----------------------------------------------------------------------------------------------------------------
-    #
-    #----------------------------------------------------------------------------------------------------------------
-    def landing_link
-      @landing_link
-    end
 
     #----------------------------------------------------------------------------------------------------------------
     # link
@@ -148,7 +135,6 @@ module Pages
           super.to_s +
           "next : #{@next}\n" +
           "prev : #{@prev}\n" +
-          "landing_link : #{@landing_link}\n" +
           "links (#{@links.size}): \n#{@links.map{|t| "#{t}\n"}.join("")}\n" +
           "body : #{}\n"
     end

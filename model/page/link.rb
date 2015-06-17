@@ -21,6 +21,7 @@ module Pages
     #----------------------------------------------------------------------------------------------------------------
     # constant
     #----------------------------------------------------------------------------------------------------------------
+    EMPTY = "EMPTY"
     #----------------------------------------------------------------------------------------------------------------
     # variable de class
     #----------------------------------------------------------------------------------------------------------------
@@ -59,7 +60,7 @@ module Pages
     #----------------------------------------------------------------------------------------------------------------
     #
     #----------------------------------------------------------------------------------------------------------------
-    def initialize(url, window_tab, text)
+    def initialize(url, window_tab=EMPTY, text=EMPTY)
       @@logger ||= Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
 
       @@logger.an_event.debug "url #{ url.to_s}"
@@ -67,7 +68,6 @@ module Pages
 
       begin
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "url"}) if url.nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "text"}) if text.nil? or text == ""
 
         @uri_escape = URI.parse(URI.escape(url))
         @uri = URI.parse(url)

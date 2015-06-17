@@ -84,6 +84,7 @@
 628:  "visitor not chose link"
 629:  "visitor not chose advert"
 630:  "visitor not found landing link on results"
+631:  "visitor not click on referral"
 700:  "argument [variable] not define"
 701:  "visit [id] not create"
 702:  "visit file [path] not found"

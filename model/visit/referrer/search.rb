@@ -63,8 +63,6 @@ module Visits
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "random_surf.max"}) if referer_details[:random_surf][:max].nil?
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "random_surf.min"}) if referer_details[:random_surf][:min].nil?
 
-          super()
-
           @keywords = referer_details[:keyword]
 
           arr = @keywords.split (" ")
@@ -110,8 +108,8 @@ module Visits
 
       def to_s
         super.to_s +
-        "keywords : #{@keywords} \n" +
-        "fake_keywords : #{@fake_keywords} \n" +
+            "keywords : #{@keywords} \n" +
+            "fake_keywords : #{@fake_keywords} \n" +
             "durations : #{@durations} \n" +
             "random_search_min : #{@random_search_min} \n" +
             "random_search_max : #{@random_search_max} \n" +

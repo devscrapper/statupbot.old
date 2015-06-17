@@ -65,24 +65,6 @@ module EngineSearches
 
     end
 
-    # def landing_link(landing_url, driver)
-    #
-    #   raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing_url"}) if landing_url.nil?
-    #
-    #   link = nil
-    #   begin
-    #     l = driver.link(landing_url)
-    #     raise "landing link not exist" unless l.exists?
-    #
-    #   rescue Exception => e
-    #     raise Error.new(ENGINE_NOT_FOUND_LANDING_LINK, :values => {:engine => self.class, :landing => landing_url}, :error => e)
-    #
-    #   else
-    #     link = l
-    #   ensure
-    #     link
-    #   end
-    # end
 
     def page_url
       "#{@fqdn}#{path}"
