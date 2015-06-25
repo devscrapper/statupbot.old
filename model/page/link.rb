@@ -65,17 +65,25 @@ module Pages
 
       @@logger.an_event.debug "url #{ url.to_s}"
       @@logger.an_event.debug "text #{text}"
+      @@logger.an_event.debug "window_tab #{window_tab}"
+
+      raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "url"}) if url.nil?
+
+      @window_tab = window_tab
+      @text = text
 
       begin
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "url"}) if url.nil?
-
-        @uri_escape = URI.parse(URI.escape(url))
         @uri = URI.parse(url)
-        @window_tab = window_tab
-        @text = text
+      rescue Exception => e
+        @@logger.an_event.debug "url : #{e.message}"
+        @uri = EMPTY
+      end
+
+      begin
+        @uri_escape = URI.parse(URI.escape(url))
 
       rescue Exception => e
-        @@logger.an_event.debug e.message
+        @@logger.an_event.debug "url : #{e.message}"
         raise Error.new(LINK_NOT_CREATE, :values => {:link => url})
       else
         @@logger.an_event.debug self.to_s
@@ -101,7 +109,7 @@ module Pages
     end
 
     def url
-      @uri.to_s
+      @uri == EMPTY ? URI.unescape(@uri_escape.to_s) : @uri.to_s
     end
 
     def url_escape

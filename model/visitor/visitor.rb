@@ -343,8 +343,8 @@ module Visitors
                   VISITOR_NOT_CLICK_ON_LINK_ON_ADVERTISER,
                   VISITOR_NOT_CLICK_ON_LINK_ON_UNKNOWN,
                   VISITOR_NOT_CLICK_ON_LINK_ON_WEBSITE
-                # ajout dand le script d'une action pour choisir un autres results
-                #  ceci s'arretera quand il n'y aura plus de lien sur lesquel clickés
+                # ajout dand le script d'une action pour choisir un autres results  ou un autre lien
+                #  ceci s'arretera quand il n'y aura plus de lien sur lesquels clickés
                 script.insert(count_actions + 1, action)
                 @@logger.an_event.info "visitor #{@id} make action <#{COMMANDS[action]}> again"
               else
@@ -495,20 +495,7 @@ module Visitors
         #seulement avant de cliquer dessus car on evite de rechercher des liens pour rien.
         @@logger.an_event.debug "domain #{@visit.advertising.domain}"
 
-        frame = @browser.driver.domain(@visit.advertising.domain)
-        @@logger.an_event.debug "frame #{frame}"
-
-        links = @browser.driver.link("/.*/").collect_similar
-        for i in links
-          @@logger.an_event.info @browser.driver.link(i).fetch("href")
-        end
-        frames = []
-        frames << @browser.driver
-        frames << frame unless frame.nil?
-
-        @@logger.an_event.debug "frames #{frames}"
-
-        advert = @visit.advertising.advert(frames)
+        advert = @visit.advertising.advert(@browser.driver)
         @@logger.an_event.debug "advert #{advert}"
 
       rescue Exception => e
@@ -526,7 +513,7 @@ module Visitors
       #--------------------------------------------------------------------------------------------------------
       begin
 
-        @browser.click_on(advert)
+        @browser.click_on(advert, true)
 
       rescue Exception => e
 

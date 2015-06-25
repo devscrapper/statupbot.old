@@ -4,6 +4,8 @@ module Visits
   module Advertisings
     class Adsense < Advertising
 
+      DOMAINS = ["googleads.g.doubleclick.net", "tpc.googlesyndication.com"]
+
       include Errors
 
       def initialize(advertiser)
@@ -15,30 +17,40 @@ module Visits
         #googleads.g.doubleclick.net
         #"www.googleadservices.com"
 
-        @domain = "googleads.g.doubleclick.net"
         @advertiser = advertiser
 
       end
 
-      #advert retourne un Link_element ElementStub) contenant dans les zones advert identifiées par <frame>
-      def advert(frames)
-        #TODO trouver une solution en etudiant les bouts de code injectés par Adsense dans le site
-        @@logger.an_event.debug "frames #{frames}"
-
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "frames"}) if frames.nil? or frames.empty?
+      #advert retourne un Link_element ElementStub)
+      def advert(driver)
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "driver"}) if driver.nil?
         link = nil
         links = []
         count_try = 0
 
         begin
-          for f in frames
-            links += f.link("/.*ca-pub.*/").collect_similar
+          DOMAINS.each { |domain|
+            frame = driver.domain(domain)
 
-            @@logger.an_event.debug "frame #{f} count links #{links.size}"
+            collection = frame.link("/.*googleads.g.doubleclick.net.*/").collect_similar
 
-          end
-          @@logger.an_event.debug "count links #{links.size}"
+=begin
+            collection.map! { |f|
+              href = f.fetch("href")
+              frame.link(href) unless /.*googleads.g.doubleclick.net.*/.match(href).nil?
+            }.compact!
+=end
 
+
+            for c in collection
+              @@logger.an_event.debug "collection : #{c}"
+            end
+            links += collection
+
+            for l in links
+              @@logger.an_event.debug "link : #{l}"
+            end
+          }
           raise "no advert link found" if links.empty?
 
         rescue Exception => e
@@ -50,9 +62,7 @@ module Visits
           raise Error.new(NONE_ADVERT, :error => e)
 
         else
-          for l in links
-            @@logger.an_event.debug "advert link #{l}"
-          end
+          @@logger.an_event.info "count advert #{self.class.name} links : #{links.size}"
           link = links.sample
           @@logger.an_event.debug "advert link chosen #{link}"
 

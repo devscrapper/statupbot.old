@@ -41,6 +41,7 @@
 318:  "browser [browser] not found title"
 319:  "browser [browser] not go to [url]"
 320:  "browser [browser] not found body"
+321:  "browser [browser] click max on link [link]"
 400:  "argument [variable] not define"
 401:  "link [link] not activate"
 402:  "link [link] not exist"

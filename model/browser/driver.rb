@@ -64,6 +64,27 @@ module Sahi
       fetch("window.document.body.innerHTML")
     end
 
+    #
+    def quit
+      exec_command("kill")
+    end
+
+    def close_popups
+      windows = get_windows
+      windows.each { |win|
+        if win["wasOpened"] == "1"
+          popup(win["sahiWinId"]).close
+        end
+      }
+    end
+
+    def collect(els, attr=nil)
+      if (attr == nil)
+        return els.collect_similar()
+      else
+        return fetch("_sahi._collect(#{Utils.quoted(attr)}, #{Utils.quoted(els.to_type())}, #{els.to_identifiers()})").split(",___sahi___")
+      end
+    end
 
     def current_url
       fetch("window.location.href")
@@ -82,6 +103,30 @@ module Sahi
       # par celle ci depuis la version 6.0.1 de SAHI
       execute_step("_sahi.setServerVarForFetchPlain('"+key+"', " + expression + ")")
       return check_nil(exec_command("getVariable", {"key" => key}))
+    end
+
+    def focus_popup
+      windows = get_windows
+      popup = nil
+      windows.each { |win|
+        if win["wasOpened"] == "1"
+          popup = popup(win["sahiWinId"])
+          break
+        end
+      }
+      popup
+    end
+
+    def domain(name)
+      win = Browser.new(@browser_type, @proxy_port)
+
+      win.proxy_host = @proxy_host
+      win.proxy_port = @proxy_port
+      win.sahisid = @sahisid
+      win.print_steps = @print_steps
+      win.popup_name = @popup_name
+      win.domain_name = name
+      win
     end
 
     #-----------------------------------------------------------------------------------------------------------------
@@ -214,7 +259,25 @@ module Sahi
       end
     end
 
+    # represents a popup window. The name is either the window name or its title.
+    def popup(name)
+      win = Browser.new(@browser_type, @proxy_port)
 
+      win.proxy_host = @proxy_host
+      win.proxy_port = @proxy_port
+      win.sahisid = @sahisid
+      win.print_steps = @print_steps
+      win.popup_name = name
+      win.domain_name = @domain_name
+      win
+    end
+
+    def new_popup_is_open? (url)
+      windows = get_windows
+      exist = false
+      windows.each { |win| exist = exist || (win["wasOpened"] == "1" && win["windowURL"] != url)}
+      exist
+    end
   end
   class ElementStub
     # returns count of elements similar to this element

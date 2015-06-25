@@ -46,6 +46,7 @@ module Browsers
     BROWSER_NOT_FOUND_TITLE = 318
     BROWSER_NOT_GO_TO = 319
     BROWSER_NOT_FOUND_BODY = 320
+    BROWSER_CLICK_MAX_COUNT = 321
     #----------------------------------------------------------------------------------------------------------------
     # constant
     #----------------------------------------------------------------------------------------------------------------
@@ -164,6 +165,7 @@ module Browsers
       count = 5
       i = 0
       begin
+
         results_str = @driver.links
 
         raise "_sahi.links() not return links of page" if results_str == "" or results_str.nil?
@@ -277,7 +279,7 @@ module Browsers
     #-----------------------------------------------------------------------------------------------------------------
     #
     #-----------------------------------------------------------------------------------------------------------------
-    def click_on(link)
+    def click_on(link, accept_popup = false)
       @@logger.an_event.debug "link #{link}"
 
       begin
@@ -334,21 +336,57 @@ module Browsers
       end
 
 
-      begin
-        link_element.setAttribute("target", "") if link_element.fetch("target") == "_blank"
 
-        url_before = url
-        while url_before == (u = url)
-          @@logger.an_event.debug "url before #{url_before}"
-          @@logger.an_event.debug "url #{u}"
-          link_element.click
-          @@logger.an_event.debug "click on #{link_element}"
+      # limite du nombre d'essaie de click à 10
+      # si nombre max atteint, leve une exception  : BROWSER_CLICK_MAX_COUNT
+      count = 10
+      begin
+        # on interdit les ouvertures de fenetre pour rester dans la fenetre courante.
+        if !accept_popup and link_element.fetch("target") == "_blank"
+             link_element.setAttribute("target", "")
+          @@logger.an_event.debug "target of #{link_element} change to ''"
         end
 
-      rescue Exception => e
-        @@logger.an_event.error e.message
 
-        raise Error.new(BROWSER_NOT_CLICK, :values => {:browser => name}, :error => e)
+        url_before = url
+        @@logger.an_event.debug "url before #{url_before}"
+
+        link_element.click
+
+        # on attend tq que les url_before et url courante sont identiques, au max 5s.
+        @driver.wait(10)
+        @@logger.an_event.debug "click on #{link_element}"
+
+        # on autorise d'ouvrir un nouvel onglet ou fenetre que pour les pub qui le demande sinon les autres liens
+        #restent dans leur fenetre.
+        # est ce qu'uen nouvelle fenetre ou onlget a été créé qui est difféerent de celui sur lequel on est qd on est
+        # déjà sur une nouvelle fenetre ou onglet
+        if @driver.new_popup_is_open?(url)
+          if accept_popup
+            # si popup est ouverte sur au click d'une pub alors on remplace le driver principal par celui de la nouvelle fenetre
+            @driver = @driver.focus_popup
+            @@logger.an_event.debug "replace driver by popup driver"
+          else
+            # si un bout de code javascript ouvre une nouvelle fenetre <=> impossible de l'identifier et de corriger le
+            #comportement avant de cliquer sur le lien
+            # => clos les fenetres apres le click.
+            @driver.close_popups
+            @@logger.an_event.debug "close popup"
+          end
+        else
+          if url_before == url
+            count -= 1
+            raise "same url after click : #{url_before}"
+          end
+        end
+
+
+      rescue Exception => e
+        @@logger.an_event.warn e.message
+        retry if count > 0
+        @@logger.an_event.error e.message
+        raise Error.new(BROWSER_NOT_CLICK, :values => {:browser => name}, :error => e) if count > 0
+        raise Error.new(BROWSER_CLICK_MAX_COUNT, :values => {:browser => name, :link => url_before}, :error => e) unless count > 0
 
       else
         @@logger.an_event.debug "browser #{name} #{@id} click on url #{link}" if link.is_a?(String)
@@ -386,8 +424,11 @@ module Browsers
 
         @driver.display_start_page(url_start_page, window_parameters)
 
-        url = url_start_page.split(",")[0]
-        hostname = URI.parse(url[0..url.size - 2]).hostname
+        begin
+          hostname = URI.parse(url_start_page).hostname
+        rescue Exception => e
+          hostname = URI.parse(URI.escape(url)).hostname
+        end
         #pb de connection reseau par exemple
         raise Error.new(BROWSER_NOT_CONNECT_TO_SERVER, :values => {:browser => name, :domain => hostname}) if @driver.div("error_connect").exists?
 
@@ -642,7 +683,7 @@ module Browsers
 
       begin
 
-        @driver.close
+        @driver.quit
 
       rescue Exception => e
         @@logger.an_event.error e.message
