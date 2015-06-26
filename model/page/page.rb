@@ -111,6 +111,11 @@ module Pages
 
       begin
         @uri = URI.parse(href)
+      rescue Exception => e
+        @uri = URI.parse(URI.escape(href))
+      end
+
+      begin
         @title = title
         @duration = duration.to_i
         @duration_search_link = duration_search_link.to_i
@@ -118,8 +123,6 @@ module Pages
         @@logger.an_event.info e
       end
     end
-
-
 
 
     #----------------------------------------------------------------------------------------------------------------

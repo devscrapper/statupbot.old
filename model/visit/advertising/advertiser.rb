@@ -3,6 +3,13 @@ module Visits
   module Advertisings
     class Advertiser
       #----------------------------------------------------------------------------------------------------------------
+      # constant
+      #----------------------------------------------------------------------------------------------------------------
+
+      MAX_DURATION = 50
+      MIN_DURATION = 10
+
+      #----------------------------------------------------------------------------------------------------------------
       # include class
       #----------------------------------------------------------------------------------------------------------------
 
@@ -41,11 +48,18 @@ module Visits
 
 
       def next_duration
-        @durations.first
+        # si il y a un go_back sur un advertiser alors il manque une duration alors
+        # il faut en generer une autre aléatoirement
+        # car le nombre de duration est calculé par engine bot (doit conserver cela) car il calcule le nombre de page
+        # il faut peut être faire calculer le nombre de page mais pas le tableau des durations
+        @durations.empty? ?  Array.new(MAX_DURATION) { |i| i + MIN_DURATION }.sample : @durations.first
       end
 
       def next_around
-        @arounds.first
+        # Le tableau des arounds est calculé par engine bot en fonction du nombre de page.
+        # comment détermine les nomùbre de page où on reste sur advertiser et à partir de quelle page on part de l'advertiser
+        # si on le calcule dans staupbot et qu'il y a des go_back ?????
+        @arounds.empty? ? :inside_fqdn : @arounds.first
       end
 
       def to_s

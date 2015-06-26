@@ -81,7 +81,7 @@ module Pages
 
         links.each { |d|
           begin
-              l = Pages::Link.new(d["href"], @title, d["text"])
+            l = Pages::Link.new(d["href"], @title, d["text"])
 
           rescue Exception => e
             @@logger.an_event.debug "link #{d["href"]} #{e.message}"
@@ -125,12 +125,25 @@ module Pages
         case around
 
           when :inside_fqdn
-
-            link = @inside_fqdn_links.shuffle!.shift
+            # on ne bloque pas un surf sur un site que l'on ne gere pas et maitrise pas les stats
+            # donc si pas de lien qui sont dans le meême fqdn, on elargie au hostname
+            # si pas de lien qui ont le même hostname, on elargie au hors site
+            if @inside_fqdn_links.size > 0
+              link = @inside_fqdn_links.shuffle!.shift
+            elsif @inside_hostname_links.size > 0
+              link = @inside_hostname_links.shuffle!.shift
+            else
+              link = @outside_fqdn_links.shuffle!.shift
+            end
 
           when :inside_hostname
-
-            link = @inside_hostname_links.shuffle!.shift
+            # on ne bloque pas un surf sur un site que l'on ne gere pas et maitrise pas les stats
+            # si pas de lien qui ont le même hostname, on elargie au hors site
+            if @inside_hostname_links.size > 0
+              link = @inside_hostname_links.shuffle!.shift
+            else
+              link = @outside_fqdn_links.shuffle!.shift
+            end
 
           when :outside_hostname
 

@@ -306,19 +306,23 @@ module Visitors
     #
     #----------------------------------------------------------------------------------------------------------------
     def execute (visit)
-       #TODO tenter d'utiliser un Object Link pour les actions click
+      #TODO tenter d'utiliser un Object Link pour les actions click
       #TODO tenter d'utiliser un Object Uri pour les actions go_to
       begin
         @visit = visit
 
         script = @visit.script
 
-        @@logger.an_event.debug "script #{script}"
 
         count_actions = 0
 
         for action in script
+          @@logger.an_event.debug "script #{script}"
+
           @@logger.an_event.info "visitor #{@id} execute action <#{COMMANDS[action]}>."
+          for h in @history
+            @@logger.an_event.debug "history : #{h[0]} #{h[1]}"
+          end
 
           begin
 
@@ -326,19 +330,22 @@ module Visitors
             eval(COMMANDS[action])
 
           rescue Errors::Error => e
+
             case e.code
+
               when VISITOR_NOT_CLICK_ON_REFERRAL
                 # le click sur le link du referral dans la page de results a échoué
                 # force l'accès au referral par un accès direct
                 act = "e"
                 script.insert(count_actions + 1, act)
                 @@logger.an_event.info "visitor #{@id} make action <#{COMMANDS[act]}> instead of  <#{COMMANDS[action]}>"
+                count_actions +=1
               when VISITOR_NOT_READ_PAGE
                 # ajout dans le script d'action pour revenir à la page précédent pour refaire l'action qui a planté.
                 # ceci s'arretera quand il n'y aura plus de lien sur lesquel clickés ; lien choisi dans les 3 actions
                 script.insert(count_actions + 1, ["c", action]).flatten!
                 @@logger.an_event.info "visitor #{@id} go back to make action #{COMMANDS[action]} again"
-
+                count_actions +=1
               when VISITOR_NOT_CLICK_ON_RESULT,
                   VISITOR_NOT_CLICK_ON_LINK_ON_ADVERTISER,
                   VISITOR_NOT_CLICK_ON_LINK_ON_UNKNOWN,
@@ -347,6 +354,7 @@ module Visitors
                 #  ceci s'arretera quand il n'y aura plus de lien sur lesquels clickés
                 script.insert(count_actions + 1, action)
                 @@logger.an_event.info "visitor #{@id} make action <#{COMMANDS[action]}> again"
+                count_actions +=1
               else
                 raise e
             end
@@ -357,15 +365,16 @@ module Visitors
 
           else
             count_actions +=1
+          ensure
+            @@logger.an_event.debug "index action #{count_actions}"
             @@logger.an_event.info "visitor #{@id} executed #{count_actions}/#{script.size}(#{(count_actions * 100 /script.size).round(0)}%) actions."
-
           end
 
         end
 
 
       rescue Exception => e
-        take_screenshot
+        # take_screenshot
         @@logger.an_event.error e.message
         raise Error.new(VISITOR_NOT_FULL_EXECUTE_VISIT, :error => e)
 
@@ -537,7 +546,7 @@ module Visitors
         case e.code
           when Pages::Page::PAGE_NONE_INSIDE_LINKS
             count_retry += 1
-            sleep 5
+            sleep 3
             @@logger.an_event.warn "visitor #{@id} try catch links again #{count_retry} times"
             retry if count_retry < 3
         end
@@ -549,6 +558,8 @@ module Visitors
       else
         read(@current_page)
 
+      ensure
+        @history << [@browser.driver, @current_page]
       end
     end
 
@@ -596,7 +607,8 @@ module Visitors
 
       else
         read(@current_page)
-
+      ensure
+        @history << [@browser.driver, @current_page]
       end
 
 
@@ -663,7 +675,8 @@ module Visitors
 
       else
         read(@current_page)
-
+      ensure
+        @history << [@browser.driver, @current_page]
       end
     end
 
@@ -727,7 +740,8 @@ module Visitors
 
       else
         read(@current_page)
-
+      ensure
+        @history << [@browser.driver, @current_page]
       end
     end
 
@@ -790,7 +804,8 @@ module Visitors
 
       else
         read(@current_page)
-
+      ensure
+        @history << [@browser.driver, @current_page]
       end
     end
 
@@ -854,7 +869,8 @@ module Visitors
 
       else
         read(@current_page)
-
+      ensure
+        @history << [@browser.driver, @current_page]
       end
 
     end
@@ -880,6 +896,7 @@ module Visitors
         @@logger.an_event.info "visitor #{@id} clicked on next <#{nxt.text}>"
         read(@current_page)
       ensure
+        @history << [@browser.driver, @current_page]
 
       end
     end
@@ -903,6 +920,7 @@ module Visitors
 
         read(@current_page)
       ensure
+        @history << [@browser.driver, @current_page]
 
       end
     end
@@ -950,7 +968,8 @@ module Visitors
 
       else
         read(@current_page)
-
+      ensure
+        @history << [@browser.driver, @current_page]
       end
 
     end
@@ -959,19 +978,31 @@ module Visitors
       begin
         @@logger.an_event.debug "action #{__method__}"
 
-        @current_page = @history[@history.size - 2].dup
+        @current_page = @history[@history.size - 2][1].dup
         @@logger.an_event.debug "current page = #{@current_page}"
         @@logger.an_event.debug "@browser.url = #{@browser.url}"
-        while @current_page.url != @browser.url
-          url = @browser.url
-          @browser.go_back
-          # pour gérer le retour vers une page de resultats google pour IE : lors du go_back, IE execute à nouveau le redirect Google
-          # porté par le lien resultat => boucle
-          # comportement différent pour Chrome/FF qui ne réexécute pas la redirection.
-          @browser.go_to(@current_page.url) if @browser.url == url
-          @@logger.an_event.debug "visitor #{@id} went back to #{@browser.url}"
+        if @browser.driver == @history[@history.size - 2][0]
+          # on est dans la même fenetre que la fenetre où on veut aller
+          while @current_page.url != @browser.url
+            url = @browser.url
+            @browser.go_back
+            # pour gérer le retour vers une page de resultats google pour IE : lors du go_back, IE execute à nouveau le redirect Google
+            # porté par le lien resultat => boucle
+            # comportement différent pour Chrome/FF qui ne réexécute pas la redirection.
+            @browser.go_to(@current_page.url) if @browser.url == url
+
+
+          end
+        else
+          #on en dans 2 fenetre differente : la principale et celle ouverte par le click sur la advert
+          # on repositionne le focus sur la fenetre précédent
+          # et on clos la fenetre ouverte par le click
+          @@logger.an_event.debug "close popup #{@browser.driver.popup_name}"
+          @browser.driver.close
+          @browser.driver = @history[@history.size - 2][0]
 
         end
+        @@logger.an_event.debug "visitor #{@id} went back to #{@browser.url}"
 
       rescue Exception => e
         @@logger.an_event.error e.message
@@ -983,6 +1014,7 @@ module Visitors
 
         read(@current_page)
       ensure
+        @history << [@browser.driver, @current_page]
 
       end
     end
@@ -1005,6 +1037,7 @@ module Visitors
 
         read(@current_page)
       ensure
+        @history << [@browser.driver, @current_page]
 
       end
     end
@@ -1029,6 +1062,7 @@ module Visitors
 
         read(@current_page)
       ensure
+        @history << [@browser.driver, @current_page]
 
       end
     end
@@ -1053,6 +1087,7 @@ module Visitors
 
         read(@current_page)
       ensure
+        @history << [@browser.driver, @current_page]
 
       end
     end
@@ -1079,6 +1114,7 @@ module Visitors
 
         read(@current_page)
       ensure
+        @history << [@browser.driver, @current_page]
 
       end
     end
@@ -1104,6 +1140,7 @@ module Visitors
 
         read(@current_page)
       ensure
+        @history << [@browser.driver, @current_page]
 
       end
     end
@@ -1126,7 +1163,6 @@ module Visitors
 
       @@logger.an_event.info "visitor #{@id} begin reading <#{page.title}> during #{page.sleeping_time}s"
 
-      @history << @current_page
       sleep page.sleeping_time
 
       @@logger.an_event.debug "visitor #{@id} finish reading on page <#{page.title}/#{page.url}>"
@@ -1181,8 +1217,10 @@ module Visitors
       else
         read(@current_page)
 
-      end
+      ensure
+        @history << [@browser.driver, @current_page]
 
+      end
     end
 
     def sb_search
@@ -1232,9 +1270,10 @@ module Visitors
       else
         read(@current_page)
 
+      ensure
+        @history << [@browser.driver, @current_page]
       end
     end
+
   end
-
-
 end
