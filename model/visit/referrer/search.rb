@@ -43,9 +43,7 @@ module Visits
       attr :keywords, # String : keyword dont la recherche aboutie forc�ment � la pr�sence d'un landing link dans les results
            :fake_keywords,
            # calculer par une combinaison des mots contenus dans @keywords
-           #TODO supprimer la generation de mot cl� dans generate_output de engien bot dans l'objet visit
-           #TODO pour @keyword => generer une String dans enginebot et pas un Array
-           :durations, #TODO supprimer durations et supprimer sa generation dans generate_output dans engine_bot car c'est une generation al�atoire qui srra rempalc� par random_search
+           :durations,
            :random_search_min,
            :random_search_max,
            :random_surf_min,
@@ -114,7 +112,7 @@ module Visits
             "random_search_min : #{@random_search_min} \n" +
             "random_search_max : #{@random_search_max} \n" +
             "random_surf_min : #{@random_surf_min} \n" +
-            "random_surf_max : #{random_surf_max} \n"
+            "random_surf_max : #{@random_surf_max} \n"
 
       end
 

@@ -306,7 +306,7 @@ module Visitors
     #
     #----------------------------------------------------------------------------------------------------------------
     def execute (visit)
-      #TODO tenter d'utiliser un Object Link pour les actions click
+      #TODO tenter d'utiliser un Object ElementStub de Sahi pour les actions click
       #TODO tenter d'utiliser un Object Uri pour les actions go_to
       begin
         @visit = visit
@@ -481,6 +481,7 @@ module Visitors
           link = @current_page.link(around) unless around.nil?
           link = @current_page.link if around.nil?
         end
+        @failed_links.each{|l|  @@logger.an_event.debug "failed_link : #{l}"}
 
       rescue Exception => e
         raise Error.new(VISITOR_NOT_CHOOSE_LINK, :error => e)
@@ -502,9 +503,8 @@ module Visitors
       begin
         #Contrairement aux links qui sont calculés lors de la creation de l'objet Page, les liens des Adverts sont calculés
         #seulement avant de cliquer dessus car on evite de rechercher des liens pour rien.
-        @@logger.an_event.debug "domain #{@visit.advertising.domain}"
-
         advert = @visit.advertising.advert(@browser.driver)
+
         @@logger.an_event.debug "advert #{advert}"
 
       rescue Exception => e
@@ -664,7 +664,7 @@ module Visitors
         case e.code
           when Pages::Page::PAGE_NONE_INSIDE_LINKS
             count_retry += 1
-            sleep 10
+            sleep 5
             @@logger.an_event.warn "visitor #{@id} try catch links again #{count_retry} times"
             retry if count_retry < 3
         end
@@ -932,7 +932,7 @@ module Visitors
       # Click on link referral
       #--------------------------------------------------------------------------------------------------------
       begin
-        link = @visit.referrer.link #Object Link
+        link = @visit.referrer.referral_uri_search #Object Link
 
         @browser.click_on(link)
 

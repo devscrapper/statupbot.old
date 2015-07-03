@@ -5,7 +5,7 @@ require 'em/threaded_resource'
 require_relative '../../lib/flow'
 require_relative '../../lib/logging'
 require_relative '../../lib/error'
-require_relative '../../model/monitoring/public'
+require_relative '../../lib/monitoring'
 require_relative '../geolocation/geolocation_factory'
 
 class VisitorFactory

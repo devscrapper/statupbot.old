@@ -7,7 +7,7 @@ module EngineSearches
     # attribut
     #----------------------------------------------------------------------------------------------------------------
 
-    #TODO finir bing search
+
     def initialize
       @fqdn = "http://www.bing.com"
       @path = "/"
@@ -24,7 +24,6 @@ module EngineSearches
       links
     end
 
-    #TODO valider next bing
     def next(body)
       if body.css('a.sb_pagN').empty?
         {}
@@ -34,7 +33,6 @@ module EngineSearches
     end
 
 
-     #TODO valider prev bing
     def prev(body)
       if body.css('a.sb_pagP').empty?
         {}

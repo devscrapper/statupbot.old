@@ -28,18 +28,19 @@ module Visits
   #                                   Random(1,5) de recherche avec click avec combinaison de 4 mots par keyword
   #----------------------------------------------------------------------------------------------------------------
   module Referrers
-    #TODO terminer REFERRAL ; REFERRAL non testé
+
     class Referral < Referrer
 
-      attr :page_url, # Objet URI de la page referral
-           :link, # objet Link referencant le referral dans la page result
+      attr :page_url, # Objet URI de la page referral contenant le landing_link
            :durations, # for keywords to find referral
            :duration, #for referral
-           :keywords, # String : keyword dont la recherche aboutie forc?ment ? la pr?sence d'un landing link dans les results
-           :fake_keywords
+           :keywords, # String : keyword dont la recherche aboutie forcément la présence d'une url pointant vers le site referral dans les results
+           :fake_keywords,
+           :referral_uri_search # string contenant une url pointant vers le site referral dans les results peut être egal à page_uri.to_s
+            # si referral_uri_search == page_uri.to_s alors selectionne directement le landing link sur la page du referral.
+            # si referral_uri_search != page_uri.to_s alors surf qq page sur le site referral avant de se debrancher vers la page du referral qui contient le landing link(page_url)
 
       include Errors
-
 
       def initialize(referer_details)
 
@@ -72,9 +73,10 @@ module Visits
           @page_url = referer_details[:source].start_with?("http:") ?
               URI.join(referer_details[:source], referer_details[:referral_path]) :
               URI.join("http://#{referer_details[:source]}", referer_details[:referral_path])
-          @link = Pages::Link.new(@page_url.to_s)
+
           @duration = referer_details[:duration]
           @durations = referer_details[:durations]
+          @referral_uri_search =  Pages::Link.new(referer_details[:referral_uri_search])
 
         rescue Exception => e
           @@logger.an_event.error e.message
@@ -110,7 +112,17 @@ module Visits
       def to_s
         super.to_s +
             "page url : #{@page_url} \n" +
-            "duration : #{@duration} \n"
+            "durations : #{@durations} \n" +
+            "duration : #{@duration} \n" +
+            "referral_uri_search : #{@referral_uri_search} \n" +
+            "keywords : #{@keywords} \n" +
+            "fake_keywords : #{@fake_keywords} \n" +
+            "random_search_min : #{@random_search_min} \n" +
+            "random_search_max : #{@random_search_max} \n" +
+            "random_surf_min : #{@random_surf_min} \n" +
+            "random_surf_max : #{@random_surf_max} \n"
+
+
       end
     end
   end

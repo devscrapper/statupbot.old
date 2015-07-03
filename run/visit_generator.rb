@@ -13,7 +13,7 @@ require_relative '../lib/parameter'
 # PARAMETER START
 #--------------------------------------------------------------------------------------------------------------------
 opts = Trollop::options do
-  version "visit_generator 0.1 (c) 2015 Dave Scrapper"
+  version "visit_generator 0.2 (c) 2015 Dave Scrapper"
   banner <<-EOS
 functionnalities :
 1-generate visit file
@@ -80,7 +80,8 @@ class Website
   TMP = Pathname(File.join(File.dirname(__FILE__), "..", "tmp")).realpath
   WEBSITES = "websites.yml"
   attr_accessor :label, :many_hostname, :many_account_ga, :index, :keywords, :referral_kw, :uri #Object URI
-  attr_writer :referral_uri
+  attr_writer :referral_uri, # uri présente sur le site du referral qui pointe sur le landing
+              :referral_uri_search # uri prsente dans la page de resultat du moteur de recherche déterminée par les mots cle : :referral_kw
   @@websites = nil
 
   def self.[](i)
@@ -105,12 +106,18 @@ class Website
     @many_account_ga = :no
     @@websites = []
     YAML::load(File.open(File.join(TMP, WEBSITES)), "r:UTF-8").each { |w| @@websites << w } if File.exist?(File.join(TMP, WEBSITES))
+
     @referral_uri = nil
+    @referral_uri_search = nil
     @referral_kw = ""
   end
 
   def referral_uri
     @referral_uri.nil? ? "" : @referral_uri
+  end
+
+  def referral_uri_search
+    @referral_uri_search.nil? ? "" : @referral_uri_search
   end
 
   def save
@@ -194,6 +201,7 @@ class Visit
                                        :durations => Array.new(Website[@website.to_i].index.to_i).fill(2),
                                        :referral_path => Website[@website.to_i].referral_uri.path,
                                        :source => Website[@website.to_i].referral_uri.hostname,
+                                       :referral_uri_search => Website[@website.to_i].referral_uri_search.to_s,
                                        :duration => 5})
             when :organic
               visit[:referrer].merge!({:random_search => {:min => 5, :max => 10},
@@ -269,8 +277,16 @@ module MyKeyboardHandler
 
         when "f"
           begin
+            # lors de la saisie si l'uri des results de lengine est celle qui point sur la landing alors
+            # on ne saisie qu'une uri
             @website.referral_uri = URI.parse(value.split("|")[0].strip)
             @website.referral_kw = value.split("|")[1].strip
+            if value.split("|").size == 3
+              @website.referral_uri_search = URI.parse(value.split("|")[2].strip)
+            else
+              @website.referral_uri_search = @website.referral_uri
+            end
+
           rescue Exception => e
             $stderr << e.message
           end
@@ -312,7 +328,7 @@ module MyKeyboardHandler
             end
           else
             $stderr << "value #{value} for type unacceptable"
-            end
+          end
         when "u"
           begin
             @website.uri = URI.parse(value.strip)
@@ -330,6 +346,7 @@ module MyKeyboardHandler
             @website.keywords = Website[@visit.website.to_i].keywords
             @website.referral_uri = Website[@visit.website.to_i].referral_uri unless Website[@visit.website.to_i].referral_uri.nil?
             @website.referral_kw = Website[@visit.website.to_i].referral_kw unless Website[@visit.website.to_i].referral_kw.nil?
+            @website.referral_uri_search = Website[@visit.website.to_i].referral_uri_search unless Website[@visit.website.to_i].referral_uri_search.nil?
           else
             $stderr << "value #{value} for website unacceptable"
           end
@@ -344,13 +361,16 @@ module MyKeyboardHandler
 
   def display
     begin
+      p " Visits list : -----------------------------------------------------------------------------------------------"
+      Visit.display
       p " Website properties : ----------------------------------------------------------------------------------------"
-      p " [l]abel     : <label>           => crt value : #{@website.label}"
-      p " [u]ri       : <uri>             => crt value : #{@website.uri.to_s}"
-      p " [i]ndex     : <index>           => crt value : #{@website.index}"
-      p " [k]eywords  : <keywords>        => crt value : #{@website.keywords}"
-      p " re[f]erral  : <uri> |<keywords> => crt value : #{@website.referral_uri.to_s}"
-      p "                                              | #{@website.referral_kw.strip}"
+      p " [l]abel     : <label>                   => crt value : #{@website.label}"
+      p " [u]ri       : <uri>                     => crt value : #{@website.uri.to_s}"
+      p " [i]ndex     : <index>                   => crt value : #{@website.index}"
+      p " [k]eywords  : <keywords>                => crt value : #{@website.keywords}"
+      p " re[f]erral  : <uri>|<keywords>[|<uri>]  => crt value : #{@website.referral_uri.to_s}"
+      p "                                                      | #{@website.referral_kw.strip}"
+      p "                                                      | #{@website.referral_uri_search.to_s}"
       p " Website list : ----------------------------------------------------------------------------------------------"
       Website.display
       p " Browser list : ----------------------------------------------------------------------------------------------"
@@ -362,8 +382,6 @@ module MyKeyboardHandler
       p " [b]rowser   : #{Array.new(Browser.list.size) { |i| i }.join("|")} => crt value : #{@visit.browser}"
       p " [w]ebsite   : #{Array.new(Website.list.size) { |i| i }.join("|")} => crt value : #{@visit.website}"
       p " e[n]gine    : #{@visit.engines.join("|")} => crt value : #{@visit.engine}"
-      p " Visits list : -----------------------------------------------------------------------------------------------"
-      Visit.display
       p " Commands : --------------------------------------------------------------------------------------------------"
       p "[s]ave website properties to list."
       p "[g]enerate visit with current website properties"

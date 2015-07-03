@@ -8,7 +8,7 @@ module Flowing
 
     TMP = Pathname(File.join(File.dirname(__FILE__), "..","..", "tmp")).realpath
 
-    def initialize()
+    def initialize
       @logger = Logging::Log.new(self, :staging => $staging, :debugging => $debugging)
     end
 

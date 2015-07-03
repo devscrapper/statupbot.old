@@ -24,7 +24,7 @@ class MailSender
     @to = to
     @subject = subject
     @body = body
-    p @body
+
     begin
       parameters = Parameter.new(__FILE__)
     rescue Exception => e

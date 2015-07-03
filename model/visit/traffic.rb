@@ -35,8 +35,8 @@ module Visits
   # type    | random search | random suf | referrer | advertising | expression reguliere
   #--------------------------------------------------------------------------------------------------------------------
   # traffic | NON           | NON        | Direct   | NON         | aE{i-1}
-  # traffic | OUI           | OUI        | Referral | NON         | b((2+0A{1,q-1}CG{1,p-1})f){k}1A{f-1}IDE{i-1}
-  # traffic | OUI           | OUI        | Search   | NON         | b((2+0A{1,q-1}CG{1,p})f){1,k}1A{f-1}DE{i-1}
+  # traffic | OUI           | OUI        | Referral | NON         | b((2+0A{1,q-1}CG{1,p-1})f){k}1A{f-1}I(G{1,p}e){x}DE{i-1}
+  # traffic | OUI           | OUI        | Search   | NON         | b((2+0A{1,q-1}CG{1,p-1})f){k}1A{f-1}DE{i-1}
   #--------------------------------------------------------------------------------------------------------------------
   #----------------------------------------------------------------------------------------------------------------
   # Calcul des fakes keyword
@@ -79,13 +79,23 @@ module Visits
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "k"}) if @referrer.fake_keywords.nil? or @referrer.fake_keywords.size == 0
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "f"}) if @referrer.durations.size == 0
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "i"}) if @durations.size == 0
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "x"}) if @referrer.referral_uri_search.nil?
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "x"}) if @referrer.page_url.nil?
 
           i = @durations.size
           k = @referrer.fake_keywords.size > 1 ? Random.new.rand(1 .. @referrer.fake_keywords.size - 1) : 0
           f = @referrer.durations.size
           q = 3
           p = 3
-          @regexp = "b((2|0A{1,#{q-1}}CG{1,#{p-1}})f){#{k}}1A{#{f-1}}IDE{#{i-1}}"
+          # si referral_uri_search == page_uri.to_s alors selectionne directement le landing link sur la page du referral.
+          # si referral_uri_search != page_uri.to_s alors surf qq page sur le site referral avant de se debrancher vers la page du referral qui contient le landing link(page_url)
+          if @referrer.page_url.to_s == @referrer.referral_uri_search.url
+            x = 0
+          else
+            x = 1
+          end
+
+          @regexp = "b((2|0A{1,#{q-1}}CG{1,#{p-1}})f){#{k}}1A{#{f-1}}I(G{1,#{p}}e){#{x}}DE{#{i-1}}"
           @@logger.an_event.debug "@regexp #{@regexp}"
 
           @actions = /#{@regexp}/.random_example

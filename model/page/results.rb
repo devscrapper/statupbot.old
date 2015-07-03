@@ -67,7 +67,7 @@ module Pages
         start_time = Time.now
 
         @body = browser.body
-        @@logger.an_event.debug "body #{@body}"
+
         nxt = browser.engine_search.next(@body)
         prv = browser.engine_search.prev(@body)
         @links = browser.engine_search.links(@body)

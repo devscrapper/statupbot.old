@@ -1,9 +1,10 @@
-require_relative '../../lib/parameter'
-require_relative '../../lib/error'
+require_relative 'parameter'
+require_relative 'error'
 require 'rubygems' # if you use RubyGems
 require 'socket'
 require 'eventmachine'
-#TODO à deplacer dans \lib
+
+
 module Monitoring
   #--------------------------------------------------------------------------------------------------------------------
   # INIT

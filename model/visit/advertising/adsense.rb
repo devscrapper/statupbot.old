@@ -13,12 +13,7 @@ module Visits
         @@logger.an_event.debug "advertiser #{advertiser}"
 
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "advertiser"}) if advertiser.nil?
-        #adclick.g.doubleclick.net
-        #googleads.g.doubleclick.net
-        #"www.googleadservices.com"
-
         @advertiser = advertiser
-
       end
 
       #advert retourne un Link_element ElementStub)
@@ -27,29 +22,25 @@ module Visits
         link = nil
         links = []
         count_try = 0
-
+        adverts = []
         begin
           DOMAINS.each { |domain|
             frame = driver.domain(domain)
 
-            collection = frame.link("/.*googleads.g.doubleclick.net.*/").collect_similar
-
+            if frame.domain_exist?
+              adverts += frame.link("/.*googleads.g.doubleclick.net.*/").collect_similar
+              adverts += frame.link("/.*googleadservices.*/").collect_similar
+              adverts.each{|a|  @@logger.an_event.debug "advert : #{a.text}"}
+              links += adverts
+            else
+              @@logger.an_event.debug "frame with domain <#{domain}> not exist"
+            end
 =begin
-            collection.map! { |f|
+            adverts.map! { |f|
               href = f.fetch("href")
               frame.link(href) unless /.*googleads.g.doubleclick.net.*/.match(href).nil?
             }.compact!
 =end
-
-
-            for c in collection
-              @@logger.an_event.debug "collection : #{c}"
-            end
-            links += collection
-
-            for l in links
-              @@logger.an_event.debug "link : #{l}"
-            end
           }
           raise "no advert link found" if links.empty?
 

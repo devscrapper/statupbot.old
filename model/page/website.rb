@@ -66,6 +66,7 @@ module Pages
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser"}) if browser.nil?
 
         start_time = Time.now
+
         links = browser.all_links
 
         super(browser.url,

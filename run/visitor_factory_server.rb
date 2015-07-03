@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby -w
-# encoding: UTF-8
+
 require 'yaml'
 require 'trollop'
 require 'pathname'
@@ -11,7 +11,7 @@ require_relative '../lib/error'
 require_relative '../model/browser_type/browser_type'
 require_relative '../model/visitor_factory/visitor_factory'
 require_relative '../model/geolocation/geolocation_factory'
-require_relative '../model/monitoring/public'
+require_relative '../lib/monitoring'
 require_relative '../model/visitor_factory/http_server'
 
 

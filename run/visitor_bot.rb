@@ -1,6 +1,6 @@
 require_relative '../model/visitor/visitor'
 require_relative '../model/visit/visit'
-require_relative '../model/monitoring/public'
+require_relative '../lib/monitoring'
 require_relative '../lib/logging'
 require_relative '../lib/parameter'
 require_relative '../lib/mail_sender'
@@ -97,10 +97,6 @@ NO_LANDING = 3
 def visitor_is_no_slave(opts, logger)
   visit = nil
   visitor = nil
-  landing_page = nil
-  advertiser_landing_page = nil
-  final_visit_page = nil
-  final_advertiser_page = nil
 
   #---------------------------------------------------------------------------------------------------------------------
   # chargement du fichier definissant la visite
@@ -184,12 +180,12 @@ def visitor_is_no_slave(opts, logger)
 
   end
 
-    #---------------------------------------------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------------------------------------------
   # Visitor execute visit
   #---------------------------------------------------------------------------------------------------------------------
   begin
 
-    final_visit_page = visitor.execute(visit)
+    visitor.execute(visit)
 
   rescue Exception => e
 
@@ -297,12 +293,12 @@ else
   # MAIN
   #--------------------------------------------------------------------------------------------------------------------
 
-  logger.an_event.debug "begin execution visitor_bot"
-  state = OK
-  #state = visitor_is_slave(opts) if opts[:slave] == "yes"  pour gerer le return visitor
-  state = visitor_is_no_slave(opts, logger) if opts[:slave] == "no"
-  logger.an_event.debug "end execution visitor_bot, with state #{state}"
-  Process.exit(state)
+    logger.an_event.debug "begin execution visitor_bot"
+    state = OK
+    #state = visitor_is_slave(opts) if opts[:slave] == "yes"  pour gerer le return visitor
+    state = visitor_is_no_slave(opts, logger) if opts[:slave] == "no"
+    logger.an_event.debug "end execution visitor_bot, with state #{state}"
+    Process.exit(state)
 end
 
 

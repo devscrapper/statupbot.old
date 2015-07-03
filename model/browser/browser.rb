@@ -114,7 +114,7 @@ module Browsers
         browser_details[:name] == ""
 
         browser_name = browser_details[:name]
-
+        # le browser name doit rester une chaine de car (et pas un symbol) car tout le param BrowserType utilise le format chaine de caractere
         case browser_name
           when "Firefox"
             return Firefox.new(visitor_dir, browser_details)
@@ -251,7 +251,7 @@ module Browsers
       begin
 
         body = Nokogiri::HTML(src)
-          #@@logger.an_event.debug body
+
 
       rescue Exception => e
         @@logger.an_event.error e.message
@@ -296,17 +296,17 @@ module Browsers
           found = false
           [link.text, link.url, link.url_escape].each { |l|
             @@logger.an_event.debug "link #{l}"
+            unless l == Pages::Link::EMPTY
+              link_element = @driver.link(l)
 
-            link_element = @driver.link(l)
-
-            begin # pour eviter les exception sahi
-              if found = link_element.exists?
-                break
-              else
-                @@logger.an_event.warn "browser #{@id} not found link_element #{link_element.to_s}"
-
+              begin # pour eviter les exception sahi
+                if found = link_element.exists?
+                  break
+                else
+                  @@logger.an_event.warn "browser #{@id} not found link_element #{link_element.to_s}"
+                end
+              rescue Exception => e
               end
-            rescue Exception => e
             end
           }
           raise "browser #{@id} not found link_element #{link_element.to_s}" unless found
@@ -336,14 +336,13 @@ module Browsers
       end
 
 
-
-      # limite du nombre d'essaie de click à 10
+      # limite du nombre d'essaie de click à 5
       # si nombre max atteint, leve une exception  : BROWSER_CLICK_MAX_COUNT
-      count = 10
+      count = 5
       begin
         # on interdit les ouvertures de fenetre pour rester dans la fenetre courante.
         if !accept_popup and link_element.fetch("target") == "_blank"
-             link_element.setAttribute("target", "")
+          link_element.setAttribute("target", "")
           @@logger.an_event.debug "target of #{link_element} change to ''"
         end
 
@@ -373,16 +372,15 @@ module Browsers
             @driver.close_popups
             @@logger.an_event.debug "close popup"
           end
-        else
-          if url_before == url
-            count -= 1
-            raise "same url after click : #{url_before}"
-          end
-        end
 
+        else
+          raise "same url after click : #{url_before}" if url_before == url
+
+        end
 
       rescue Exception => e
         @@logger.an_event.warn e.message
+        count -= 1
         retry if count > 0
         @@logger.an_event.error e.message
         raise Error.new(BROWSER_NOT_CLICK, :values => {:browser => name}, :error => e) if count > 0
@@ -852,7 +850,7 @@ module Browsers
         @@logger.an_event.warn e.message
         count += 1
         sleep 1
-        retry if count < 10
+        retry if count < 5
         @@logger.an_event.error e.message
         raise Error.new(BROWSER_NOT_FOUND_URL, :values => {:browser => name}, :error => e)
 
