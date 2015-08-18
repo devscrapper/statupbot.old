@@ -177,30 +177,33 @@ class Visit
     if !@browser.empty? and !@website.empty?
       visit_filename = "visit_#{@type}_#{@referrer}_#{@advert}_#{@engine}_#{Browser[@browser.to_i, @engine][:name].strip}_#{Browser[@browser.to_i, @engine][:version].strip}.yml"
       visit_filename.gsub!(" ", "_")
-      visit = {:id_visit => UUID.generate,
-               :start_date_time => Time.now,
-               :type => @type,
-               :website => Website[@website.to_i].website,
-               :landing => Website[@website.to_i].landing,
-               :visitor => {
-                   :id => UUID.generate,
-                   :browser => Browser[@browser.to_i, @engine]
-               },
-               :referrer => {:medium => @referrer},
-               :advert => {:advertising => @advert},
-               :durations => Array.new(3).fill(5)
+      visit = {
+          :visit => {:id => UUID.generate,
+                     :start_date_time => Time.now,
+                     :type => @type,
+                     :landing => Website[@website.to_i].landing,
+                     :durations => Array.new(3).fill(5),
+                     :referrer => {:medium => @referrer},
+                     :advert => {:advertising => @advert}
+          },
+          :website => Website[@website.to_i].website,
+
+          :visitor => {
+              :id => UUID.generate,
+              :browser => Browser[@browser.to_i, @engine]
+          }
       }
       case @type
         when :traffic, :advert
           case @referrer
             when :none
             when :referral
-              visit[:referrer].merge!({:random_search => {:min => 5, :max => 10},
+              visit[:visit][:referrer].merge!({:random_search => {:min => 5, :max => 10},
                                        :random_surf => {:min => 5, :max => 10},
                                        :keyword => Website[@website.to_i].referral_kw,
                                        :durations => Array.new(Website[@website.to_i].index.to_i).fill(2),
                                        :referral_path => Website[@website.to_i].referral_uri.path,
-                                       :source => Website[@website.to_i].referral_uri.hostname,
+                                       :referral_hostname => Website[@website.to_i].referral_uri.hostname,
                                        :referral_uri_search => Website[@website.to_i].referral_uri_search.to_s,
                                        :duration => 5})
             when :organic

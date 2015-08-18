@@ -33,9 +33,9 @@ module Visits
   #--------------------------------------------------------------------------------------------------------------------
   class Rank < Visit
 
-    def initialize (visit_details)
+    def initialize (visit_details, website_details)
       begin
-        super
+        super(visit_details, website_details)
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "f"}) if @referrer.durations.size == 0
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "i"}) if @durations.size == 0
 

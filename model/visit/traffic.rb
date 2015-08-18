@@ -66,9 +66,9 @@ module Visits
   #----------------------------------------------------------------------------------------------------------------
   class Traffic < Visit
 
-    def initialize(visit_details)
+    def initialize(visit_details, website_details)
       begin
-        super
+        super(visit_details, website_details)
 
         if @referrer.is_a?(Direct)
           i = @durations.size

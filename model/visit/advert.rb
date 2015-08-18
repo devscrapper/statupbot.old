@@ -39,10 +39,10 @@ module Visits
 
     attr_reader :advertising
 
-    def initialize(visit_details)
+    def initialize(visit_details, website_details)
 
       begin
-        super
+        super(visit_details, website_details)
         @advertising = Advertising.build(visit_details[:advert])
         j = @advertising.advertiser.durations.size
         @regexp += "FH{#{j-1}}"

@@ -106,7 +106,6 @@ module Visits
          :durations,
          :start_date_time,
          :id,
-         :visitor_details,
          :around #perimètre de recherche des link (domain, sous domain)
 
 
@@ -122,10 +121,10 @@ module Visits
         raise Error.new(VISIT_NOT_FOUND, :values => {:path => file_path}) unless File.exist?(file_path)
 
         visit_file = File.open(file_path, "r:BOM|UTF-8:-")
-        visit_details = YAML::load(visit_file.read)
+        details = YAML::load(visit_file.read)[:visit]
         visit_file.close
 
-        @@logger.an_event.debug "visit_details #{visit_details}"
+        @@logger.an_event.debug "visit_details #{details}"
 
       rescue Exception => e
         @@logger.an_event.error e.message
@@ -133,14 +132,14 @@ module Visits
 
       else
         @@logger.an_event.info "visit file #{file_path} loaded"
-        visit_details
+        [details[:visit], details[:website], details[:visitor]]
 
       ensure
 
       end
     end
 
-    def self.build(visit_details)
+    def self.build(visit_details, website_details)
 
       raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "visit_details"}) if visit_details.nil? or visit_details.empty?
 
@@ -148,13 +147,13 @@ module Visits
 
         case visit_details[:type]
           when :traffic
-            visit = Traffic.new(visit_details)
+            visit = Traffic.new(visit_details, website_details)
 
           when :advert
-            visit = Advert.new(visit_details)
+            visit = Advert.new(visit_details, website_details)
 
           when :rank
-            visit = Rank.new(visit_details)
+            visit = Rank.new(visit_details, website_details)
 
           else
 
@@ -162,7 +161,7 @@ module Visits
 
       rescue Exception => e
         @@logger.an_event.error e.message
-        raise Error.new(VISIT_NOT_CREATE, :values => {:id => visit_details[:id_visit]}, :error => e)
+        raise Error.new(VISIT_NOT_CREATE, :values => {:id => visit_details[:id]}, :error => e)
 
       else
         @@logger.an_event.info "visit #{visit.id} has #{visit.actions.size} actions : #{visit.actions}"
@@ -191,25 +190,23 @@ module Visits
     # une visite qui est une ligne du flow : published-visits_label_date_hour.json
     # {"id_visit":"1321","start_date_time":"2013-04-21 00:13:00 +0200","account_ga":"pppppppppppppp","return_visitor":"true","browser":"Internet Explorer","browser_version":"8.0","operating_system":"Windows","operating_system_version":"XP","flash_version":"11.6 r602","java_enabled":"Yes","screens_colors":"32-bit","screen_resolution":"1024x768","referral_path":"(not set)","source":"google","medium":"organic","keyword":"(not provided)","pages":[{"id_uri":"856","delay_from_start":"33","hostname":"centre-aude.epilation-laser-definitive.info","page_path":"/ville-11-castelnaudary.htm","title":"Centre d'épilation laser CASTELNAUDARY centres de remise en forme CASTELNAUDARY"}]}
     #----------------------------------------------------------------------------------------------------------------
-    def initialize(visit_details)
+    def initialize(visit_details, website_details)
 
 
-      @@logger.an_event.debug "id_visit #{visit_details[:id_visit]}"
-      @@logger.an_event.debug "visitor #{visit_details[:visitor]}"
+      @@logger.an_event.debug "id_visit #{visit_details[:id]}"
       @@logger.an_event.debug "start_date_time #{visit_details[:start_date_time]}"
-      @@logger.an_event.debug "many_hostname #{visit_details[:website][:many_hostname]}"
-      @@logger.an_event.debug "many_account_ga #{visit_details[:website][:many_account_ga]}"
+      @@logger.an_event.debug "many_hostname #{website_details[:many_hostname]}"
+      @@logger.an_event.debug "many_account_ga #{website_details[:many_account_ga]}"
       @@logger.an_event.debug "fqdn #{visit_details[:landing][:fqdn]}"
       @@logger.an_event.debug "page_path #{visit_details[:landing][:page_path]}"
       @@logger.an_event.debug "durations #{visit_details[:durations]}"
 
       begin
 
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "id_visit"}) if visit_details[:id_visit].nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "visitor"}) if visit_details[:visitor].nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "id"}) if visit_details[:id].nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "start_date_time"}) if visit_details[:start_date_time].nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "many_hostname"}) if visit_details[:website][:many_hostname].nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "many_account_ga"}) if visit_details[:website][:many_account_ga].nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "many_hostname"}) if website_details[:many_hostname].nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "many_account_ga"}) if website_details[:many_account_ga].nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing link fqdn"}) if visit_details[:landing][:fqdn].nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing link path"}) if visit_details[:landing][:path].nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing link scheme"}) if visit_details[:landing][:scheme].nil?
@@ -218,7 +215,7 @@ module Visits
         @visitor_details = visit_details[:visitor]
         @start_date_time = visit_details[:start_date_time]
         @durations = visit_details[:durations]
-        @around = (visit_details[:website][:many_hostname] == :true and visit_details[:website][:many_account_ga] == :no) ? :inside_hostname : :inside_fqdn
+        @around = (website_details[:many_hostname] == :true and website_details[:many_account_ga] == :no) ? :inside_hostname : :inside_fqdn
 
         @landing_link = Pages::Link.new("#{visit_details[:landing][:scheme]}://#{visit_details[:landing][:fqdn]}#{visit_details[:landing][:path]}")
 

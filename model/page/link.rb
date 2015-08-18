@@ -29,7 +29,7 @@ module Pages
     #----------------------------------------------------------------------------------------------------------------
     # attribut
     #----------------------------------------------------------------------------------------------------------------
-    attr_reader :uri, #URI object
+    attr :uri, #URI object
                 :uri_escape, #URI object
                 :window_tab
     attr_accessor :text # le texte du lien
@@ -76,7 +76,7 @@ module Pages
         @uri = URI.parse(url)
       rescue Exception => e
         @@logger.an_event.debug "url : #{e.message}"
-        @uri = EMPTY
+        @uri = nil
       end
 
       begin
@@ -110,6 +110,10 @@ module Pages
 
     def url
       @uri == EMPTY ? URI.unescape(@uri_escape.to_s) : @uri.to_s
+    end
+
+    def uri
+      @uri.nil? ? @uri_escape : @uri
     end
 
     def url_escape

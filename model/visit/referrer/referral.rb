@@ -49,7 +49,7 @@ module Visits
 
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "referral_path"}) if referer_details[:referral_path].nil?
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "duration"}) if referer_details[:duration].nil?
-          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "source"}) if referer_details[:source].nil?
+          raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "referral_hostname"}) if referer_details[:referral_hostname].nil?
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "keyword"}) if referer_details[:keyword].nil?
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "random_search.min"}) if referer_details[:random_search][:min].nil?
           raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "random_search.max"}) if referer_details[:random_search][:max].nil?
@@ -70,9 +70,9 @@ module Visits
           @random_search_max =referer_details[:random_search][:max]
           @random_surf_min =referer_details[:random_surf][:min]
           @random_surf_max = referer_details[:random_surf][:max]
-          @page_url = referer_details[:source].start_with?("http:") ?
-              URI.join(referer_details[:source], referer_details[:referral_path]) :
-              URI.join("http://#{referer_details[:source]}", referer_details[:referral_path])
+          @page_url = referer_details[:referral_hostname].start_with?("http:") ?
+              URI.join(referer_details[:referral_hostname], referer_details[:referral_path]) :
+              URI.join("http://#{referer_details[:referral_hostname]}", referer_details[:referral_path])
 
           @duration = referer_details[:duration]
           @durations = referer_details[:durations]

@@ -103,7 +103,9 @@ def visitor_is_no_slave(opts, logger)
   #---------------------------------------------------------------------------------------------------------------------
   begin
 
-    visit_details = Visit.load(opts[:visit_file_name])
+    visit_details,
+    website_details,
+    visitor_details = Visit.load(opts[:visit_file_name])
 
   rescue Exception => e
 
@@ -112,7 +114,7 @@ def visitor_is_no_slave(opts, logger)
 
   end
 
-  context = ["visit=#{visit_details[:id_visit]}"]
+  context = ["visit=#{visit_details[:id]}"]
   logger.ndc context
 
   #---------------------------------------------------------------------------------------------------------------------
@@ -120,7 +122,7 @@ def visitor_is_no_slave(opts, logger)
   #---------------------------------------------------------------------------------------------------------------------
   begin
 
-    visit = Visit.build(visit_details)
+    visit = Visit.build(visit_details, website_details)
 
   rescue Exception => e
 
@@ -131,8 +133,6 @@ def visitor_is_no_slave(opts, logger)
   #---------------------------------------------------------------------------------------------------------------------
   # Creation du visitor
   #---------------------------------------------------------------------------------------------------------------------
-
-  visitor_details = visit_details[:visitor]
   visitor_details[:browser][:proxy_system] = opts[:proxy_system] == "yes"
   visitor_details[:browser][:listening_port_proxy] = opts[:listening_port_sahi_proxy]
   visitor_details[:browser][:proxy_ip] = opts[:proxy_ip]

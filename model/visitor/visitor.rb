@@ -1046,7 +1046,7 @@ module Visitors
       begin
         @@logger.an_event.debug "action #{__method__}"
 
-        url = @visit.referrer.page_url
+        url = @visit.referrer.page_url.to_s
         @browser.go_to(url)
 
         @current_page = Pages::Unmanage.new(visit.referrer.duration, @browser)
