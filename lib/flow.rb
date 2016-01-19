@@ -51,11 +51,11 @@ class Flow
   # :ext : une extension de fichier : si est absent alors n'intervient pas dans la recherche
   #----------------------------------------------------------------------------------------------------------------
   def self.list(dir, opts={}, logger = Logging::Log.new(self, :staging => $staging, :debugging => $debugging))
-    type_flow = opts.getopt(:type_flow, "*").gsub(FORBIDDEN_CHAR, "-")
-    label = opts.getopt(:label, "*")
-    date = opts.getopt(:date, "*")
+    type_flow = opts.fetch(:type_flow, "*").gsub(FORBIDDEN_CHAR, "-")
+    label = opts.fetch(:label, "*")
+    date = opts.fetch(:date, "*")
     date = date.strftime("%Y-%m-%d") if date.is_a?(Date)
-    ext = opts.getopt(:ext, ".*")
+    ext = opts.fetch(:ext, ".*")
     Dir.glob(File.join(dir, "#{type_flow}#{SEPARATOR}#{label}#{SEPARATOR}#{date}#{ext}")).map { |file|
       Flow.from_absolute_path(file, logger)
     }

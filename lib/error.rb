@@ -24,8 +24,8 @@ module Errors
                   :history
 
     def initialize(code, args={})
-      values = args.getopt(:values, nil)
-      error = args.getopt(:error, nil)
+      values = args.fetch(:values, nil)
+      error = args.fetch(:error, nil)
 
       @code = code
       @lib = Messages.instance[@code, values] unless values.nil?

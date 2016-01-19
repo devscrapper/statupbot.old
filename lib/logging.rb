@@ -52,8 +52,8 @@ module Logging
         @logger = Logging::Logger[obj]
         #Logging::show_configuration
       else
-        @staging = opts.getopt(:staging, STAGING_PROD)
-        @debugging = opts.getopt(:debugging, false)
+        @staging = opts.fetch(:staging, STAGING_PROD)
+        @debugging = opts.fetch(:debugging, false)
         @class_name = obj.class.name.gsub("::", "_")
         @main = @class_name == Object.name
         param_1(opts) if @debugging and [STAGING_TEST, STAGING_PROD].include?(@staging) and @main
@@ -86,13 +86,13 @@ module Logging
 #      Cette option est clairement destinée à l'envoi d'eMails depuis une connexion appartenant à un opérateur différent.
       Logging::appenders.email('email',
                                :from => "error@log.com",
-                               :to => "devscrapper@yahoo.fr",
+                               :to => "olinouane@gmail.com",
                                :subject => "Application Error []",
-                               :address => "smtp.free.fr",
+                               :address => "smtp.gmail.com",
                                :port => 587,
                                :domain => "google.com",
-                               :user_name => "ericgelin",
-                               :password => "brembo",
+                               :user_name => "olinouane",
+                               :password => "Brembo01",
                                :authentication => :cram_md5,
                                :enable_starttls_auto => true,
                                :auto_flushing => 200, # send an email after 200 messages have been buffered
@@ -152,10 +152,9 @@ module Logging
     end
 
     def param_1(opts)
-      @id_file = opts.getopt(:id_file, "root")
+      @id_file = opts.fetch(:id_file, "root")
       @logger = Logging.logger["root"]
       @logger.level = :debug
-      @logger.trace = true
       @logger.add_appenders(email)
       @logger.add_appenders(syslog)  if HAVE_SYSLOG
       @logger.add_appenders(debfile)
@@ -167,27 +166,25 @@ module Logging
       @logger = Logging.logger[obj]
       @logger.additive = true
       @logger.level = :debug
-      @logger.trace = true
       @logger.add_appenders(debfile)
       @logger.add_appenders(ymlfile)
     end
 
     def param_3(opts)
-      @id_file = opts.getopt(:id_file, "root")
+      @id_file = opts.fetch(:id_file, "root")
       @logger = Logging.logger["root"]
       @logger.level = :debug
-      @logger.trace = true
-      @logger.add_appenders(email)
+    #  @logger.add_appenders(email)
       @logger.add_appenders(stdout)
       @logger.add_appenders(debfile)
       @logger.add_appenders(ymlfile)
     end
 
     def param_4(opts)
-      @id_file = opts.getopt(:id_file, "root")
+      @id_file = opts.fetch(:id_file, "root")
       @logger = Logging.logger["root"]
       @logger.level = :info
-      @logger.add_appenders(email)
+    #  @logger.add_appenders(email)
       @logger.add_appenders(syslog)  if HAVE_SYSLOG
       @logger.add_appenders(rollfile)
     end
@@ -199,10 +196,10 @@ module Logging
     end
 
     def param_6(opts)
-      @id_file = opts.getopt(:id_file, "root")
+      @id_file = opts.fetch(:id_file, "root")
       @logger = Logging.logger["root"]
       @logger.level = :info
-      @logger.add_appenders(email)
+    #  @logger.add_appenders(email)
       @logger.add_appenders(stdout)
       @logger.add_appenders(rollfile)
     end

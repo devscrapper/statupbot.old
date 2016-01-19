@@ -172,7 +172,7 @@ else
       EventMachine.start_server monitoring_server_ip, http_server_listening_port, HTTPHandler, debugging_visitor_bot
     end
 
-  rescue Exception => e
+  rescue Error => e
 
     case e.code
       when VisitorFactory::RUNTIME_BROWSER_PATH_NOT_FOUND, Geolocations::GEO_FILE_NOT_FOUND

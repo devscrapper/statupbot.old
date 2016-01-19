@@ -112,6 +112,26 @@ module Visits
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
+    def self.from_json(json_visit)
+      @@logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
+
+      begin
+        @@logger.an_event.debug "file_path #{file_path}"
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "json_visit"}) if json_visit.nil?
+
+        @@logger.an_event.debug "visit_details #{json_visit}"
+
+      rescue Exception => e
+
+
+      else
+        @@logger.an_event.info "visit file #{file_path} loaded"
+
+      ensure
+
+      end
+    end
+
     def self.load(file_path)
       @@logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
 
@@ -246,13 +266,13 @@ module Visits
 
     def to_s
       "id : #{@id} \n" +
-      "landing link : #{@landing_link} \n" +
-      "regexp : #{@regexp} \n" +
-      "actions : #{@actions} \n" +
-      "referrer : #{@referrer} \n" +
-      "durations : #{@durations} \n" +
-      "start date time : #{@start_date_time} \n" +
-      "around : #{@around} \n"
+          "landing link : #{@landing_link} \n" +
+          "regexp : #{@regexp} \n" +
+          "actions : #{@actions} \n" +
+          "referrer : #{@referrer} \n" +
+          "durations : #{@durations} \n" +
+          "start date time : #{@start_date_time} \n" +
+          "around : #{@around} \n"
     end
 
   end
