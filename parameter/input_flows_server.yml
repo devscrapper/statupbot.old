@@ -7,3 +7,5 @@ test:
   :debugging:  false
 
 production:
+   :listening_port: 9201
+   :debugging:  false

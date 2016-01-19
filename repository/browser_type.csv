@@ -8,10 +8,10 @@ development;windows;xp;Firefox;19.0;C:\Program Files\Mozilla Firefox\19.0\firefo
 development;windows;xp;Chrome;33.0.1750.117;C:\Sandbox\Eleve\ch33\user\current\Local Settings\Application Data\Google\Chrome\Application\chrome.exe;false;9989;1
 development;windows;xp;Chrome;34.0.1847.11;C:\Sandbox\Eleve\ch34\user\current\Local Settings\Application Data\Google\Chrome\Application\chrome.exe;false;9987;1
 development;windows;xp;Chrome;35.0.1862.2;C:\Sandbox\Eleve\ch35\user\current\Local Settings\Application Data\Google\Chrome\Application\chrome.exe;false;9985;1
-development;windows;seven;Chrome;39.0.2139.3;C:\Users\ET00752\AppData\Local\Google\Chrome\Application\Chrome.exe;false;9979;1
+development;windows;seven;Chrome;39.0.2139.3;C:\Program Files (x86)\Google\Chrome\Application\chrome.exe;false;9979;1
 development;windows;seven;Firefox;24.0;C:\Program Files (x86)\Mozilla Firefox\firefox.exe;false;9982;1
 development;windows;seven;Internet Explorer;11.0;C:\Program Files\Internet Explorer\iexplore.exe;true;9980;1
-development;windows;seven;Chrome;23.0.1271.97;C:\Users\ET00752\AppData\Local\Google\Chrome\Application\Chrome.exe;false;9981;1
+development;windows;seven;Chrome;23.0.1271.97;C:\Program Files (x86)\Google\Chrome\Application\chrome.exe;false;9981;1
 development;windows;seven;Firefox;19.0;C:\Program Files (x86)\Mozilla Firefox\firefox.exe;false;9983;1
 development;windows;seven;Internet Explorer;9.0;C:\Program Files\Internet Explorer\iexplore.exe;true;9984;1
 development;windows;vista;Internet Explorer;9.0;C:\Program Files\Internet Explorer\iexplore.exe;true;9972;1
@@ -20,7 +20,7 @@ development;windows;vista;Firefox;19.0;C:\Program Files\Mozilla Firefox\firefox.
 development;windows;vista;Chrome;33.0.1750.117;C:\Program Files\Google\Chrome\Application\chrome.exe;false;9967;1
 development;windows;vista;Chrome;23.0.1271.97;C:\Program Files\Google\Chrome\Application\chrome.exe;false;9965;1
 test;windows;seven;Internet Explorer;11.0;C:\Program Files\Internet Explorer\iexplore.exe;true;9980;1
-test;windows;seven;Chrome;39.0.2139.3;D:\GoogleChromePortableDev\39.0.2139.3\GoogleChromePortable.exe;false;9979;1
+test;windows;seven;Chrome;39.0.2139.3;C:\Program Files (x86)\Google\Chrome\Application\chrome.exe;false;9979;1
 test;windows;seven;Chrome;38.0.2125.44;D:\GoogleChromePortableBeta\38.0.2125.44\GoogleChromePortable.exe;false;9978;1
 test;windows;seven;Chrome;36.0.1985.143;D:\GoogleChromePortable\36.0.1985.143\GoogleChromePortable.exe;false;9977;1
 test;windows;seven;Chrome;37.0.2062.103;D:\GoogleChromePortable\37.0.2062.103\GoogleChromePortable.exe;false;9976;1

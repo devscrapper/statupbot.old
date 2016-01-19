@@ -44,5 +44,16 @@ module Geolocations
     def to_s
       "#{@country} - #{@protocol} - #{@ip} - #{@port} - #{@user} - #{@password}"
     end
+
+
+    def to_json
+      {:country => @country,
+       :protocol => @protocol,
+       :ip => @ip,
+       :port => @port,
+       :user => @user,
+       :pwd => @password
+      }
+    end
   end
 end

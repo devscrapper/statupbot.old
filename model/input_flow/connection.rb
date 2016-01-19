@@ -4,10 +4,9 @@ require 'yaml'
 require_relative '../../lib/error'
 require 'em-http-server'
 require 'em/deferrable'
-require_relative 'visit'
 require_relative '../../lib/flow'
 
-module Visits
+module Input_flows
   class Connection < EM::HttpServer::Server
     include Errors
     ARGUMENT_NOT_DEFINE = 1800
@@ -31,10 +30,12 @@ module Visits
       #------------------------------------------------------------------------------------------------------------------
       # REST : uri disponibles
       # GET
-      # http://localhost:9201/calendar/online
+      # http://localhost:9201/input_flows/online
       # http://localhost:9201/visits/all
+      # http://localhost:9201/geolocations/all
       # POST
-      # http://localhost:9201/visits/new  payload = { ... }
+      # http://localhost:9201/visit/new  payload = { ... }
+      # http://localhost:9201/geolocations/'filename'  payload = { ... }
       # PATCH
       #
       # DELETE
@@ -63,12 +64,13 @@ module Visits
 
               @logger.an_event.info "list #{ress_id} events from repository"
               case ress_type
-                when "calendar"
+                when "input_flows"
                   tasks = "OK"
-                  @@title_html = "calendar online"
-
+                  @@title_html = "input_flows online"
+                when "geolocations"
+                  #TODO
                 when "visits"
-
+                     #TODO
 #                    tasks = @calendar.all_events_on_date(Calendar.next_day(ress_id))
                   @@title_html = "On #{ress_id} tasks"
 
@@ -86,14 +88,18 @@ module Visits
               @logger.an_event.debug "@http_content : #{@http_content}"
 
               case ress_type
+                when "geolocations"
+                  geo_flow = send_to_geolocation_factory(ress_id,@http_content)
+                  @logger.an_event.info "save geolocations flow #{geo_flow.basename}"
+
                 when "visits"
                   visit_flow = send_to_visitor_factory(@http_content)
-
+                  @logger.an_event.info "save visit flow #{visit_flow.basename}"
                 else
                   raise Error.new(RESSOURCE_NOT_MANAGE, :values => {:ressource => ress_type})
 
               end
-              @logger.an_event.info "save visit flow #{visit_flow.basename}"
+
 
 
             else
@@ -181,6 +187,14 @@ module Visits
 
     private
     # visit est un flux json
+    def send_to_geolocation_factory(geo_filename, geolocation_details)
+
+      geo_flow = Flow.from_basename(TMP, geo_filename)
+      geo_flow.write(geolocation_details)
+      geo_flow.close
+
+      geo_flow
+    end
     def send_to_visitor_factory(visit_details)
 
       visit_details = YAML::load(visit_details)

@@ -81,7 +81,8 @@ module Geolocations
     # retourne un objet geolocation ou
     # retourne une exception si plus aucun geolocation dans la factory
     # retourne une exception si plus aucun geolocation ne satisfait les criteres
-    def get(criteria)
+
+    def get(criteria={})
 
       geo_count = @geolocations.size
       i = 1
@@ -168,7 +169,7 @@ module Geolocations
             raise e
 
           when GEO_NOT_AVAILABLE
-            @logger.an_event.debug e.message
+            @logger.an_event.warn e.message
             retry
 
           else

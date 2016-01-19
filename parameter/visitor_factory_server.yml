@@ -1,5 +1,5 @@
 development:
-  :runtime_ruby: ["d:","personnel" ,"ruby200", "bin", "ruby.exe"]
+  :runtime_ruby: ["d:","personnel" ,"ruby223", "bin", "ruby.exe"]
   :delay_periodic_scan: 5 #en seconde
   :delay_periodic_pool_size_monitor: 5 #en minute
   :delay_periodic_load_geolocations: 60 #en minute
@@ -8,7 +8,7 @@ development:
   :http_server_listening_port: 8083
   :debugging:  true
 test:
-  :runtime_ruby: ["d:", "ruby193", "bin", "ruby.exe"]
+  :runtime_ruby: ["d:", "ruby223", "bin", "ruby.exe"]
   :delay_periodic_scan: 10
   :delay_periodic_pool_size_monitor: 5 #en minute
   :delay_periodic_load_geolocations: 60 #en minute
@@ -18,7 +18,7 @@ test:
   :debugging:  true
 
 production:
-  :runtime_ruby: ["d:", "ruby193", "bin", "ruby.exe"]
+  :runtime_ruby: ["d:", "ruby223", "bin", "ruby.exe"]
   :delay_periodic_scan: 10
   :delay_periodic_pool_size_monitor: 5 #en minute
   :delay_periodic_load_geolocations: 60 #en minute
