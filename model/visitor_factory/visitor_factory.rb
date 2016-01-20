@@ -174,8 +174,8 @@ class VisitorFactory
       # si pas d'avert alors :  [:advert][:advertising] = "none"
       # sinon le nom de l'advertising, exemple adsense
       visit = YAML::load(File.open(details[:visit_file], "r:BOM|UTF-8:-").read)
-      with_advertising = visit[:advert][:advertising] != :none
-      with_google_engine = visit[:referrer][:source] == "google" && visit[:referrer][:medium] == "organic"
+      with_advertising = visit[:visit][:advert][:advertising] != :none
+      with_google_engine = visit[:visitor][:browser][:engine_search] == :google && visit[:visit][:referrer][:medium] == :organic
 
       cmd = "#{@runtime_ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  \
       #{VISITOR_BOT} \

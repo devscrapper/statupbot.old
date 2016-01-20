@@ -141,7 +141,7 @@ module Visits
         raise Error.new(VISIT_NOT_FOUND, :values => {:path => file_path}) unless File.exist?(file_path)
 
         visit_file = File.open(file_path, "r:BOM|UTF-8:-")
-        details = YAML::load(visit_file.read)[:visit]
+        details = YAML::load(visit_file.read)
         visit_file.close
 
         @@logger.an_event.debug "visit_details #{details}"
@@ -162,6 +162,7 @@ module Visits
     def self.build(visit_details, website_details)
 
       raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "visit_details"}) if visit_details.nil? or visit_details.empty?
+      raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "website_details"}) if website_details.nil? or website_details.empty?
 
       begin
 
@@ -231,8 +232,7 @@ module Visits
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing link path"}) if visit_details[:landing][:path].nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing link scheme"}) if visit_details[:landing][:scheme].nil?
 
-        @id = visit_details[:id_visit]
-        @visitor_details = visit_details[:visitor]
+        @id = visit_details[:id]
         @start_date_time = visit_details[:start_date_time]
         @durations = visit_details[:durations]
         @around = (website_details[:many_hostname] == :true and website_details[:many_account_ga] == :no) ? :inside_hostname : :inside_fqdn

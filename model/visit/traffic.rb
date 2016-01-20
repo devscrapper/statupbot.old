@@ -65,6 +65,7 @@ module Visits
   #                                   Random(1,5) de recherche avec click avec combinaison de 4 mots par keyword
   #----------------------------------------------------------------------------------------------------------------
   class Traffic < Visit
+    include Errors
 
     def initialize(visit_details, website_details)
       begin

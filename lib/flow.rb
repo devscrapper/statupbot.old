@@ -1,5 +1,5 @@
 require 'net/ftp'
-require_relative 'communication'
+
 require_relative '../lib/logging'
 require 'pathname'
 
