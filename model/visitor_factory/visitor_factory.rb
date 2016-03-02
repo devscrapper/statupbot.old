@@ -120,13 +120,14 @@ class VisitorFactory
           # un jour peut être ce fonctionnement sera revu pour adapter automatiquement le nombre d'instance concurrente d'un nivagteur (cela nécessite de prévoir un pool de numero de port pour sahi proxy)
           start_time_visit = tmp_flow_visit.date.split(/-/)
           tmp_flow_visit.archive
+          @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
           if Time.now - Time.local(start_time_visit[0],
                                    start_time_visit[1],
                                    start_time_visit[2],
                                    start_time_visit[3],
                                    start_time_visit[4],
                                    start_time_visit[5]) <= @delay_out_of_time * 60
-            @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
+
             @pool.perform do |dispatcher|
               dispatcher.dispatch do |details|
                 details[:visit_file] = tmp_flow_visit.absolute_path
@@ -134,6 +135,12 @@ class VisitorFactory
               end
             end
           else
+
+            visit_file = File.open(visit_file, "r:BOM|UTF-8:-")
+            details = YAML::load(visit_file.read)
+            visit_file.close
+            visit_id = details[:id]
+            Monitoring.change_state_visit(visit_id, Monitoring.OUTOFTIME)
             Monitoring.send_visit_out_of_time(@pattern, logger)
             @logger.an_event.warn "visit #{tmp_flow_visit.basename} for #{@pattern} is out of time."
           end
@@ -187,6 +194,8 @@ class VisitorFactory
 
       @logger.an_event.debug "cmd start visitor_bot #{cmd}"
 
+      Monitoring.change_state_visit(visit.id, Monitoring.START)
+
       pid = Process.spawn(cmd)
       pid, status = Process.wait2(pid, 0)
 
@@ -199,6 +208,8 @@ class VisitorFactory
       @logger.an_event.debug "browser #{details[:pattern]} and visit file #{details[:visit_file]} : exit status #{status.exitstatus}"
 
       if status.exitstatus == OK
+        Monitoring.change_state_visit(visit.id, Monitoring.SUCCESS)
+
         @logger.an_event.info "visitor_bot browser #{details[:pattern]} port #{details[:port_proxy_sahi]} send success to monitoring"
         begin
 
@@ -209,12 +220,17 @@ class VisitorFactory
 
         rescue Exception => e
           @logger.an_event.error "log file of visitor_bot #{visitor_id} not delete : #{e.message}"
+
         else
           @logger.an_event.debug "log file of visitor_bot #{visitor_id} delete"
+
         end
 
       else
+        Monitoring.change_state_visit(visit.id, Monitoring.FAIL)
+
         @logger.an_event.info "visitor_bot browser #{details[:pattern]} port #{details[:port_proxy_sahi]} send an error to monitoring"
+
       end
 
     end
@@ -234,7 +250,7 @@ class VisitorFactory
     # si exception pour le get_french : GEO_NONE_FRENCH => pas de geolocation francaise
     # sinon retour d'une geolocation qui est  :
     # soit issu d'une liste de proxy
-    # soit le proxy par defaut de l'entreprise  passé en paramètre de visitorfactory_server : geolocation = "-r http -o muz11-wbsswsg.ca-technologies.fr -x 8080 -y ET00752 -w Bremb@10"
+    # soit le proxy par defaut de l'entreprise  passé en paramètre de visitorfactory_server : geolocation = "-r http -o muz11-wbsswsg.ca-technologies.fr -x 8080 -y ET00752 -w Bremb@15"
     # si la visit contient un advert alors on essaie de recuperer un geolocation francais.
     # si le moteur de recherche est google alors on essaie de recuperer une geolocation qui s'appuie sur https
     # sinon un geolocation.

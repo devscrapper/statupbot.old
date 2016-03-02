@@ -6,6 +6,8 @@ development:
   :visit_out_of_time_listening_port: 9232
   :advert_select_listening_port: 9233
   :http_server_listening_port: 8081
+  :statupweb_server_ip: localhost
+  :statupweb_server_port: 3000
   :debugging:  true
 test:
   :monitor_server_ip: 192.168.1.85
@@ -14,6 +16,8 @@ test:
   :visit_out_of_time_listening_port: 9232
   :advert_select_listening_port: 9233
   :http_server_listening_port: 8081
+  :statupweb_server_ip: 192.168.1.88
+  :statupweb_server_port: 3000
   :debugging:  false
 production:
   :monitor_server_ip: 127.0.0.1
@@ -22,4 +26,6 @@ production:
   :visit_out_of_time_listening_port: 9232
   :advert_select_listening_port: 9233
   :http_server_listening_port: 8081
+  :statupweb_server_ip: 192.168.1.88
+  :statupweb_server_port: 3000
   :debugging:  false

@@ -81,133 +81,137 @@ class BrowserTypes
   end
 
 
-def initialize
-  begin
-    raise Error.new(BROWSER_TYPE_NOT_DEFINE, values => {:path => BROWSER_TYPE}) unless File.exist?(BROWSER_TYPE)
-    @current_os = OS.name
-    @current_os_version = OS.version
+  def initialize
+    begin
+      raise Error.new(BROWSER_TYPE_NOT_DEFINE, values => {:path => BROWSER_TYPE}) unless File.exist?(BROWSER_TYPE)
+      @current_os = OS.name
+      @current_os_version = OS.version
 
-    rows = CSV.read(BROWSER_TYPE)
-    rows.each { |row|
-      elt_arr = row[0].split(/;/)
-      if elt_arr[STAGING] == $staging and
-          elt_arr[OPERATING_SYSTEM].to_sym == @current_os and
-          elt_arr[OPERATING_SYSTEM_VERSION].to_sym == @current_os_version
+      rows = CSV.read(BROWSER_TYPE)
+      rows.each { |row|
+        unless row.empty?
+          elt_arr = row[0].split(/;/)
 
-        browser = elt_arr[BROWSER]
-        browser_version = elt_arr[BROWSER_VERSION]
-        data = {
-            "runtime_path" => elt_arr[RUNTIME_PATH],
-            "proxy_system" => elt_arr[PROXY_SYSTEM],
-            "listening_port_proxy" => Array.new(elt_arr[COUNT_PROXY].to_i) { |index| -1 * (index - elt_arr[START_LISTENING_PORT_PROXY].to_i) }
-        }
+          if elt_arr[STAGING] == $staging and
+              elt_arr[OPERATING_SYSTEM].to_sym == @current_os and
+              elt_arr[OPERATING_SYSTEM_VERSION].to_sym == @current_os_version
 
-        @browsers = {browser => {browser_version => data}} if @browsers.nil?
-        @browsers[browser] = {browser_version => data} if @browsers[browser].nil?
-        @browsers[browser][browser_version] = data if @browsers[browser][browser_version].nil?
-      end
-    }
-  rescue Exception => e
-    raise Error.new(BROWSER_TYPE_NOT_CREATE, :error => e)
-  else
-  ensure
+            browser = elt_arr[BROWSER]
+            browser_version = elt_arr[BROWSER_VERSION]
+            data = {
+                "runtime_path" => elt_arr[RUNTIME_PATH],
+                "proxy_system" => elt_arr[PROXY_SYSTEM],
+                "listening_port_proxy" => Array.new(elt_arr[COUNT_PROXY].to_i) { |index| -1 * (index - elt_arr[START_LISTENING_PORT_PROXY].to_i) }
+            }
+
+            @browsers = {browser => {browser_version => data}} if @browsers.nil?
+            @browsers[browser] = {browser_version => data} if @browsers[browser].nil?
+            @browsers[browser][browser_version] = data if @browsers[browser][browser_version].nil?
+          end
+        end
+
+      }
+    rescue Exception => e
+      raise Error.new(BROWSER_TYPE_NOT_CREATE, :error => e)
+    else
+    ensure
+    end
   end
-end
 
-#----------------------------------------------------------------------------------------------------------------
-# instance methods
-#----------------------------------------------------------------------------------------------------------------
-def publish_to_sahi
+  #----------------------------------------------------------------------------------------------------------------
+  # instance methods
+  #----------------------------------------------------------------------------------------------------------------
+  def publish_to_sahi
 
 
 # si la var envir "ProgramFiles(x86)" n'existe pas : XP, Vista
-  begin
-    raise Error.new(BROWSER_TYPE_EMPTY) if @browsers.nil?
+    begin
+      raise Error.new(BROWSER_TYPE_EMPTY) if @browsers.nil?
 
-    data = <<-_end_of_xml_
+      data = <<-_end_of_xml_
 <browserTypes>
 #{publish_browsers}
 </browserTypes>
-    _end_of_xml_
-    data
+      _end_of_xml_
+      data
 
-    case @current_os
-      when :windows
-        case @current_os_version
-          when :xp, :vista
-            out_filename = WIN32_XML
-          when :seven
-            out_filename = WIN64_XML
-          else
-            raise Error.new(OS_VERSION_UNKNOWN, :value => {:os => @current_os, :vrs => @current_os_version})
-        end
-      when :linux
-        out_filename = LINUX_XML
-      when :mac
-        out_filename = MAC_XML
-      else
-        raise Error.new(OS_UNKNOWN, :value => {:os => @current_os})
+      case @current_os
+        when :windows
+          case @current_os_version
+            when :xp, :vista
+              out_filename = WIN32_XML
+            when :seven
+              out_filename = WIN64_XML
+            else
+              raise Error.new(OS_VERSION_UNKNOWN, :value => {:os => @current_os, :vrs => @current_os_version})
+          end
+        when :linux
+          out_filename = LINUX_XML
+        when :mac
+          out_filename = MAC_XML
+        else
+          raise Error.new(OS_UNKNOWN, :value => {:os => @current_os})
+      end
+      f = File.new(out_filename, "w+")
+      f.write(data)
+      f.close
+
+    rescue Exception => e
+      raise Error.new(BROWSER_TYPE_NOT_PUBLISH, :error => e)
+    else
+    ensure
     end
-    f = File.new(out_filename, "w+")
-    f.write(data)
-    f.close
-
-  rescue Exception => e
-    raise Error.new(BROWSER_TYPE_NOT_PUBLISH, :error => e)
-  else
-  ensure
   end
-end
 
 
-def browser
-  browser_arr = []
-  @browsers.each_key { |browser| browser_arr << browser }
-  browser_arr
-end
-
-def browser_version(browser)
-  browser_version_arr = []
-  @browsers[browser].each_key { |browser_version| browser_version_arr << browser_version }
-  browser_version_arr
-end
-
-def proxy_system?(browser, browser_version)
-  begin
-    @browsers[browser][browser_version]["proxy_system"]=="true"
-  rescue Exception => e
-    raise Error.new(BROWSER_VERSION_NOT_DEFINE, :values => {:browser => browser, :vrs => browser_version})
-  ensure
+  def browser
+    browser_arr = []
+    @browsers.each_key { |browser| browser_arr << browser }
+    browser_arr
   end
-end
 
-def listening_port_proxy(browser, browser_version)
-  begin
-    @browsers[browser][browser_version]["listening_port_proxy"]
-  rescue Exception => e
-    raise Error.new(BROWSER_VERSION_NOT_DEFINE, :values => {:browser => browser, :vrs => browser_version})
-  ensure
+  def browser_version(browser)
+    browser_version_arr = []
+    @browsers[browser].each_key { |browser_version| browser_version_arr << browser_version }
+    browser_version_arr
   end
-end
 
-def runtime_path(browser, browser_version)
-  begin
-    @browsers[browser][browser_version]["runtime_path"]
-  rescue Exception => e
-    raise Error.new(BROWSER_VERSION_NOT_DEFINE, :values => {:browser => browser, :vrs => browser_version})
-  ensure
+  def proxy_system?(browser, browser_version)
+    begin
+      @browsers[browser][browser_version]["proxy_system"]=="true"
+    rescue Exception => e
+      raise Error.new(BROWSER_VERSION_NOT_DEFINE, :values => {:browser => browser, :vrs => browser_version})
+    ensure
+    end
   end
-end
 
-def to_yaml
-  @browsers.to_yaml
-end
+  def listening_port_proxy(browser, browser_version)
+    begin
+      @browsers[browser][browser_version]["listening_port_proxy"]
+    rescue Exception => e
+      raise Error.new(BROWSER_VERSION_NOT_DEFINE, :values => {:browser => browser, :vrs => browser_version})
+    ensure
+    end
+  end
 
-#----------------------------------------------------------------------------------------------------------------
-# instance methods  private
-#----------------------------------------------------------------------------------------------------------------
-private
-def browser_type(name, display_name, icon, path, options, process_name, use_system_proxy)
+  def runtime_path(browser, browser_version)
+    begin
+      @browsers[browser][browser_version]["runtime_path"]
+    rescue Exception => e
+      raise Error.new(BROWSER_VERSION_NOT_DEFINE, :values => {:browser => browser, :vrs => browser_version})
+    ensure
+    end
+  end
+
+  def to_yaml
+    @browsers.to_yaml
+  end
+
+  #----------------------------------------------------------------------------------------------------------------
+  # instance methods  private
+  #----------------------------------------------------------------------------------------------------------------
+  private
+  def browser_type(name, display_name, icon, path, options, process_name, use_system_proxy)
 =begin
             <browserType>
               <name>Internet_Explorer_8.0</name>
@@ -221,7 +225,7 @@ def browser_type(name, display_name, icon, path, options, process_name, use_syst
             </browserType>
 
 =end
-  a = <<-_end_of_xml_
+    a = <<-_end_of_xml_
   <browserType>
       <name>#{name}</name>
       <displayName>#{display_name}</displayName>
@@ -232,95 +236,95 @@ def browser_type(name, display_name, icon, path, options, process_name, use_syst
       <useSystemProxy>#{use_system_proxy}</useSystemProxy>
       <capacity>1</capacity>
   </browserType>
-  _end_of_xml_
-  a
-end
+    _end_of_xml_
+    a
+  end
 
-def Internet_Explorer(browser_versions)
-  res = ""
-  browser_versions.each_pair { |version, details|
-    details["listening_port_proxy"].each { |port|
-      name =""
-      use_system_proxy = ""
-      if details["proxy_system"] == "true"
-        name = "Internet_Explorer_#{version}"
-        use_system_proxy = "true"
-      else
-        name = "Internet_Explorer_#{version}_#{port}"
-        use_system_proxy = "false"
-      end
-      if details["sandbox"] == "true" and (details["multi_instance_proxy_compatible"] == "true" or details["multi_instance_proxy_compatible"] == "false")
-        name = "Internet_Explorer_#{version}_#{port}"
-        use_system_proxy = "false"
-      end
+  def Internet_Explorer(browser_versions)
+    res = ""
+    browser_versions.each_pair { |version, details|
+      details["listening_port_proxy"].each { |port|
+        name =""
+        use_system_proxy = ""
+        if details["proxy_system"] == "true"
+          name = "Internet_Explorer_#{version}"
+          use_system_proxy = "true"
+        else
+          name = "Internet_Explorer_#{version}_#{port}"
+          use_system_proxy = "false"
+        end
+        if details["sandbox"] == "true" and (details["multi_instance_proxy_compatible"] == "true" or details["multi_instance_proxy_compatible"] == "false")
+          name = "Internet_Explorer_#{version}_#{port}"
+          use_system_proxy = "false"
+        end
 
-      display_name = "IE #{version}"
-      icon = "ie.png"
+        display_name = "IE #{version}"
+        icon = "ie.png"
+        path = details["runtime_path"]
+        options = "-noframemerging"
+        process_name = "iexplore.exe"
+
+        res += browser_type(name, display_name, icon, path, options, process_name, use_system_proxy)
+      }
+    }
+    res
+  end
+
+  def Firefox(browser_versions)
+    res = ""
+    browser_versions.each_pair { |version, details|
+      name ="Firefox_#{version}"
+      use_system_proxy = "false"
+      display_name = "Firefox #{version}"
+      icon = "firefox.png"
       path = details["runtime_path"]
-      options = "-noframemerging"
-      process_name = "iexplore.exe"
+      options = "-profile \"$userDir/browser/ff/profiles/sahi$threadNo\" -no-remote -height height_browser -width width_browser"
+      process_name = "firefox.exe"
 
       res += browser_type(name, display_name, icon, path, options, process_name, use_system_proxy)
     }
-  }
-  res
-end
+    res
+  end
 
-def Firefox(browser_versions)
-  res = ""
-  browser_versions.each_pair { |version, details|
-    name ="Firefox_#{version}"
-    use_system_proxy = "false"
-    display_name = "Firefox #{version}"
-    icon = "firefox.png"
-    path = details["runtime_path"]
-    options = "-profile \"$userDir/browser/ff/profiles/sahi$threadNo\" -no-remote -height height_browser -width width_browser"
-    process_name = "firefox.exe"
-
-    res += browser_type(name, display_name, icon, path, options, process_name, use_system_proxy)
-  }
-  res
-end
-
-def Chrome(browser_versions)
-  res = ""
-  browser_versions.each_pair { |version, details|
-    name ="Chrome_#{version}"
-    use_system_proxy = "false"
-    display_name = "Chrome #{version}"
-    icon = "chrome.png"
-    path = details["runtime_path"]
-    options = "--user-data-dir=$userDir\\browser\\chrome\\profiles\\sahi$threadNo
+  def Chrome(browser_versions)
+    res = ""
+    browser_versions.each_pair { |version, details|
+      name ="Chrome_#{version}"
+      use_system_proxy = "false"
+      display_name = "Chrome #{version}"
+      icon = "chrome.png"
+      path = details["runtime_path"]
+      options = "--user-data-dir=$userDir\\browser\\chrome\\profiles\\sahi$threadNo
                 --proxy-server=localhost:listening_port_proxy --disable-popup-blocking --always-authorize-plugins --allow-outdated-plugins --incognito --window-size=width_browser,height_browser
                 --window-position=0,0"
-    process_name = "chrome.exe"
+      process_name = "chrome.exe"
 
-    res += browser_type(name, display_name, icon, path, options, process_name, use_system_proxy)
-  }
-  res
-end
+      res += browser_type(name, display_name, icon, path, options, process_name, use_system_proxy)
+    }
+    res
+  end
 
-def Safari(browser_versions)
-  #appliquer la methode internet explorer
-end
+  def Safari(browser_versions)
+    #appliquer la methode internet explorer
+  end
 
-def Opera(browser_versions)
-  # verifier que l'on peut appliquer la methode firefox, sinon sandboxing comme IE
-end
+  def Opera(browser_versions)
+    # verifier que l'on peut appliquer la methode firefox, sinon sandboxing comme IE
+  end
 
-def publish_browsers
-  res = ""
-  @browsers.each { |browser|
-    case browser[0]
-      when "Internet Explorer"
-        res += Internet_Explorer(browser[1])
-      when "Firefox"
-        res += Firefox(browser[1])
-      when "Chrome"
-        res += Chrome(browser[1])
-    end
-  } unless browsers.nil?
-  res
-end
+  def publish_browsers
+    res = ""
+    @browsers.each { |browser|
+      case browser[0]
+        when "Internet Explorer"
+          res += Internet_Explorer(browser[1])
+        when "Firefox"
+          res += Firefox(browser[1])
+        when "Chrome"
+          res += Chrome(browser[1])
+      end
+    } unless browsers.nil?
+    res
+  end
 
 end

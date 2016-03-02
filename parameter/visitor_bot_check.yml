@@ -6,7 +6,7 @@ development:
   :webdriver_pxy_ip:  muz11-wbsswsg.ca-technologies.fr
   :webdriver_pxy_port: 8080
   :webdriver_pxy_user: et00752
-  :webdriver_pxy_pwd: Bremb@14
+  :webdriver_pxy_pwd: Bremb@15
   :ruby_path: ["d:" , "personnel" , "ruby223","bin" , "ruby.exe"]
   :debugging:  false
 test:
@@ -16,7 +16,7 @@ test:
   :webdriver_pxy_ip:  muz11-wbsswsg.ca-technologies.fr
   :webdriver_pxy_port: 8080
   :webdriver_pxy_user: et00752
-  :webdriver_pxy_pwd: Bremb@12
+  :webdriver_pxy_pwd: Bremb@15
   :ruby_path: ["d:" , "personnel" , "ruby200","bin" , "ruby.exe"]
   :debugging:  false
 production:
@@ -26,6 +26,6 @@ production:
   :webdriver_pxy_ip:  muz11-wbsswsg.ca-technologies.fr
   :webdriver_pxy_port: 8080
   :webdriver_pxy_user: et00752
-  :webdriver_pxy_pwd: Bremb@12
+  :webdriver_pxy_pwd: Bremb@15
   :ruby_path: ["d:" , "personnel" , "ruby200","bin" , "ruby.exe"]
   :debugging:  false

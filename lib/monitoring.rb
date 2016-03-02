@@ -11,6 +11,11 @@ module Monitoring
   #--------------------------------------------------------------------------------------------------------------------
   PARAMETERS = File.dirname(__FILE__) + "/../../parameter/monitoring_server.yml"
   ENVIRONMENT= File.dirname(__FILE__) + "/../../parameter/environment.yml"
+  START = :started
+    SUCCESS = :success
+    FAIL = :fail
+  OUTOFTIME = :outoftime
+
   $staging = "production"
   $debugging = false
   attr_reader :return_code_listening_port,
@@ -18,7 +23,9 @@ module Monitoring
               :http_server_listening_port,
               :visit_out_of_time_listening_port,
               :advert_select_listening_port,
-              :monitor_server_ip
+              :monitor_server_ip,
+              :statupweb_server_ip,
+              :statupweb_server_port
 
   #--------------------------------------------------------------------------------------------------------------------
   # CLIENT
@@ -255,6 +262,30 @@ module Monitoring
     end
   end
 
+
+
+  def change_state_visit(visit_id, state)
+
+
+    begin
+      load_parameter()
+
+      response = RestClient.patch "http://#{@statupweb_server_ip}:#{@statupweb_server_port}/visits/#{visit_id}",
+                                  JSON.generate({:state => state}),
+                                  :content_type => :json,
+                                  :accept => :json
+      raise response.content if response.code != 201
+
+    rescue Exception => e
+      raise "cannot change state of visit #{visit_id} (#{statupweb_server_ip}:#{statupweb_server_port}) => #{e.message}"
+
+    else
+
+    ensure
+
+    end
+  end
+
   private
 
 
@@ -262,7 +293,7 @@ module Monitoring
     begin
       parameters = Parameter.new("monitoring_server.rb")
     rescue Exception => e
-      $stderr << e.message << "\n"
+      raise "cannot load parameter #{e.message}"
     else
       $staging = parameters.environment
       $debugging = parameters.debugging
@@ -272,6 +303,8 @@ module Monitoring
       @visit_out_of_time_listening_port = parameters.visit_out_of_time_listening_port
       @http_server_listening_port = parameters.http_server_listening_port
       @advert_select_listening_port = parameters.advert_select_listening_port
+      @statupweb_server_ip = parameters.statupweb_server_ip
+      @statupweb_server_port = parameters.statupweb_server_port
     end
 
   end
@@ -283,6 +316,7 @@ module Monitoring
   module_function :send_success
   module_function :send_pool_size
   module_function :send_visit_out_of_time
+  module_function :change_state_visit
   module_function :load_parameter
 
 
