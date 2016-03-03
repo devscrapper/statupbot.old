@@ -1,6 +1,6 @@
 #referentiels
 source "http://rubygems.org"
-source "http://gems.github.com"
+#source "http://gems.github.com"
 
 
 gem "eventmachine", '1.0.8'
@@ -36,6 +36,7 @@ group :development do
   gem 'capistrano', '~> 3.1'
   gem 'capistrano-bundler', '~> 1.1.2'
   gem "capistrano-windows-server"
+ # gem 'sshkit'
 end
 
 group :production      do

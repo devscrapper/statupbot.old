@@ -33,7 +33,7 @@ class Parameter
     param_file_name = File.join(PARAMETER, "#{File.basename(file_name, '.rb')}.yml")
 
     raise "environment file not found" unless File.exist?(ENVIRONMENT)
-    raise "parameter file not found" unless File.exist?(param_file_name)
+    raise "parameter file not found #{param_file_name}" unless File.exist?(param_file_name)
     begin
       @environment = YAML::load(File.open(ENVIRONMENT), "r:UTF-8")['staging']
     rescue Exception => e

@@ -1,11 +1,14 @@
 
 development:
   :listening_port: 9201
+  :periodicity_supervision: 15m  #(minute)
   :debugging:  true
 test:
   :listening_port: 9201
+  :periodicity_supervision: 15m  #(minute)
   :debugging:  false
 
 production:
-   :listening_port: 9201
-   :debugging:  false
+  :listening_port: 9201
+  :periodicity_supervision: 15m  #(minute)
+  :debugging:  false

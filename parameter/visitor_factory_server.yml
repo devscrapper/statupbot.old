@@ -6,6 +6,7 @@ development:
   :delay_out_of_time: 15 # delais max d'une visit depasse par rapport a son heure de demarrage en minute
   :monitoring_server_ip: 127.0.0.1
   :http_server_listening_port: 8083
+  :periodicity_supervision: 15m  #(minute)
   :debugging:  true
 test:
   :runtime_ruby: ["d:", "ruby223", "bin", "ruby.exe"]
@@ -14,7 +15,8 @@ test:
   :delay_periodic_load_geolocations: 60 #en minute
   :delay_out_of_time: 15 # delais max d'une visit depasse par rapport a son heure de demarrage
   :monitoring_server_ip: 192.168.1.85
-  :http_server_listening_port: 8083
+  :http_server_listening_port: 18421 #8083
+  :periodicity_supervision: 15m  #(minute)
   :debugging:  true
 
 production:
@@ -25,4 +27,5 @@ production:
   :delay_out_of_time: 15 # delais max d'une visit depasse par rapport a son heure de demarrage
   :monitoring_server_ip: 127.0.0.1
   :http_server_listening_port: 8083
+  :periodicity_supervision: 15m  #(minute)
   :debugging:  false

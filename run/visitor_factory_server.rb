@@ -4,6 +4,7 @@ require 'yaml'
 require 'trollop'
 require 'pathname'
 require 'eventmachine'
+require 'rufus-scheduler'
 require_relative '../lib/logging'
 require_relative '../lib/os'
 require_relative '../lib/parameter'
@@ -13,6 +14,7 @@ require_relative '../model/visitor_factory/visitor_factory'
 require_relative '../model/geolocation/geolocation_factory'
 require_relative '../lib/monitoring'
 require_relative '../model/visitor_factory/http_server'
+require_relative '../lib/supervisor'
 
 
 TMP = Pathname(File.join(File.dirname(__FILE__), "..", "tmp")).realpath
@@ -56,138 +58,151 @@ else
   delay_periodic_load_geolocations = parameters.delay_periodic_load_geolocations
   monitoring_server_ip = parameters.monitoring_server_ip
   http_server_listening_port = parameters.http_server_listening_port
+  periodicity_supervision = parameters.periodicity_supervision
   # recuperation du mode debug ou pas de visitor_bot pour selectionner le fichier de log de visitor_bot à afficher dans le monitoring.
   # l extension est differente entre debug et non debug
   debugging_visitor_bot = parameters_visitor_bot.debugging
 
-
-  logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
-
-  logger.a_log.info "parameters of visitor factory server :"
-  logger.a_log.info "geolocation is : #{opts[:proxy_type]}"
-  logger.a_log.info "runtime ruby : #{$runtime_ruby}"
-  logger.a_log.info "delay_periodic_scan (second) : #{$delay_periodic_scan}"
-  logger.a_log.info "delay_periodic_pool_size_monitor (minute) : #{delay_periodic_pool_size_monitor}"
-  logger.a_log.info "delay_periodic_load_geolocations (minute) : #{delay_periodic_load_geolocations}"
-  logger.a_log.info "delay_out_of_time (minute): #{delay_out_of_time}"
-  logger.a_log.info "monitoring_server_ip: #{monitoring_server_ip}"
-  logger.a_log.info "http_server_listening_port: #{http_server_listening_port}"
-  logger.a_log.info "debugging_visitor_bot: #{debugging_visitor_bot}"
-  logger.a_log.info "debugging : #{$debugging}"
-  logger.a_log.info "staging : #{$staging}"
-
   if $runtime_ruby.nil? or
       $delay_periodic_scan.nil? or
       delay_out_of_time.nil? or
+      delay_periodic_pool_size_monitor.nil? or
+      delay_periodic_load_geolocations.nil? or
+      monitoring_server_ip.nil? or
+      http_server_listening_port.nil? or
+      periodicity_supervision.nil? or
       $debugging.nil? or
       $staging.nil?
     $stderr << "some parameters not define\n" << "\n"
     exit(1)
   end
-  #--------------------------------------------------------------------------------------------------------------------
-  # INCLUDE
-  #--------------------------------------------------------------------------------------------------------------------
-  include Errors
+end
+logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
 
-  #--------------------------------------------------------------------------------------------------------------------
-  # MAIN
-  #--------------------------------------------------------------------------------------------------------------------
-  begin
+logger.a_log.info "parameters of visitor factory server :"
+logger.a_log.info "geolocation is : #{opts[:proxy_type]}"
+logger.a_log.info "runtime ruby : #{$runtime_ruby}"
+logger.a_log.info "delay_periodic_scan (second) : #{$delay_periodic_scan}"
+logger.a_log.info "delay_periodic_pool_size_monitor (minute) : #{delay_periodic_pool_size_monitor}"
+logger.a_log.info "delay_periodic_load_geolocations (minute) : #{delay_periodic_load_geolocations}"
+logger.a_log.info "delay_out_of_time (minute): #{delay_out_of_time}"
+logger.a_log.info "monitoring_server_ip: #{monitoring_server_ip}"
+logger.a_log.info "http_server_listening_port: #{http_server_listening_port}"
+logger.a_log.info "debugging_visitor_bot: #{debugging_visitor_bot}"
+logger.a_log.info "periodicity supervision : #{periodicity_supervision}"
+logger.a_log.info "debugging : #{$debugging}"
+logger.a_log.info "staging : #{$staging}"
+#--------------------------------------------------------------------------------------------------------------------
+# INCLUDE
+#--------------------------------------------------------------------------------------------------------------------
+include Errors
 
-    bt = BrowserTypes.new()
-    logger.a_log.info "load browser type repository file : #{BrowserTypes::BROWSER_TYPE}"
-    bt.publish_to_sahi
-    logger.a_log.info "publish browser type to \\lib\\sahi.in.co"
+#--------------------------------------------------------------------------------------------------------------------
+# MAIN
+#--------------------------------------------------------------------------------------------------------------------
 
-
-    vf_arr = []
-
-    EM.run do
-      logger.a_log.info "visitor factory server is starting"
-
-      Signal.trap("INT") { EventMachine.stop; }
-      Signal.trap("TERM") { EventMachine.stop; }
-
-      # association d'une geolocation factory à chaque visitor_factory pour eviter les contentions car chaque visitorFactory
-      # s'execute dans un thread car c'est un EM::ThreadedResource
-      # remarque  : mettre un Mutex sur @gelocations_factory genere l'erreur :  "deadlock; recursive locking"
-      geolocation_factory = nil
-      case opts[:proxy_type]
-        when "none"
-
-          logger.a_log.info "none geolocation"
-
-        when "factory"
-
-          logger.a_log.info "factory geolocation"
-          geolocation_factory = Geolocations::GeolocationFactory.new(delay_periodic_load_geolocations * 60, logger)
-
-        when "http"
-
-          logger.a_log.info "default geolocation : #{opts[:proxy_ip]}:#{opts[:proxy_port]}"
-          geo_flow = Flow.new(TMP, "geolocations", $staging, Date.today)
-          geo_flow.write(["fr", opts[:proxy_type], opts[:proxy_ip], opts[:proxy_port], opts[:proxy_user], opts[:proxy_pwd]].join(Geolocations::Geolocation::SEPARATOR))
-          geo_flow.close
-          geolocation_factory = Geolocations::GeolocationFactory.new(delay_periodic_load_geolocations * 60, logger)
-
-      end
-
-      bt.browser.each { |name|
-        bt.browser_version(name).each { |version|
-
-          runtime_browser_path = bt.runtime_path(name, version)
-          unless File.exist?(runtime_browser_path)
-            logger.an_event.error "runtime browser #{name} #{version} path <#{runtime_browser_path}> not found"
-            raise VisitorFactory::VisitorFactoryError.new(VisitorFactory::RUNTIME_BROWSER_PATH_NOT_FOUND)
-          end
+begin
+  bt = BrowserTypes.new()
+  logger.a_log.info "load browser type repository file : #{BrowserTypes::BROWSER_TYPE}"
+  bt.publish_to_sahi
+  logger.a_log.info "publish browser type to \\lib\\sahi.in.co"
 
 
-          use_proxy_system = bt.proxy_system?(name, version) == true ? "yes" : "no"
+  vf_arr = []
 
-          port_proxy_sahi = bt.listening_port_proxy(name, version)
+  EM.run do
+    logger.a_log.info "visitor factory server is starting"
 
-          vf = VisitorFactory.new(name,
-                                  version,
-                                  use_proxy_system,
-                                  port_proxy_sahi,
-                                  $runtime_ruby,
-                                  $delay_periodic_scan,
-                                  delay_out_of_time,
-                                  geolocation_factory.nil? ? geolocation_factory : geolocation_factory.dup,
-                                  logger)
-          vf.scan_visit_file
-          vf_arr << vf
-        }
+    Signal.trap("INT") { EventMachine.stop; }
+    Signal.trap("TERM") { EventMachine.stop; }
+
+    # supervision
+    Rufus::Scheduler.start_new.every periodicity_supervision do
+      Supervisor.send_online(File.basename(__FILE__, '.rb'))
+    end
+    # association d'une geolocation factory à chaque visitor_factory pour eviter les contentions car chaque visitorFactory
+    # s'execute dans un thread car c'est un EM::ThreadedResource
+    # remarque  : mettre un Mutex sur @gelocations_factory genere l'erreur :  "deadlock; recursive locking"
+    geolocation_factory = nil
+    case opts[:proxy_type]
+      when "none"
+
+        logger.a_log.info "none geolocation"
+
+      when "factory"
+
+        logger.a_log.info "factory geolocation"
+        geolocation_factory = Geolocations::GeolocationFactory.new(delay_periodic_load_geolocations * 60, logger)
+
+      when "http"
+
+        logger.a_log.info "default geolocation : #{opts[:proxy_ip]}:#{opts[:proxy_port]}"
+        geo_flow = Flow.new(TMP, "geolocations", $staging, Date.today)
+        geo_flow.write(["fr", opts[:proxy_type], opts[:proxy_ip], opts[:proxy_port], opts[:proxy_user], opts[:proxy_pwd]].join(Geolocations::Geolocation::SEPARATOR))
+        geo_flow.close
+        geolocation_factory = Geolocations::GeolocationFactory.new(delay_periodic_load_geolocations * 60, logger)
+
+    end
+
+    bt.browser.each { |name|
+      bt.browser_version(name).each { |version|
+
+        runtime_browser_path = bt.runtime_path(name, version)
+        unless File.exist?(runtime_browser_path)
+          logger.an_event.error "runtime browser #{name} #{version} path <#{runtime_browser_path}> not found"
+          raise Error.new(VisitorFactory::RUNTIME_BROWSER_PATH_NOT_FOUND)
+        end
+
+
+        use_proxy_system = bt.proxy_system?(name, version) == true ? "yes" : "no"
+
+        port_proxy_sahi = bt.listening_port_proxy(name, version)
+
+        vf = VisitorFactory.new(name,
+                                version,
+                                use_proxy_system,
+                                port_proxy_sahi,
+                                $runtime_ruby,
+                                $delay_periodic_scan,
+                                delay_out_of_time,
+                                geolocation_factory.nil? ? geolocation_factory : geolocation_factory.dup,
+                                logger)
+        vf.scan_visit_file
+        vf_arr << vf
       }
+    }
 
 
-      EM.add_periodic_timer(delay_periodic_pool_size_monitor * 60) do
-        pool_size = {}
-        vf_arr.each { |vf|
-          pool_size.merge!({vf.pattern => vf.pool_size})
-        }
-        Monitoring.send_pool_size(pool_size, logger)
-      end
-
-      EventMachine.start_server monitoring_server_ip, http_server_listening_port, HTTPHandler, debugging_visitor_bot
+    EM.add_periodic_timer(delay_periodic_pool_size_monitor * 60) do
+      pool_size = {}
+      vf_arr.each { |vf|
+        pool_size.merge!({vf.pattern => vf.pool_size})
+      }
+      Monitoring.send_pool_size(pool_size, logger)
     end
 
-  rescue Error => e
+    Supervisor.send_online(File.basename(__FILE__, '.rb'))
 
-    case e.code
-      when VisitorFactory::RUNTIME_BROWSER_PATH_NOT_FOUND, Geolocations::GEO_FILE_NOT_FOUND
-        logger.a_log.fatal e.message
-      else
-        logger.a_log.error e.message
-        retry
-    end
-
-  rescue Exception => e
-    logger.a_log.error e.message
-    retry
   end
 
-  logger.a_log.info "visitor factory server stopped"
+rescue Error => e
+  Supervisor.send_failure(File.basename(__FILE__, '.rb'), e)
+  case e.code
+    when BrowserTypes::BROWSER_TYPE_NOT_PUBLISH, VisitorFactory::RUNTIME_BROWSER_PATH_NOT_FOUND, Geolocations::GEO_FILE_NOT_FOUND
+      logger.a_log.fatal e
+    else
+      logger.a_log.error e
+      logger.a_log.warn "visitor factory server restart"
+      retry
+  end
 
-
+rescue Exception => e
+  Supervisor.send_failure(File.basename(__FILE__, '.rb'), e)
+  logger.a_log.error e
+  logger.a_log.warn "visitor factory server restart"
+  retry
 end
+
+logger.a_log.info "visitor factory server stopped"
+
+
