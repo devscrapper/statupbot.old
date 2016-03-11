@@ -1,4 +1,4 @@
-# staging = [developement, test, production]
+# staging = [development, test, production]
 staging: development
 # os = [:windows, :linux, :mac]
 os: :windows

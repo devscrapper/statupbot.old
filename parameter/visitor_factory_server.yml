@@ -1,6 +1,6 @@
 development:
   :runtime_ruby: ["d:","personnel" ,"ruby223", "bin", "ruby.exe"]
-  :delay_periodic_scan: 5 #en seconde
+  :delay_periodic_scan: 1 #en minute
   :delay_periodic_pool_size_monitor: 5 #en minute
   :delay_periodic_load_geolocations: 60 #en minute
   :delay_out_of_time: 15 # delais max d'une visit depasse par rapport a son heure de demarrage en minute

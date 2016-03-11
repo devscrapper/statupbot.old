@@ -16,6 +16,23 @@ require_relative '../lib/monitoring'
 require_relative '../model/visitor_factory/http_server'
 require_relative '../lib/supervisor'
 
+# factory which execute visitor_bot with a visit
+#
+# Usage:
+#        visitor_factory_server [options]
+# where [options] are:
+#   -p, --proxy-type=<s>                             Type of geolocation proxy
+#                                                    use (none|factory|http)
+#                                                    (default: none)
+#   -r, --proxy-ip=<s>                               @ip of geolocation proxy
+#   -o, --proxy-port=<i>                             Port of geolocation proxy
+#   -x, --proxy-user=<s>                             Identified user of
+#                                                    geolocation proxy
+#   -y, --proxy-pwd=<s>                              Authentified pwd of
+#                                                    geolocation proxy
+#   -[, --[[:depends, [:proxy-user, :proxy-pwd]]]
+#   -v, --version                                    Print version and exit
+#   -h, --help                                       Show this message
 
 TMP = Pathname(File.join(File.dirname(__FILE__), "..", "tmp")).realpath
 

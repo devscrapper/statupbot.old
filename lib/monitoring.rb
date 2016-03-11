@@ -12,8 +12,8 @@ module Monitoring
   PARAMETERS = File.dirname(__FILE__) + "/../../parameter/monitoring_server.yml"
   ENVIRONMENT= File.dirname(__FILE__) + "/../../parameter/environment.yml"
   START = :started
-    SUCCESS = :success
-    FAIL = :fail
+  SUCCESS = :success
+  FAIL = :fail
   OUTOFTIME = :outoftime
 
   $staging = "production"
@@ -277,7 +277,7 @@ module Monitoring
       raise response.content if response.code != 201
 
     rescue Exception => e
-      raise "cannot change state of visit #{visit_id} (#{statupweb_server_ip}:#{statupweb_server_port}) => #{e.message}"
+      raise "cannot change  state to #{state} of visit #{visit_id} (#{@statupweb_server_ip}:#{@statupweb_server_port}) => #{e.message}"
 
     else
 

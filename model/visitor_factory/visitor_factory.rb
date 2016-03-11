@@ -119,30 +119,36 @@ class VisitorFactory
           # pour pallier à cet engorgement, il faut augmenter le nombre d'instance concurrente de navigateur dans le fichier browser_type.csv
           # un jour peut être ce fonctionnement sera revu pour adapter automatiquement le nombre d'instance concurrente d'un nivagteur (cela nécessite de prévoir un pool de numero de port pour sahi proxy)
           start_time_visit = tmp_flow_visit.date.split(/-/)
-          tmp_flow_visit.archive
-          @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
-          if Time.now - Time.local(start_time_visit[0],
-                                   start_time_visit[1],
-                                   start_time_visit[2],
-                                   start_time_visit[3],
-                                   start_time_visit[4],
-                                   start_time_visit[5]) <= @delay_out_of_time * 60
+
+          if $staging == "development" or ($staging != "development" and Time.now - Time.local(start_time_visit[0],
+                                                                                               start_time_visit[1],
+                                                                                               start_time_visit[2],
+                                                                                               start_time_visit[3],
+                                                                                               start_time_visit[4],
+                                                                                               start_time_visit[5]) <= @delay_out_of_time * 60)
 
             @pool.perform do |dispatcher|
               dispatcher.dispatch do |details|
+                tmp_flow_visit.archive
+                @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
                 details[:visit_file] = tmp_flow_visit.absolute_path
                 start_visitor_bot(details)
               end
             end
           else
+            tmp_flow_visit.archive
+            @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
 
-            visit_file = File.open(visit_file, "r:BOM|UTF-8:-")
-            details = YAML::load(visit_file.read)
-            visit_file.close
-            visit_id = details[:id]
-            Monitoring.change_state_visit(visit_id, Monitoring.OUTOFTIME)
+            visit = YAML::load(tmp_flow_visit.read)[:visit]
+            tmp_flow_visit.close
+            begin
+              Monitoring.change_state_visit(visit[:id], Monitoring::OUTOFTIME)
+            rescue Exception => e
+              @logger.an_event.warn e.message
+            end
             Monitoring.send_visit_out_of_time(@pattern, logger)
             @logger.an_event.warn "visit #{tmp_flow_visit.basename} for #{@pattern} is out of time."
+
           end
         end
       end
@@ -180,9 +186,13 @@ class VisitorFactory
 
       # si pas d'avert alors :  [:advert][:advertising] = "none"
       # sinon le nom de l'advertising, exemple adsense
-      visit = YAML::load(File.open(details[:visit_file], "r:BOM|UTF-8:-").read)
-      with_advertising = visit[:visit][:advert][:advertising] != :none
-      with_google_engine = visit[:visitor][:browser][:engine_search] == :google && visit[:visit][:referrer][:medium] == :organic
+
+      visit_details = YAML::load(File.open(details[:visit_file], "r:BOM|UTF-8:-").read)
+      visit = visit_details[:visit]
+      visitor = visit_details[:visitor]
+
+      with_advertising = visit[:advert][:advertising] != :none
+      with_google_engine = visitor[:browser][:engine_search] == :google && visit[:referrer][:medium] == :organic
 
       cmd = "#{@runtime_ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  \
       #{VISITOR_BOT} \
@@ -194,7 +204,12 @@ class VisitorFactory
 
       @logger.an_event.debug "cmd start visitor_bot #{cmd}"
 
-      Monitoring.change_state_visit(visit.id, Monitoring.START)
+      begin
+        Monitoring.change_state_visit(visit[:id], Monitoring::START)
+      rescue Exception => e
+        @logger.an_event.warn e.message
+      end
+
 
       pid = Process.spawn(cmd)
       pid, status = Process.wait2(pid, 0)
@@ -208,12 +223,16 @@ class VisitorFactory
       @logger.an_event.debug "browser #{details[:pattern]} and visit file #{details[:visit_file]} : exit status #{status.exitstatus}"
 
       if status.exitstatus == OK
-        Monitoring.change_state_visit(visit.id, Monitoring.SUCCESS)
+        begin
+          Monitoring.change_state_visit(visit.id, Monitoring::SUCCESS)
+        rescue Exception => e
+          @logger.an_event.warn e.message
+        end
 
         @logger.an_event.info "visitor_bot browser #{details[:pattern]} port #{details[:port_proxy_sahi]} send success to monitoring"
         begin
 
-          visitor_id = YAML::load(File.open(details[:visit_file], "r:BOM|UTF-8:-").read)[:visitor][:id]
+          visitor_id = visitor[:id]
           dir = Pathname(File.join(File.dirname(__FILE__), "..", '..', "log")).realpath
           files = File.join(dir, "visitor_bot_#{visitor_id}.{*}")
           FileUtils.rm_r(Dir.glob(files))
@@ -227,8 +246,11 @@ class VisitorFactory
         end
 
       else
-        Monitoring.change_state_visit(visit.id, Monitoring.FAIL)
-
+        begin
+        Monitoring.change_state_visit(visit[:id], Monitoring::FAIL)
+        rescue Exception => e
+          @logger.an_event.warn e.message
+        end
         @logger.an_event.info "visitor_bot browser #{details[:pattern]} port #{details[:port_proxy_sahi]} send an error to monitoring"
 
       end
@@ -258,7 +280,7 @@ class VisitorFactory
     begin
 
       geo = @geolocation_factory.get(:country => with_advertising ? "fr" : nil,
-                                     :protocol => with_google_engine ? "https" : nil)
+                                     :protocol => with_google_engine ? "https" : nil) unless @geolocation_factory.nil?
 
     rescue Exception => e
       @logger.an_event.warn e.message

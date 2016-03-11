@@ -1,6 +1,6 @@
 #referentiels
 source "http://rubygems.org"
-#source "http://gems.github.com"
+source "http://gems.github.com"
 
 
 gem "eventmachine", '1.0.8'

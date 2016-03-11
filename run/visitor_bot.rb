@@ -12,49 +12,46 @@ require 'eventmachine'
 
 include Visits
 include Visitors
-#bot which surf on website
+# bot which surf on website
 #
-#Usage:
-#       visitor_bot [options]
-#where [options] are:
-#--visit-file-name, -v <s>:   Path and name of visit file to browse
-#            --slave, -s <s>:   Visitor
-#                               is slave
-#                               of
-#                               Visitor
-#                               Factory
-#                               (yes/no)
-#                               (default:
-#                               no)
-#     --proxy-system, -p <s>:   browser
-#                               use
-#                               proxy
-#                               system
-#                               of
-#                               windows
-#                               (yes/no)
-#                               (default:
-#                               no)
-#--listening-port-visitor-factory, -l <i>:   Listening port of Visitor Factory (default: 9220)
-#   --listening-port, -i <i>:   Listening port of Visitor Bot (default: 9800)
-#--listening-port-sahi-proxy, -t <i>:   Listening port of Sahi proxy (default: 9999)
-#       --proxy-type, -r <s>:   Type of geolocation
-#                               proxy use
-#                               (none|http|https|socks)
-#                               (default:
-#                               none)
-#         --proxy-ip, -o <s>:   @ip of geolocation proxy
-#       --proxy-port, -x <i>:   Port of geolocation proxy
-#       --proxy-user, -y <s>:   Identified user of geolocation proxy
-#        --proxy-pwd, -w <s>:   Authentified pwd of geolocation proxy
-#--[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]], -[:
-#--[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]], -[:
-#--[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]], -[:
-#              --version, -e:   Print version and exit
-#                 --help, -h:   Show this message
-# sample :
-# Visitor_bot is no slave without geolocation : visitor_bot -v d:\toto\visit.yaml -t 9998
-# Visitor_bot is slave : visitor_bot -v d:\toto\visit.yaml -s yes -l 9220 -i 9800
+# Usage:
+#        visitor_bot [options]
+# where [options] are:
+#   -v, --visit-file-name=<s>                                                                                                      Path and name of visit file to browse
+#   -s, --slave=<s>                                                                                                                Visitor
+#                                                                                                                                  is slave
+#                                                                                                                                  of
+#                                                                                                                                  Visitor
+#                                                                                                                                  Factory
+#                                                                                                                                  (yes/no)
+#                                                                                                                                  (default:
+#                                                                                                                                  no)
+#   -p, --proxy-system=<s>                                                                                                         browser
+#                                                                                                                                  use
+#                                                                                                                                  proxy
+#                                                                                                                                  system
+#                                                                                                                                  of
+#                                                                                                                                  windows
+#                                                                                                                                  (yes/no)
+#                                                                                                                                  (default:
+#                                                                                                                                  no)
+#   -l, --listening-port-visitor-factory=<i>                                                                                       Listening port of Visitor Factory (default: 9220)
+#   -i, --listening-port=<i>                                                                                                       Listening port of Visitor Bot (default: 9800)
+#   -t, --listening-port-sahi-proxy=<i>                                                                                            Listening port of Sahi proxy (default: 9999)
+#   -r, --proxy-type=<s>                                                                                                           Type of geolocation
+#                                                                                                                                  proxy use
+#                                                                                                                                  (none|http|https|socks)
+#                                                                                                                                  (default:
+#                                                                                                                                  none)
+#   -o, --proxy-ip=<s>                                                                                                             @ip of geolocation proxy
+#   -x, --proxy-port=<i>                                                                                                           Port of geolocation proxy
+#   -y, --proxy-user=<s>                                                                                                           Identified user of geolocation proxy
+#   -w, --proxy-pwd=<s>                                                                                                            Authentified pwd of geolocation proxy
+#   -[, --[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]]
+#   -[, --[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]]
+#   -[, --[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]]
+#   -e, --version                                                                                                                  Print version and exit
+#   -h, --help                                                                                                                     Show this message
 
 opts = Trollop::options do
   version "test 0.12 (c) 2013 Dave Scrapper"
