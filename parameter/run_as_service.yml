@@ -1,0 +1,9 @@
+development:
+  :runtime_ruby: ["d:","personnel" ,"ruby223", "bin", "rubyw.exe"]
+
+test:
+  :runtime_ruby: ["d:", "ruby223", "bin", "rubyw.exe"]
+
+
+production:
+  :runtime_ruby: ["d:", "ruby223", "bin", "rubyw.exe"]

@@ -1,0 +1,1 @@
+ruby run_as_service.rb install visitor_factory

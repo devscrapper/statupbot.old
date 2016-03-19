@@ -27,16 +27,16 @@ gem 'thread', '0.1.4'
 gem 'hpricot'
 gem 'regexp-examples'
 gem 'rest-client', '~> 1.6.7'
-
+gem 'win32-service', '~> 0.8.7'
 
 # fin new gem
 
 #group :development
 group :development do
-  gem 'capistrano', '~> 3.1'
-  gem 'capistrano-bundler', '~> 1.1.2'
+  # gem 'capistrano', '~> 3.1'
+  # gem 'capistrano-bundler', '~> 1.1.2'
   gem "capistrano-windows-server"
- # gem 'sshkit'
+  gem 'sshkit'
 end
 
 group :production      do

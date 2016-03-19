@@ -224,7 +224,7 @@ class VisitorFactory
 
       if status.exitstatus == OK
         begin
-          Monitoring.change_state_visit(visit.id, Monitoring::SUCCESS)
+          Monitoring.change_state_visit(visit[:id], Monitoring::SUCCESS)
         rescue Exception => e
           @logger.an_event.warn e.message
         end
