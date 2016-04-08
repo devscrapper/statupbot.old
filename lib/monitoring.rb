@@ -15,6 +15,7 @@ module Monitoring
   SUCCESS = :success
   FAIL = :fail
   OUTOFTIME = :outoftime
+  NEVERSTARTED = :neverstarted
 
   $staging = "production"
   $debugging = false
@@ -263,7 +264,6 @@ module Monitoring
   end
 
 
-
   def change_state_visit(visit_id, state)
 
 
@@ -278,6 +278,26 @@ module Monitoring
 
     rescue Exception => e
       raise "cannot change  state to #{state} of visit #{visit_id} (#{@statupweb_server_ip}:#{@statupweb_server_port}) => #{e.message}"
+
+    else
+
+    ensure
+
+    end
+  end
+
+
+  def page_browse(visit_id)
+    begin
+      load_parameter()
+
+      response = RestClient.patch "http://#{@statupweb_server_ip}:#{@statupweb_server_port}/visits/#{visit_id}/browsed_page",
+                                  :content_type => :json,
+                                  :accept => :json
+      raise response.content if response.code != 201
+
+    rescue Exception => e
+      raise "cannot change count browse page of visit #{visit_id} (#{@statupweb_server_ip}:#{@statupweb_server_port}) => #{e.message}"
 
     else
 
@@ -317,6 +337,7 @@ module Monitoring
   module_function :send_pool_size
   module_function :send_visit_out_of_time
   module_function :change_state_visit
+  module_function :page_browse
   module_function :load_parameter
 
 

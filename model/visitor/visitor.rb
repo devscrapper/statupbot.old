@@ -1,6 +1,7 @@
 require_relative '../../model/browser/browser'
 require_relative '../visit/referrer/referrer'
 require_relative '../visit/advertising/advertising'
+require_relative '../../lib/monitoring'
 require_relative '../page/website'
 require_relative '../../lib/error'
 require 'pathname'
@@ -330,7 +331,7 @@ module Visitors
             eval(COMMANDS[action])
 
           rescue Errors::Error => e
-
+            Monitoring.page_browse(@visit.id)
             case e.code
 
               when VISITOR_NOT_CLICK_ON_REFERRAL
@@ -365,6 +366,8 @@ module Visitors
 
           else
             count_actions +=1
+            Monitoring.page_browse(@visit.id)
+
           ensure
             @@logger.an_event.debug "index action #{count_actions}"
             @@logger.an_event.info "visitor #{@id} executed #{count_actions}/#{script.size}(#{(count_actions * 100 /script.size).round(0)}%) actions."
@@ -481,7 +484,7 @@ module Visitors
           link = @current_page.link(around) unless around.nil?
           link = @current_page.link if around.nil?
         end
-        @failed_links.each{|l|  @@logger.an_event.debug "failed_link : #{l}"}
+        @failed_links.each { |l| @@logger.an_event.debug "failed_link : #{l}" }
 
       rescue Exception => e
         raise Error.new(VISITOR_NOT_CHOOSE_LINK, :error => e)

@@ -252,8 +252,11 @@ end
 #--------------------------------------------------------------------------------------------------------------------
 begin
   parameters = Parameter.new(__FILE__)
+
 rescue Exception => e
   $stderr << e.message << "\n"
+  Process.exit(KO)
+
 else
   $staging = parameters.environment
   $debugging = parameters.debugging

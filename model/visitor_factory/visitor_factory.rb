@@ -203,55 +203,25 @@ class VisitorFactory
 
 
       @logger.an_event.debug "cmd start visitor_bot #{cmd}"
-
-      begin
-        Monitoring.change_state_visit(visit[:id], Monitoring::START)
-      rescue Exception => e
-        @logger.an_event.warn e.message
-      end
-
+      change_visit_state(visit[:id], Monitoring::START)
 
       pid = Process.spawn(cmd)
       pid, status = Process.wait2(pid, 0)
 
     rescue Exception => e
-
-      @logger.an_event.error "start visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]} failed : #{e.message}"
+      @logger.an_event.error "lauching visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]} : #{e.message}"
+      change_visit_state(visit[:id], Monitoring::NEVERSTARTED)
 
     else
-
-      @logger.an_event.debug "browser #{details[:pattern]} and visit file #{details[:visit_file]} : exit status #{status.exitstatus}"
+      @logger.an_event.info "visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]} over : exit status #{status.exitstatus}"
 
       if status.exitstatus == OK
-        begin
-          Monitoring.change_state_visit(visit[:id], Monitoring::SUCCESS)
-        rescue Exception => e
-          @logger.an_event.warn e.message
-        end
+        change_visit_state(visit[:id], Monitoring::SUCCESS)
 
-        @logger.an_event.info "visitor_bot browser #{details[:pattern]} port #{details[:port_proxy_sahi]} send success to monitoring"
-        begin
-
-          visitor_id = visitor[:id]
-          dir = Pathname(File.join(File.dirname(__FILE__), "..", '..', "log")).realpath
-          files = File.join(dir, "visitor_bot_#{visitor_id}.{*}")
-          FileUtils.rm_r(Dir.glob(files))
-
-        rescue Exception => e
-          @logger.an_event.error "log file of visitor_bot #{visitor_id} not delete : #{e.message}"
-
-        else
-          @logger.an_event.debug "log file of visitor_bot #{visitor_id} delete"
-
-        end
+        delete_log_file(visitor[:id])
 
       else
-        begin
-        Monitoring.change_state_visit(visit[:id], Monitoring::FAIL)
-        rescue Exception => e
-          @logger.an_event.warn e.message
-        end
-        @logger.an_event.info "visitor_bot browser #{details[:pattern]} port #{details[:port_proxy_sahi]} send an error to monitoring"
+        change_visit_state(visit[:id], Monitoring::FAIL)
 
       end
 
@@ -296,6 +266,35 @@ class VisitorFactory
       @logger.an_event.info "geolocation is <#{geo_to_s}>"
 
       return geo_to_s
+
+    end
+  end
+
+  private
+
+  def change_visit_state(visit_id, state)
+    begin
+      Monitoring.change_state_visit(visit_id, state)
+
+    rescue Exception => e
+      @logger.an_event.warn ("change state #{state} of visit #{visit_id} : #{e.message}")
+
+    else
+      @logger.an_event.info("change state #{state} of visit #{visit_id}")
+    end
+  end
+
+  def delete_log_file(visitor_id)
+    begin
+      dir = Pathname(File.join(File.dirname(__FILE__), "..", '..', "log")).realpath
+      files = File.join(dir, "visitor_bot_#{visitor_id}.{*}")
+      FileUtils.rm_r(Dir.glob(files))
+
+    rescue Exception => e
+      @logger.an_event.error "log file of visitor_bot #{visitor_id} not delete : #{e.message}"
+
+    else
+      @logger.an_event.info "log file of visitor_bot #{visitor_id} delete"
 
     end
   end
