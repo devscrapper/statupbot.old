@@ -78,6 +78,7 @@ else
   periodicity_supervision = parameters.periodicity_supervision
   # recuperation du mode debug ou pas de visitor_bot pour selectionner le fichier de log de visitor_bot à afficher dans le monitoring.
   # l extension est differente entre debug et non debug
+  max_count_current_visit = parameters.max_count_current_visit
   debugging_visitor_bot = parameters_visitor_bot.debugging
 
   if $runtime_ruby.nil? or
@@ -88,6 +89,7 @@ else
       monitoring_server_ip.nil? or
       http_server_listening_port.nil? or
       periodicity_supervision.nil? or
+      max_count_current_visit.nil? or
       $debugging.nil? or
       $staging.nil?
     $stderr << "some parameters not define\n" << "\n"
@@ -107,6 +109,7 @@ logger.a_log.info "monitoring_server_ip: #{monitoring_server_ip}"
 logger.a_log.info "http_server_listening_port: #{http_server_listening_port}"
 logger.a_log.info "debugging_visitor_bot: #{debugging_visitor_bot}"
 logger.a_log.info "periodicity supervision : #{periodicity_supervision}"
+logger.a_log.info "max count current visit : #{max_count_current_visit}"
 logger.a_log.info "debugging : #{$debugging}"
 logger.a_log.info "staging : #{$staging}"
 #--------------------------------------------------------------------------------------------------------------------
@@ -182,6 +185,7 @@ begin
                                 $runtime_ruby,
                                 $delay_periodic_scan,
                                 delay_out_of_time,
+                                max_count_current_visit,
                                 geolocation_factory.nil? ? geolocation_factory : geolocation_factory.dup,
                                 logger)
         vf.scan_visit_file

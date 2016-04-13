@@ -42,8 +42,8 @@ class VisitorFactory
   #----------------------------------------------------------------------------------------------------------------
   # class methods
   #----------------------------------------------------------------------------------------------------------------
-
-
+  @@mutex = Mutex.new
+  @@count_current_visit = 0
   #----------------------------------------------------------------------------------------------------------------
   # instance methods
   #----------------------------------------------------------------------------------------------------------------
@@ -68,7 +68,7 @@ class VisitorFactory
   #-----------------------------------------------------------------------------------------------------------------
   #
   #-----------------------------------------------------------------------------------------------------------------
-  def initialize(browser, version, use_proxy_system, port_proxy_sahi, runtime_ruby, delay_periodic_scan, delay_out_of_time, geolocation_factory, logger)
+  def initialize(browser, version, use_proxy_system, port_proxy_sahi, runtime_ruby, delay_periodic_scan, delay_out_of_time, max_count_current_visit, geolocation_factory, logger)
     @use_proxy_system = use_proxy_system
     @port_proxy_sahi = port_proxy_sahi
     @runtime_ruby = runtime_ruby
@@ -78,7 +78,7 @@ class VisitorFactory
     @delay_out_of_time = delay_out_of_time
     @logger = logger
     @geolocation_factory = geolocation_factory
-
+    @@count_current_visit = max_count_current_visit
     @port_proxy_sahi.each { |port|
       visitor_instance = EM::ThreadedResource.new do
         {:pattern => @pattern, :port_proxy_sahi => port}
@@ -129,35 +129,46 @@ class VisitorFactory
 
             @pool.perform do |dispatcher|
               dispatcher.dispatch do |details|
-                tmp_flow_visit.archive
-                @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
-                details[:visit_file] = tmp_flow_visit.absolute_path
-                start_visitor_bot(details)
+                if @@count_current_visit > 0
+                  tmp_flow_visit.archive
+                  @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
+                  details[:visit_file] = tmp_flow_visit.absolute_path
+                  start_visitor_bot(details)
+                else
+                  @@logger.an_event.info "visit flow #{tmp_flow_visit.basename} not start, only #{@@count_current_visit} visit concurrent executions"
+                end
               end
             end
+
           else
+            # la date de planification de la visit est dépassée
             tmp_flow_visit.archive
             @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
 
             visit = YAML::load(tmp_flow_visit.read)[:visit]
             tmp_flow_visit.close
+            #envoie de l'etat out fo time à statupweb
             begin
               Monitoring.change_state_visit(visit[:id], Monitoring::OUTOFTIME)
+
             rescue Exception => e
               @logger.an_event.warn e.message
+
             end
+            #TODO à supprimer
             Monitoring.send_visit_out_of_time(@pattern, logger)
             @logger.an_event.warn "visit #{tmp_flow_visit.basename} for #{@pattern} is out of time."
 
           end
         end
-      end
-      EM::PeriodicTimer.new(5 * 60) do
-        @logger.an_event.info "size pool for #{@pattern} #{@pool.num_waiting} "
+        EM::PeriodicTimer.new(5 * 60) do
+          @logger.an_event.info "size pool for #{@pattern} #{@pool.num_waiting} "
+        end
       end
     rescue Exception => e
       @logger.an_event.error "scan visit file for #{@pattern} catch exception : #{e.message} => restarting"
       retry
+
     end
   end
 
@@ -181,6 +192,7 @@ class VisitorFactory
   #-----------------------------------------------------------------------------------------------------------------
   def start_visitor_bot(details)
     begin
+      @@mutex.synchronize { @@count_current_visit -= 1 }
 
       @logger.an_event.info "start visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]}"
 
@@ -224,7 +236,8 @@ class VisitorFactory
         change_visit_state(visit[:id], Monitoring::FAIL)
 
       end
-
+    ensure
+      @@mutex.synchronize { @@count_current_visit += 1 }
     end
   end
 
@@ -298,6 +311,7 @@ class VisitorFactory
 
     end
   end
+
 end
 
 
