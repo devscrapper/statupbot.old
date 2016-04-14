@@ -47,7 +47,7 @@ module Sahi
     # attribut
     #----------------------------------------------------------------------------------------------------------------
 
-    attr_reader :browser_type
+    attr_reader :browser_type, :browser_pid, :browser_process_name
 
     #----------------------------------------------------------------------------------------------------------------
     # class methods
@@ -66,7 +66,31 @@ module Sahi
 
     #
     def quit
-      exec_command("kill")
+
+
+      exec_command("kill") # kill piloté par SAHI proxy
+
+      unless @browser_pid.nil?
+        begin
+          Process.kill("KILL", @browser_pid) # kill piloté par ruby
+          Process.waitall
+
+        rescue Errno::ESRCH => e
+          # le process du browser n'existe plus
+
+        rescue SignalException => e
+          @@logger.an_event.error "browsert #{@browser_type}/#{@browser_process_name}/#{@browser_pid} : #{e.message}"
+          raise e
+
+        else
+
+
+        ensure
+
+        end
+      end
+
+
     end
 
     def close_popups
@@ -167,6 +191,7 @@ module Sahi
         @domain_name = nil
         @sahisid = nil
         @print_steps = false
+        @browser_pid = nil
         @browser_type = browser_type.gsub(" ", "_")
 
         #-----------------------------------------------------------------------------------------------------------------
@@ -184,6 +209,7 @@ module Sahi
         path_name = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'sahi.in.co', 'config', "browser_types", browser_type_file)).realpath
         if File.exist?(path_name)
           browser_type_file = File.new(path_name)
+
           exist ||= REXML::XPath.match(REXML::Document.new(browser_type_file), "browserTypes/browserType/name").map { |e| e.to_a[0] }.include?(@browser_type)
           @@logger.an_event.debug "browser type #{@browser_type} exist ? #{exist}"
         else
@@ -192,6 +218,14 @@ module Sahi
 
         raise Error.new(BROWSER_TYPE_NOT_EXIST, :values => {:browser_type => @browser_type}) unless exist
 
+        @browser_process_name = ""
+        Nokogiri::XML(File.new(path_name).read).search("//browserTypes/browserType").each { |n|
+          if n.elements[0].inner_text == @browser_type
+            @browser_process_name = n.elements[5].inner_text
+            @@logger.an_event.debug "browser type #{@browser_type} has process_name #{@browser_process_name}"
+            break
+          end
+        } #process_name existe forcémement
 
       rescue Exception => e
         @@logger.an_event.fatal e.message
@@ -254,13 +288,17 @@ module Sahi
           sleep(0.1)
         end
 
+        raise unless is_ready?
       rescue Exception => e
         @@logger.an_event.fatal e.message
         raise Error.new(OPEN_DRIVER_FAILED, :error => e)
 
       else
-        @@logger.an_event.debug "driver #{@browser_type} open" if is_ready?
-        raise Error.new(OPEN_DRIVER_FAILED) unless is_ready?
+        @@logger.an_event.debug "driver #{@browser_type} open"
+        #modifie le titre de la fenetre pour rechercher le pid du navigateur
+        execute_step("window.document.title =" + Utils.quoted(@sahisid.to_s))
+        @@logger.an_event.debug "set windows title browser #{@browser_type} with #{@sahisid.to_s}"
+        get_pid_browser
 
       ensure
 
@@ -283,10 +321,54 @@ module Sahi
     def new_popup_is_open? (url)
       windows = get_windows
       exist = false
-      windows.each { |win| exist = exist || (win["wasOpened"] == "1" && win["windowURL"] != url)}
+      windows.each { |win| exist = exist || (win["wasOpened"] == "1" && win["windowURL"] != url) }
       exist
     end
+
+    private
+    def get_pid_browser
+      # retourn le pid du browser ; au cas où Sahi n'arrive pas à le tuer.
+      count_try = 3
+      begin
+        require 'csv'
+
+        res = IO.popen('tasklist /V /FI "IMAGENAME eq ' + @browser_process_name + '" /FO CSV /NH').read
+
+        @@logger.an_event.debug "tasklist for #{@browser_process_name} : #{res}"
+
+        CSV.parse(res) do |row|
+          if row[8].include?(@sahisid.to_s)
+            @browser_pid = row[1].to_i
+            break
+
+          end
+        end
+
+        raise "sahiid not found in title browser in tasklist " if @browser_pid.nil?
+
+      rescue Exception => e
+        if count_try > 0
+          @@logger.an_event.debug  "try #{count_try}, browser type #{@browser_type} has no pid : #{e.message}"
+          sleep (1)
+          retry
+        else
+          raise "browser type #{@browser_type} has no pid : #{e.message}"
+
+        end
+
+      else
+        @@logger.an_event.debug "browser type #{@browser_type} has pid #{@browser_pid}"
+
+      end
+    end
   end
+
+
+  #-------------------------------------------------------------------------------------------------------------
+  # ElementStub
+  #-------------------------------------------------------------------------------------------------------------
+
+
   class ElementStub
     # returns count of elements similar to this element
     def count_similar
@@ -307,4 +389,6 @@ module Sahi
       end
     end
   end
+
+
 end
