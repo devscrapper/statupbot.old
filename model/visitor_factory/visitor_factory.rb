@@ -68,7 +68,7 @@ class VisitorFactory
   #-----------------------------------------------------------------------------------------------------------------
   #
   #-----------------------------------------------------------------------------------------------------------------
-  def initialize(browser, version, use_proxy_system, port_proxy_sahi, runtime_ruby, delay_periodic_scan, delay_out_of_time, max_count_current_visit, geolocation_factory, logger)
+  def initialize(browser, version, use_proxy_system, port_proxy_sahi, runtime_ruby, delay_periodic_scan, delay_out_of_time, max_count_current_visit,geolocation_factory, logger)
     @use_proxy_system = use_proxy_system
     @port_proxy_sahi = port_proxy_sahi
     @runtime_ruby = runtime_ruby
@@ -114,6 +114,7 @@ class VisitorFactory
         tmp_flow_visit = Flow.first(TMP, {:type_flow => @pattern, :ext => "yml"}, @logger)
 
         if !tmp_flow_visit.nil?
+          @logger.an_event.info "visit flow #{tmp_flow_visit.basename} selected"
           # si la date de planificiation de la visite portée par le nom du fichier est dépassée de 15mn alors la visit est out of time et ne sera jamais executé
           # ceci afin de ne pas dénaturer la planification calculer par enginebot.
           # pour pallier à cet engorgement, il faut augmenter le nombre d'instance concurrente de navigateur dans le fichier browser_type.csv
@@ -134,8 +135,10 @@ class VisitorFactory
                   @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
                   details[:visit_file] = tmp_flow_visit.absolute_path
                   start_visitor_bot(details)
+                  @logger.an_event.info "visit flow #{tmp_flow_visit.basename} over"
                 else
                   @@logger.an_event.info "visit flow #{tmp_flow_visit.basename} not start, only #{@@count_current_visit} visit concurrent executions"
+
                 end
               end
             end
@@ -215,10 +218,10 @@ class VisitorFactory
 
 
       @logger.an_event.debug "cmd start visitor_bot #{cmd}"
-      change_visit_state(visit[:id], Monitoring::START)
 
-      pid = Process.spawn(cmd)
-      pid, status = Process.wait2(pid, 0)
+      visitor_bot_pid = 0
+      visitor_bot_pid = Process.spawn(cmd)
+      visitor_bot_pid, status = Process.wait2(visitor_bot_pid, 0)
 
     rescue Exception => e
       @logger.an_event.error "lauching visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]} : #{e.message}"
@@ -228,12 +231,9 @@ class VisitorFactory
       @logger.an_event.info "visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]} over : exit status #{status.exitstatus}"
 
       if status.exitstatus == OK
-        change_visit_state(visit[:id], Monitoring::SUCCESS)
-
         delete_log_file(visitor[:id])
 
       else
-        change_visit_state(visit[:id], Monitoring::FAIL)
 
       end
     ensure

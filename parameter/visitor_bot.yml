@@ -3,16 +3,19 @@ development:
   :java_key_tool_path: ["\"C:", "Program Files", "Java", "jre6", "bin", "keytool.exe\""]
   :start_page_server_ip: "127.0.0.1"
   :start_page_server_port: 8080
+  :max_time_to_live_visit: 5 #en minute
   :debugging:  true
 test:
   :java_runtime_path: ["\"c:", "Program Files", "Java", "jre7", "bin", "java.exe\""]
   :java_key_tool_path: ["\"C:", "Program Files", "Java", "jre7", "bin", "keytool.exe\""]
   :start_page_server_ip: "192.168.1.85"
   :start_page_server_port: 8080
+  :max_time_to_live_visit: 15 #en minute
   :debugging:  true
 production:
   :java_runtime_path: ["\"c:", "Program Files (x86)", "Java", "jre6", "bin", "java.exe\""]
   :java_key_tool_path: ["\"C:", "Program Files", "Java", "jre6", "bin", "keytool.exe\""]
   :start_page_server_ip: "127.0.0.1"
   :start_page_server_port: 8080
+  :max_time_to_live_visit: 15 #en minute
   :debugging:  false

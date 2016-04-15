@@ -4,11 +4,11 @@ require_relative '../lib/monitoring'
 require_relative '../lib/logging'
 require_relative '../lib/parameter'
 require_relative '../lib/mail_sender'
-
+require_relative '../lib/error'
 require 'uri'
 require 'trollop'
 require 'eventmachine'
-
+require 'timeout'
 
 include Visits
 include Visitors
@@ -90,8 +90,155 @@ OK = 0
 KO = 1
 NO_AD = 2
 NO_LANDING = 3
+OVER_TTL = 4
 
-def visitor_is_no_slave(opts, logger)
+
+def change_visit_state(visit_id, state, logger)
+  begin
+    Monitoring.change_state_visit(visit_id, state)
+
+  rescue Exception => e
+    logger.an_event.warn e.messsage
+
+  end
+end
+
+def visitor_is_no_slave(max_time_to_live_visit, opts, logger)
+  visit = nil
+  visitor = nil
+
+  begin
+
+
+    exit_status = Timeout::timeout(max_time_to_live_visit * 60) {
+      #---------------------------------------------------------------------------------------------------------------------
+      # chargement du fichier definissant la visite
+      #---------------------------------------------------------------------------------------------------------------------
+      visit_details,
+          website_details,
+          visitor_details = Visit.load(opts[:visit_file_name])
+
+      change_visit_state(visit_details[:id], Monitoring::START, logger)
+      context = ["visit=#{visit_details[:id]}"]
+      logger.ndc context
+
+
+      #---------------------------------------------------------------------------------------------------------------------
+      # Creation de la visit
+      #---------------------------------------------------------------------------------------------------------------------
+      visit = Visit.build(visit_details, website_details)
+
+      #---------------------------------------------------------------------------------------------------------------------
+      # Creation du visitor
+      #---------------------------------------------------------------------------------------------------------------------
+      visitor_details[:browser][:proxy_system] = opts[:proxy_system] == "yes"
+      visitor_details[:browser][:listening_port_proxy] = opts[:listening_port_sahi_proxy]
+      visitor_details[:browser][:proxy_ip] = opts[:proxy_ip]
+      visitor_details[:browser][:proxy_port] = opts[:proxy_port]
+      visitor_details[:browser][:proxy_user] = opts[:proxy_user]
+      visitor_details[:browser][:proxy_pwd] = opts[:proxy_pwd]
+
+      visitor = Visitor.new(visitor_details)
+
+      #---------------------------------------------------------------------------------------------------------------------
+      # Naissance du Visitor
+      #---------------------------------------------------------------------------------------------------------------------
+      visitor.born
+      #---------------------------------------------------------------------------------------------------------------------
+      # Visitor open browser
+      #---------------------------------------------------------------------------------------------------------------------
+      begin
+        visitor.open_browser
+
+        #---------------------------------------------------------------------------------------------------------------------
+        # Visitor execute visit
+        #---------------------------------------------------------------------------------------------------------------------
+
+        visitor.execute(visit)
+        #---------------------------------------------------------------------------------------------------------------------
+        # Visitor close browser
+        #---------------------------------------------------------------------------------------------------------------------
+        visitor.close_browser
+
+        #---------------------------------------------------------------------------------------------------------------------
+        # Visitor die
+        #---------------------------------------------------------------------------------------------------------------------
+        visitor.die
+
+        #---------------------------------------------------------------------------------------------------------------------
+        # Visitor inhume
+        #---------------------------------------------------------------------------------------------------------------------
+        visitor.inhume
+
+      rescue Exception => e
+        exit_status = KO
+
+        case e.code
+          when Visits::Visit::ARGUMENT_UNDEFINE,
+              Visits::Visit::VISIT_NOT_LOAD,
+              Visits::Visit::VISIT_NOT_CREATE
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
+
+          when Visitors::Visitor::ARGUMENT_UNDEFINE,
+              Visitors::Visitor::VISITOR_NOT_CREATE,
+              Visitors::Visitor::VISITOR_NOT_BORN,
+              Visitors::Visitor::VISITOR_NOT_DIE,
+              Visitors::Visitor::VISITOR_NOT_INHUME
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
+
+
+          when Visitors::Visitor::VISITOR_NOT_OPEN,
+              Visitors::Visitor::VISITOR_NOT_CLOSE
+            visitor.die
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
+
+          when Visitors::Visitor::VISITOR_NOT_FULL_EXECUTE_VISIT
+            visitor.close_browser
+            visitor.die
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
+            if e.history.include?(Browsers::Browser::BROWSER_NOT_FOUND_LINK)
+              exit_status = NO_LANDING
+            elsif e.history.include?(Visits::Advertisings::Advertising::NONE_ADVERT)
+              exit_status = NO_AD
+            else
+              exit_status = KO
+            end
+          else
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
+
+        end
+      else
+        change_visit_state(visit_details[:id], Monitoring::SUCCESS, logger)
+        exit_status = OK
+
+      ensure
+        exit_status
+
+      end
+    }
+
+
+  rescue Timeout::Error => e
+    visitor.close_browser
+    visitor.die
+    visit_details,
+        website_details,
+        visitor_details = Visit.load(opts[:visit_file_name])
+    change_visit_state(visit_details[:id], Monitoring::OVERTTL, logger)
+    exit_status = OVER_TTL
+
+  ensure
+    exit_status
+
+  end
+end
+
+
+#------------------------------------------------------------------------------------------------------------------
+# #------------------------------------------------------------------------------------------------------------------
+# #------------------------------------------------------------------------------------------------------------------
+# #------------------------------------------------------------------------------------------------------------------
+def visitor_is_no_slave_old(opts, logger)
   visit = nil
   visitor = nil
 
@@ -101,8 +248,8 @@ def visitor_is_no_slave(opts, logger)
   begin
 
     visit_details,
-    website_details,
-    visitor_details = Visit.load(opts[:visit_file_name])
+        website_details,
+        visitor_details = Visit.load(opts[:visit_file_name])
 
   rescue Exception => e
 
@@ -264,6 +411,7 @@ else
   $java_key_tool_path = parameters.java_key_tool_path.join(File::SEPARATOR)
   $start_page_server_ip = parameters.start_page_server_ip
   $start_page_server_port = parameters.start_page_server_port
+  max_time_to_live_visit = parameters.max_time_to_live_visit
 
   visitor_id = YAML::load(File.read(opts[:visit_file_name]))[:visitor][:id]
 
@@ -273,6 +421,7 @@ else
   logger.a_log.info "java key tool path : #{$java_key_tool_path}"
   logger.a_log.info "start page server ip : #{$start_page_server_ip}"
   logger.a_log.info "start page server port: #{$start_page_server_port}"
+  logger.a_log.info "max time to live visit: #{max_time_to_live_visit}"
   logger.a_log.info "debugging : #{$debugging}"
   logger.a_log.info "staging : #{$staging}"
   logger.an_event.debug "File Parameters end------------------------------------------------------------------------------"
@@ -284,6 +433,7 @@ else
       $java_key_tool_path.nil? or
       $start_page_server_ip.nil? or
       $start_page_server_port.nil? or
+      max_time_to_live_visit.nil? or
       $debugging.nil? or
       $staging.nil?
     $stderr << "some parameters not define" << "\n"
@@ -293,12 +443,12 @@ else
   # MAIN
   #--------------------------------------------------------------------------------------------------------------------
 
-    logger.an_event.debug "begin execution visitor_bot"
-    state = OK
-    #state = visitor_is_slave(opts) if opts[:slave] == "yes"  pour gerer le return visitor
-    state = visitor_is_no_slave(opts, logger) if opts[:slave] == "no"
-    logger.an_event.debug "end execution visitor_bot, with state #{state}"
-    Process.exit(state)
+  logger.an_event.debug "begin execution visitor_bot"
+  #exit_status = visitor_is_slave(opts) if opts[:slave] == "yes"  pour gerer le return visitor
+  exit_status = visitor_is_no_slave(max_time_to_live_visit, opts, logger) if opts[:slave] == "no"
+  logger.an_event.debug "end execution visitor_bot, with state #{exit_status}"
+  Process.exit(exit_status)
+
 end
 
 

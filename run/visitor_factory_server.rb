@@ -110,6 +110,7 @@ logger.a_log.info "http_server_listening_port: #{http_server_listening_port}"
 logger.a_log.info "debugging_visitor_bot: #{debugging_visitor_bot}"
 logger.a_log.info "periodicity supervision : #{periodicity_supervision}"
 logger.a_log.info "max count current visit : #{max_count_current_visit}"
+
 logger.a_log.info "debugging : #{$debugging}"
 logger.a_log.info "staging : #{$staging}"
 #--------------------------------------------------------------------------------------------------------------------

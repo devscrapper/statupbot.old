@@ -357,12 +357,12 @@ module Visitors
                 @@logger.an_event.info "visitor #{@id} make action <#{COMMANDS[action]}> again"
                 count_actions +=1
               else
-                raise e
+                raise Error.new(VISITOR_NOT_FULL_EXECUTE_VISIT, :error => e)
             end
 
 
           rescue Exception => e
-            raise e
+            raise Error.new(VISITOR_NOT_FULL_EXECUTE_VISIT, :error => e)
 
           else
             count_actions +=1
@@ -1164,11 +1164,11 @@ module Visitors
 
       raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "page"}) if page.nil?
 
-      @@logger.an_event.info "visitor #{@id} begin reading <#{page.title}> during #{page.sleeping_time}s"
+      @@logger.an_event.info "visitor #{@id} begin reading <#{page.url}> during #{page.sleeping_time}s"
 
       sleep page.sleeping_time
 
-      @@logger.an_event.debug "visitor #{@id} finish reading on page <#{page.title}/#{page.url}>"
+      @@logger.an_event.debug "visitor #{@id} finish reading on page <#{page.url}>"
 
 
     end

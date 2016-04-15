@@ -3,12 +3,13 @@ development:
   :delay_periodic_scan: 10 #en seconde
   :delay_periodic_pool_size_monitor: 5 #en minute
   :delay_periodic_load_geolocations: 60 #en minute
-  :delay_out_of_time: 15 # delais max d'une visit depasse par rapport a son heure de demarrage en minute
+  :delay_out_of_time: 15 #delais max d'une visit depasse par rapport a son heure de demarrage en minute
   :monitoring_server_ip: 127.0.0.1
   :http_server_listening_port: 8083
   :periodicity_supervision: 15m  #(minute)
   :max_count_current_visit: 1
   :debugging:  true
+
 test:
   :runtime_ruby: ["d:", "ruby223", "bin", "ruby.exe"]
   :delay_periodic_scan: 60  #en seconde

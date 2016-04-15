@@ -5,6 +5,7 @@ require 'json'
 require 'csv'
 require 'pathname'
 require 'nokogiri'
+require 'addressable/uri'
 #require 'win32/screenshot'
 
 require_relative '../engine_search/engine_search'
@@ -187,7 +188,9 @@ module Browsers
         @@logger.an_event.debug "links_str #{links_arr}"
 
         links_arr.each { |d|
-          links << {"href" => d["href"], "text" => URI.unescape(d["text"].gsub(/&#44;/, "'"))} # if @driver.link(d["href"]).visible?
+          if d["text"] != "undefined"
+            links << {"href" => d["href"], "text" => URI.unescape(d["text"].gsub(/&#44;/, "'"))} # if @driver.link(d["href"]).visible?
+          end
         }
 
         @@logger.an_event.debug "links #{links}"
