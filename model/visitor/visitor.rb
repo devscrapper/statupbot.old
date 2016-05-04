@@ -228,7 +228,7 @@ module Visitors
         @browser.quit
 
       rescue Exception => e
-        @@logger.an_event.error e.message
+        @@logger.an_event.error "visitor #{@id} close browser : #{e.message}"
         raise Error.new(VISITOR_NOT_CLOSE, :error => e)
 
       else
@@ -366,6 +366,8 @@ module Visitors
 
           else
             count_actions +=1
+            #TODO à deplacer ou conditionner pour les pages du Website
+            #TODO discriminer les pages poour afficher des couleurs differente dans statupweb pour sur search, referral, website, advert
             Monitoring.page_browse(@visit.id)
 
           ensure
@@ -1179,9 +1181,10 @@ module Visitors
 
         keywords = @visit.referrer.keywords
 
-        #permet d'utiliser des methodes differentes en fonction des moteur de recherche qui n'identifie pas l'input
+        #permet d'utiliser des méthodes differentes en fonction des moteurs de recherche qui n'identifie pas l'input
         #des mot clé avec le même objet html
-        eval("@browser.#{@current_page.type}(@current_page.input, keywords)")
+        #le omportement de Internet Explorer est différent donc creation d'une méthode pour gérer l'initialisation de la zone de recerche.
+        @browser.set_input_search(@current_page.type, @current_page.input, keywords)
 
         @browser.submit(@current_page.submit_button)
 
@@ -1232,9 +1235,10 @@ module Visitors
 
         keywords = @visit.referrer.next_keyword
 
-        #permet d'utiliser des methodes differentes en fonction des moteur de recherche qui n'identifie pas l'input
+        #permet d'utiliser des méthodes differentes en fonction des moteurs de recherche qui n'identifie pas l'input
         #des mot clé avec le même objet html
-        eval("@browser.#{@current_page.type}(@current_page.input, keywords)")
+        #le omportement de Internet Explorer est différent donc creation d'une méthode pour gérer l'initialisation de la zone de recerche.
+        @browser.set_input_search(@current_page.type, @current_page.input, keywords)
 
         @browser.submit(@current_page.submit_button)
 

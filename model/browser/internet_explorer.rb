@@ -235,8 +235,16 @@ module Browsers
           end
         }
       end
+
 =end
 
+    def set_input_search(type, input, keywords)
+        r =  "#{type}(\"#{input}\", \"#{keywords}\")"
+        eval(r)
+        # google pour IE au travers de sahi fait ubn redirect wevrs www.google.fr/webhp? ... en supprimant les keywords
+        # on rejoue alors l'affectation de la zone de recherche par le keyword
+        eval(r)
+    end
   end
 end
 

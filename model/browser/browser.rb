@@ -129,9 +129,9 @@ module Browsers
           #when "Safari"
           #TODO mettre en oeuvre Safari
           #  return Safari.new(visitor_dir, browser_details)
-          #when "Opera"
+          when "Opera"
           #TODO mettre en oeuvre Opera
-          #  return Opera.new(visitor_dir, browser_details)
+            return Opera.new(visitor_dir, browser_details)
           else
             raise Error.new(BROWSER_UNKNOWN, :values => {:browser => browser_name})
         end
@@ -190,6 +190,8 @@ module Browsers
         links_arr.each { |d|
           if d["text"] != "undefined"
             links << {"href" => d["href"], "text" => URI.unescape(d["text"].gsub(/&#44;/, "'"))} # if @driver.link(d["href"]).visible?
+          else
+            links << {"href" => d["href"], "text" => d["href"]}
           end
         }
 
@@ -620,6 +622,10 @@ module Browsers
       end
     end
 
+    def set_input_search(type, input, keywords)
+        r =  "#{type}(\"#{input}\", \"#{keywords}\")"
+        eval(r)
+    end
 
     #----------------------------------------------------------------------------------------------------------------
     # name
@@ -687,11 +693,21 @@ module Browsers
         @driver.quit
 
       rescue Exception => e
-        @@logger.an_event.error e.message
-        raise Error.new(BROWSER_NOT_CLOSE, :values => {:browser => name}, :error => e)
+        @@logger.an_event.warn "browser #{name} close : #{e.message}"
+
+        begin
+          @driver.kill
+
+        rescue Exception => e
+          @@logger.an_event.error "browser #{name} kill : #{e.message}"
+          raise Error.new(BROWSER_NOT_CLOSE, :values => {:browser => name}, :error => e)
+
+        else
+          @@logger.an_event.debug "browser #{name} kill"
+
+        end
 
       else
-
         @@logger.an_event.debug "browser #{name} close"
 
       ensure
