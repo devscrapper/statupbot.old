@@ -23,8 +23,8 @@ module Browsers
     #----------------------------------------------------------------------------------------------------------------
     # constant
     #----------------------------------------------------------------------------------------------------------------
-    DIR_SAHI = Pathname(File.join(File.dirname(__FILE__), '..', '..',  'lib', 'sahi.in.co')).realpath
-    DIR_SAHI_TOOLS = Pathname(File.join(File.dirname(__FILE__), '..', '..',  'lib', 'sahi.in.co', 'tools')).realpath
+    DIR_SAHI = Pathname(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'sahi.in.co')).realpath
+    DIR_SAHI_TOOLS = Pathname(File.join(File.dirname(__FILE__), '..', '..', 'lib', 'sahi.in.co', 'tools')).realpath
     #CLASSPATH PROXY OPEN SOURCE
     #CLASS_PATH = File.join(DIR_SAHI, 'lib', 'sahi.jar') + ';' +
     #    File.join(DIR_SAHI, 'extlib', 'rhino', 'js.jar') + ';' +
@@ -34,19 +34,19 @@ module Browsers
     CLASS_PATH = File.join(DIR_SAHI, 'lib', 'sahi.jar') + ';' +
         File.join(DIR_SAHI, 'extlib', 'rhino', 'js.jar') + ';' +
         File.join(DIR_SAHI, 'extlib', 'apc', 'commons-codec-1.3.jar' + ';' +
-            File.join(DIR_SAHI, 'extlib', 'db', 'h2.jar') + ';' +
-            File.join(DIR_SAHI, 'extlib', 'license', 'truelicense.jar') + ';' +
-            File.join(DIR_SAHI, 'extlib', 'license', 'truexml.jar') + ';' +
-            File.join(DIR_SAHI, 'extlib', 'poi', 'dom4j-1.6.1.jar') + ';' +
-            File.join(DIR_SAHI, 'extlib', 'poi', 'excelpoi.jar') + ';' +
-            File.join(DIR_SAHI, 'extlib', 'poi', 'poi-3.7-20101029.jar') + ';' +
-            File.join(DIR_SAHI, 'extlib', 'poi', 'poi-ooxml-3.7-20101029.jar') + ';' +
-            File.join(DIR_SAHI, 'extlib', 'poi', 'poi-ooxml-schemas-3.7-20101029.jar') + ';' +
-            File.join(DIR_SAHI, 'extlib', 'poi', 'xmlbeans-2.3.0.jar') + ';' +
-            File.join(DIR_SAHI, 'extlib', 'mail', 'mail.jar') + ';' +
-            File.join(DIR_SAHI, 'extlib', 'mail', 'activation.jar') + ';' +
-            File.join(DIR_SAHI, 'extlib', 'c3p0', 'c3p0-0.9.5-pre5.jar') + ';' +
-            File.join(DIR_SAHI, 'extlib', 'c3p0', 'mchange-commons-java-0.2.6.2'))
+                              File.join(DIR_SAHI, 'extlib', 'db', 'h2.jar') + ';' +
+                              File.join(DIR_SAHI, 'extlib', 'license', 'truelicense.jar') + ';' +
+                              File.join(DIR_SAHI, 'extlib', 'license', 'truexml.jar') + ';' +
+                              File.join(DIR_SAHI, 'extlib', 'poi', 'dom4j-1.6.1.jar') + ';' +
+                              File.join(DIR_SAHI, 'extlib', 'poi', 'excelpoi.jar') + ';' +
+                              File.join(DIR_SAHI, 'extlib', 'poi', 'poi-3.7-20101029.jar') + ';' +
+                              File.join(DIR_SAHI, 'extlib', 'poi', 'poi-ooxml-3.7-20101029.jar') + ';' +
+                              File.join(DIR_SAHI, 'extlib', 'poi', 'poi-ooxml-schemas-3.7-20101029.jar') + ';' +
+                              File.join(DIR_SAHI, 'extlib', 'poi', 'xmlbeans-2.3.0.jar') + ';' +
+                              File.join(DIR_SAHI, 'extlib', 'mail', 'mail.jar') + ';' +
+                              File.join(DIR_SAHI, 'extlib', 'mail', 'activation.jar') + ';' +
+                              File.join(DIR_SAHI, 'extlib', 'c3p0', 'c3p0-0.9.5-pre5.jar') + ';' +
+                              File.join(DIR_SAHI, 'extlib', 'c3p0', 'mchange-commons-java-0.2.6.2'))
 
     #BIN_JAVA_PATH = "\"C:/Program Files (x86)/Java/jre6/bin/java\""
     #----------------------------------------------------------------------------------------------------------------
@@ -60,11 +60,12 @@ module Browsers
          :listening_port_proxy, #port d'écoute de Sahi_proxy
          :home, # répertoire de config de Sahi_proxy
          :user_home, # répertoire de config du visitor (user)
-         :ip_geo_proxy,
          :port_geo_proxy,
          :user_geo_proxy,
          :pwd_geo_proxy,
          :visitor_dir
+
+    attr_reader :ip_geo_proxy  # exposé pour remonté la geolocation vers statupweb
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
@@ -166,6 +167,8 @@ module Browsers
         file_custom.gsub!(/pwd_geo_proxy/, @pwd_geo_proxy) unless @pwd_geo_proxy.nil?
         file_custom.gsub!(/listening_port_proxy/, @listening_port_proxy.to_s)
         file_custom.gsub!(/java_key_tool_path/, $java_key_tool_path)
+        file_custom.gsub!(/start_page_server_ip/, $start_page_server_ip)
+
 
         File.write(file_name, file_custom)
         @@logger.an_event.debug "customize properties in #{file_name} with #{file_custom}"
@@ -302,7 +305,7 @@ module Browsers
 
         FileUtils.cp_r(Dir.glob(File.join(@home, 'certgen', openssl_dir, '*.*')), File.join(@home, 'certgen'))
 
-     rescue Exception => e
+      rescue Exception => e
         @@logger.an_event.fatal e.message
         raise Error.new(RUNTIME_OPENSSL_NOT_SELECT, :values => {:openssl_dir => openssl_dir}, :error => e)
 

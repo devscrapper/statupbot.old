@@ -91,14 +91,28 @@ KO = 1
 NO_AD = 2
 NO_LANDING = 3
 OVER_TTL = 4
+NO_CLOSE = 5
+NO_DIE = 6
+NO_OPEN = 7
 
+
+def visit_started(visit, visitor, logger)
+  begin
+    Monitoring.visit_started(visit.id,
+                             visit.script,
+                             visitor.proxy.ip_geo_proxy)
+  rescue Exception => e
+    logger.an_event.warn e.message
+
+  end
+end
 
 def change_visit_state(visit_id, state, logger)
   begin
     Monitoring.change_state_visit(visit_id, state)
 
   rescue Exception => e
-    logger.an_event.warn e.messsage
+    logger.an_event.warn e.message
 
   end
 end
@@ -118,7 +132,7 @@ def visitor_is_no_slave(max_time_to_live_visit, opts, logger)
           website_details,
           visitor_details = Visit.load(opts[:visit_file_name])
 
-      change_visit_state(visit_details[:id], Monitoring::START, logger)
+
       context = ["visit=#{visit_details[:id]}"]
       logger.ndc context
 
@@ -153,6 +167,7 @@ def visitor_is_no_slave(max_time_to_live_visit, opts, logger)
         #---------------------------------------------------------------------------------------------------------------------
         # Visitor execute visit
         #---------------------------------------------------------------------------------------------------------------------
+        visit_started(visit,  visitor, logger)
 
         visitor.execute(visit)
         #---------------------------------------------------------------------------------------------------------------------
@@ -186,25 +201,54 @@ def visitor_is_no_slave(max_time_to_live_visit, opts, logger)
               Visitors::Visitor::VISITOR_NOT_INHUME
             change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
 
-
           when Visitors::Visitor::VISITOR_NOT_OPEN,
               Visitors::Visitor::VISITOR_NOT_CLOSE
-            visitor.die
-            change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
+            begin
+              visitor.die
+            rescue Exception => e
+            else
+            ensure
+              change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
+
+              if e.history.include?(Visitors::Visitor::VISITOR_NOT_OPEN)
+                exit_status = NO_OPEN
+              elsif e.history.include?(Visitors::Visitor::VISITOR_NOT_CLOSE)
+                exit_status = NO_CLOSE
+              elsif e.history.include?(Visitors::Visitor::VISITOR_NOT_DIE)
+                exit_status = NO_DIE
+              else
+                exit_status = KO
+              end
+
+            end
 
           when Visitors::Visitor::VISITOR_NOT_FULL_EXECUTE_VISIT
-            visitor.close_browser
-            visitor.die
-            change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
-            if e.history.include?(Browsers::Browser::BROWSER_NOT_FOUND_LINK)
-              exit_status = NO_LANDING
-            elsif e.history.include?(Visits::Advertisings::Advertising::NONE_ADVERT)
-              exit_status = NO_AD
+            begin
+              visitor.close_browser
+              visitor.die
+            rescue Exception => e
             else
-              exit_status = KO
+            ensure
+              change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
+
+              if e.history.include?(Browsers::Browser::BROWSER_NOT_FOUND_LINK)
+                exit_status = NO_LANDING
+              elsif e.history.include?(Visits::Advertisings::Advertising::NONE_ADVERT)
+                exit_status = NO_AD
+              elsif e.history.include?(Visitors::Visitor::VISITOR_NOT_CLOSE)
+                exit_status = NO_CLOSE
+              elsif e.history.include?(Visitors::Visitor::VISITOR_NOT_DIE)
+                exit_status = NO_DIE
+              else
+                exit_status = KO
+              end
+
             end
+
+
           else
             change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
+            exit_status = KO
 
         end
       else

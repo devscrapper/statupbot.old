@@ -3,6 +3,7 @@ require_relative 'error'
 require 'rubygems' # if you use RubyGems
 require 'socket'
 require 'eventmachine'
+require 'rest-client'
 
 
 module Monitoring
@@ -16,6 +17,7 @@ module Monitoring
   FAIL = :fail
   OUTOFTIME = :outoftime
   NEVERSTARTED = :neverstarted
+  OVERTTL = :overttl
 
   $staging = "production"
   $debugging = false
@@ -277,7 +279,7 @@ module Monitoring
       raise response.content if response.code != 201
 
     rescue Exception => e
-      raise "cannot change  state to #{state} of visit #{visit_id} (#{@statupweb_server_ip}:#{@statupweb_server_port}) => #{e.message}"
+      raise "change state to #{state} of visit #{visit_id} (#{@statupweb_server_ip}:#{@statupweb_server_port}) => #{e.message}"
 
     else
 
@@ -286,6 +288,25 @@ module Monitoring
     end
   end
 
+  def visit_started(visit_id, actions)
+    begin
+      load_parameter()
+
+      response = RestClient.patch "http://#{@statupweb_server_ip}:#{@statupweb_server_port}/visits/#{visit_id}/started",
+                                  JSON.generate({:actions => actions}),
+                                  :content_type => :json,
+                                  :accept => :json
+      raise response.content if response.code != 201
+
+    rescue Exception => e
+      raise "change state to #{state} of visit #{visit_id} (#{@statupweb_server_ip}:#{@statupweb_server_port}) => #{e.message}"
+
+    else
+
+    ensure
+
+    end
+  end
 
   def page_browse(visit_id)
     begin
@@ -329,7 +350,7 @@ module Monitoring
 
   end
 
-
+  module_function :visit_started
   module_function :send_advert_select
   module_function :send_return_code
   module_function :send_failure
