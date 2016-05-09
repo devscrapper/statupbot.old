@@ -1,3 +1,4 @@
+# encoding: utf-8
 require_relative '../../lib/error'
 module Browsers
   class InternetExplorer < Browser

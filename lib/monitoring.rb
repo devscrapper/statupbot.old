@@ -1,3 +1,4 @@
+# encoding: utf-8
 require_relative 'parameter'
 require_relative 'error'
 require 'rubygems' # if you use RubyGems
@@ -288,18 +289,19 @@ module Monitoring
     end
   end
 
-  def visit_started(visit_id, actions)
+  def visit_started(visit_id, actions, ip_geo_proxy)
     begin
       load_parameter()
 
       response = RestClient.patch "http://#{@statupweb_server_ip}:#{@statupweb_server_port}/visits/#{visit_id}/started",
-                                  JSON.generate({:actions => actions}),
+                                  JSON.generate({:actions => actions,
+                                                :ip_geo_proxy => ip_geo_proxy}),
                                   :content_type => :json,
                                   :accept => :json
       raise response.content if response.code != 201
 
     rescue Exception => e
-      raise "change state to #{state} of visit #{visit_id} (#{@statupweb_server_ip}:#{@statupweb_server_port}) => #{e.message}"
+      raise "change state to started state of visit #{visit_id} (#{@statupweb_server_ip}:#{@statupweb_server_port}) => #{e.message}"
 
     else
 

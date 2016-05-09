@@ -310,6 +310,29 @@ class BrowserTypes
 
   def Opera(browser_versions)
     # verifier que l'on peut appliquer la methode firefox, sinon sandboxing comme IE
+    # <browserType>
+   	# 	<name>opera</name>
+   	# 	<displayName>Opera</displayName>
+   	# 	<icon>opera.png</icon>
+   	# 	<path>$ProgramFiles\Opera\opera.exe</path>
+   	# 	<options> </options>
+   	# 	<processName>opera.exe</processName>
+   	# 	<useSystemProxy>true</useSystemProxy>
+   	# 	<capacity>1</capacity>
+   	# </browserType>
+    res = ""
+    browser_versions.each_pair { |version, details|
+      name ="Opera_#{version}"
+      use_system_proxy = "true"
+      display_name = "Opera #{version}"
+      icon = "opera.png"
+      path = details["runtime_path"]
+      options = ""
+      process_name = "opera.exe"
+
+      res += browser_type(name, display_name, icon, path, options, process_name, use_system_proxy)
+    }
+    res
   end
 
   def publish_browsers
@@ -322,6 +345,8 @@ class BrowserTypes
           res += Firefox(browser[1])
         when "Chrome"
           res += Chrome(browser[1])
+        when "Opera"
+          res += Opera(browser[1])
       end
     } unless browsers.nil?
     res

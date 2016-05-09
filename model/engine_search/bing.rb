@@ -15,7 +15,9 @@ module EngineSearches
       @type_search = "searchbox"
       @label_search_button = "go"
     end
-
+    def adverts(body)
+       []
+    end
     def links(body)
       links = []
       body.css('li.b_algo > h2 > a').each { |l|

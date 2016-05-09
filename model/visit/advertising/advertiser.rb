@@ -33,7 +33,7 @@ module Visits
       #----------------------------------------------------------------------------------------------------------------
       # input :
       #----------------------------------------------------------------------------------------------------------------
-      def initialize(advertiser_details)
+      def initialize(advertiser_details, domain=nil)
         @@logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
 
         @@logger.an_event.debug "durations #{advertiser_details[:durations]}"
@@ -44,6 +44,7 @@ module Visits
 
         @durations = advertiser_details[:durations]
         @arounds = advertiser_details[:arounds]
+        @domain = domain
       end
 
 
@@ -52,7 +53,7 @@ module Visits
         # il faut en generer une autre aléatoirement
         # car le nombre de duration est calculé par engine bot (doit conserver cela) car il calcule le nombre de page
         # il faut peut être faire calculer le nombre de page mais pas le tableau des durations
-        @durations.empty? ?  Array.new(MAX_DURATION) { |i| i + MIN_DURATION }.sample : @durations.first
+        @durations.empty? ?  Array.new(MAX_DURATION) { |i| i + MIN_DURATION }.sample : @durations.shift
       end
 
       def next_around

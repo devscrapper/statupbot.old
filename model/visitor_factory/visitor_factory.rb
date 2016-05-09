@@ -26,7 +26,14 @@ class VisitorFactory
   #----------------------------------------------------------------------------------------------------------------
   VISITOR_BOT = Pathname(File.join(File.dirname(__FILE__), "..", "..", "run", "visitor_bot.rb")).realpath
   TMP = Pathname(File.join(File.dirname(__FILE__), "..", "..", "tmp")).realpath
+
   OK = 0
+  KO = 1
+  NO_AD = 2
+  NO_LANDING = 3
+  OVER_TTL = 4
+  NO_CLOSE = 5
+  NO_DIE = 6
 
   #----------------------------------------------------------------------------------------------------------------
   # attribut
@@ -37,6 +44,8 @@ class VisitorFactory
        :runtime_ruby,
        :delay_out_of_time,
        :geolocation_factory,
+       :browser_not_properly_close,
+       :max_count_current_visit,
        :logger
 
   #----------------------------------------------------------------------------------------------------------------
@@ -68,7 +77,7 @@ class VisitorFactory
   #-----------------------------------------------------------------------------------------------------------------
   #
   #-----------------------------------------------------------------------------------------------------------------
-  def initialize(browser, version, use_proxy_system, port_proxy_sahi, runtime_ruby, delay_periodic_scan, delay_out_of_time, max_count_current_visit,geolocation_factory, logger)
+  def initialize(browser, version, use_proxy_system, port_proxy_sahi, runtime_ruby, delay_periodic_scan, delay_out_of_time, max_count_current_visit, geolocation_factory, logger)
     @use_proxy_system = use_proxy_system
     @port_proxy_sahi = port_proxy_sahi
     @runtime_ruby = runtime_ruby
@@ -78,7 +87,9 @@ class VisitorFactory
     @delay_out_of_time = delay_out_of_time
     @logger = logger
     @geolocation_factory = geolocation_factory
-    @@count_current_visit = max_count_current_visit
+    @max_count_current_visit = max_count_current_visit
+    @@count_current_visit = @max_count_current_visit
+    @browser_not_properly_close = false
     @port_proxy_sahi.each { |port|
       visitor_instance = EM::ThreadedResource.new do
         {:pattern => @pattern, :port_proxy_sahi => port}
@@ -133,9 +144,11 @@ class VisitorFactory
                 if @@count_current_visit > 0
                   tmp_flow_visit.archive
                   @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
+
                   details[:visit_file] = tmp_flow_visit.absolute_path
                   start_visitor_bot(details)
-                  @logger.an_event.info "visit flow #{tmp_flow_visit.basename} over"
+
+
                 else
                   @@logger.an_event.info "visit flow #{tmp_flow_visit.basename} not start, only #{@@count_current_visit} visit concurrent executions"
 
@@ -233,11 +246,19 @@ class VisitorFactory
       if status.exitstatus == OK
         delete_log_file(visitor[:id])
 
-      else
-
+      elsif status.exitstatus == NO_CLOSE
+        @browser_not_properly_close = true
       end
+
     ensure
-      @@mutex.synchronize { @@count_current_visit += 1 }
+      @@mutex.synchronize {
+        @@count_current_visit += 1
+
+        # on tue tous les browser du pattern qui ne se sont pas fermés => nettoyage  qd aucune visit est en cours pour ce type de browser
+        # @browser_not_properly_close est maj dans kill_all_browser_from_pattern
+        kill_all_browser_from_pattern(visitor[:browser][:name]) if @browser_not_properly_close and @@count_current_visit == @max_count_current_visit
+      }
+
     end
   end
 
@@ -261,10 +282,11 @@ class VisitorFactory
     # sinon un geolocation.
 
     begin
-
-      geo = @geolocation_factory.get(:country => with_advertising ? "fr" : nil,
-                                     :protocol => with_google_engine ? "https" : nil) unless @geolocation_factory.nil?
-
+              #TODO attention aton besoin de cette fonctionnalité sur la geolocation
+      # geo = @geolocation_factory.get(:country => with_advertising ? "fr" : nil,
+      #                                :protocol => with_google_engine ? "https" : nil) unless @geolocation_factory.nil?
+       geo = @geolocation_factory.get(:country => nil,
+                                        :protocol =>  nil) unless @geolocation_factory.nil?
     rescue Exception => e
       @logger.an_event.warn e.message
       geo_to_s = ""
@@ -272,8 +294,8 @@ class VisitorFactory
     else
 
       geo_to_s = "-r #{geo.protocol} -o #{geo.ip} -x #{geo.port}"
-      geo_to_s += " -y #{geo.user}" unless geo.user
-      geo_to_s += " -w #{geo.password}" unless geo.password
+      geo_to_s += " -y #{geo.user}" unless geo.user.nil?
+      geo_to_s += " -w #{geo.password}" unless geo.password.nil?
 
     ensure
       @logger.an_event.info "geolocation is <#{geo_to_s}>"
@@ -308,6 +330,45 @@ class VisitorFactory
 
     else
       @logger.an_event.info "log file of visitor_bot #{visitor_id} delete"
+
+    end
+  end
+
+  def kill_all_browser_from_pattern(name_browser)
+    count_try = 3
+    case name_browser
+      when "Internet Explorer"
+        image_name = "iexplore.exe"
+      when "Firefox"
+        image_name = "firefox.exe"
+      when "Chrome"
+        image_name = "chrome.exe"
+    end
+
+    begin
+
+      #TODO remplacer taskkill par kill pour linux
+      res = IO.popen("taskkill /IM #{image_name}").read
+
+      @@logger.an_event.debug "taskkill for #{name_browser} : #{res}"
+
+    rescue Exception => e
+      count_try -= 1
+      if count_try > 0
+        @@logger.an_event.debug "try #{count_try},kill browser type #{name_browser} : #{e.message}"
+        sleep (1)
+        retry
+
+      else
+        @@logger.an_event.error "kill browser type #{name_browser}  : #{e.message}"
+        # lors de la prochaine visit qui stoppera alors à nouveau on tentera sur tuer les browser de ce type là
+        # donc @browser_not_properly_close reste à true
+      end
+
+    else
+      @@logger.an_event.debug "kill browser type #{name_browser}"
+      # tous les browser sont mort donc on reinitialise la variable
+      @browser_not_properly_close = false
 
     end
   end

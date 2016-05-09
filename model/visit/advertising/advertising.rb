@@ -55,6 +55,10 @@ module Visits
             when :adsense
               return Adsense.new(Advertiser.new(pub_details[:advertiser]))
 
+            when :adwords
+              return Adwords.new(pub_details[:advertiser][:label],
+                                 Advertiser.new(pub_details[:advertiser]))
+
             else
               @@logger.an_event.warn "advertising  #{pub_details[:advertising]} unknown"
               return NoAdvertising.new()
@@ -85,5 +89,6 @@ end
 
 require_relative 'advertiser'
 require_relative 'adsense'
+require_relative 'adwords'
 require_relative 'no_advertising'
 require_relative 'advertiser'

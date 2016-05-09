@@ -15,7 +15,9 @@ module EngineSearches
       @type_search = "textbox"
       @label_search_button = "Rechercher"
     end
-
+    def adverts(body)
+       []
+    end
     def links(body)
       links = []
       body.css('h3.title > a.td-u').each { |link|

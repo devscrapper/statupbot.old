@@ -1,3 +1,4 @@
+# encoding: utf-8
 require_relative '../model/visitor/visitor'
 require_relative '../model/visit/visit'
 require_relative '../lib/monitoring'

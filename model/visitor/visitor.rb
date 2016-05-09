@@ -1,3 +1,4 @@
+# encoding: utf-8
 require_relative '../../model/browser/browser'
 require_relative '../visit/referrer/referrer'
 require_relative '../visit/advertising/advertising'
@@ -190,9 +191,6 @@ module Visitors
         #------------------------------------------------------------------------------------------------------------
         @browser = Browsers::Browser.build(@home,
                                            visitor_details[:browser])
-
-        @browser.deploy_properties(@home) if @browser.is_a?(Browsers::Opera)
-
 
       rescue Exception => e
         @@logger.an_event.error e.message

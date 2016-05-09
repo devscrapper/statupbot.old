@@ -1,3 +1,4 @@
+# encoding: utf-8
 require 'uuid'
 require 'uri'
 require_relative '../../lib/error'
@@ -168,13 +169,20 @@ module Visits
 
         case visit_details[:type]
           when :traffic
-            visit = Traffic.new(visit_details, website_details)
+            case visit_details[:advert][:advertising]
+              when :none
+                visit = Traffic.new(visit_details, website_details)
 
-          when :advert
-            visit = Advert.new(visit_details, website_details)
+              else
+                visit = Advert.new(visit_details, website_details)
+
+            end
 
           when :rank
             visit = Rank.new(visit_details, website_details)
+
+          when :seaattack
+            visit = Seaattack.new(visit_details, website_details)
 
           else
 
@@ -282,3 +290,4 @@ end
 require_relative 'traffic'
 require_relative 'advert'
 require_relative 'rank'
+require_relative 'sea_attack'

@@ -66,31 +66,15 @@ module Sahi
 
     #
     def quit
+      begin
+        exec_command("kill") # kill piloté par SAHI proxy
 
+      rescue Exception => e
+        raise Error.new(CLOSE_DRIVER_TIMEOUT, :error => e)
 
-      exec_command("kill") # kill piloté par SAHI proxy
+      else
 
-      unless @browser_pid.nil?
-        begin
-          Process.kill("KILL", @browser_pid) # kill piloté par ruby
-          Process.waitall
-
-        rescue Errno::ESRCH => e
-          # le process du browser n'existe plus
-
-        rescue SignalException => e
-          @@logger.an_event.error "browsert #{@browser_type}/#{@browser_process_name}/#{@browser_pid} : #{e.message}"
-          raise e
-
-        else
-
-
-        ensure
-
-        end
       end
-
-
     end
 
     def close_popups
@@ -239,6 +223,30 @@ module Sahi
 
     end
 
+
+    def kill
+      unless @browser_pid.nil?
+        begin
+          Process.kill("KILL", @browser_pid) # kill piloté par ruby
+          Process.waitall
+
+        rescue Errno::ESRCH => e
+          # le process du browser n'existe plus
+
+        rescue SignalException => e
+          raise Error.new(CLOSE_DRIVER_FAILED, :error => e)
+
+        else
+
+        ensure
+
+        end
+      else
+        raise Error.new(CLOSE_DRIVER_FAILED, :error => e)
+
+      end
+    end
+
     def links
       fetch("_sahi.links()")
     end
@@ -281,15 +289,27 @@ module Sahi
         param = {"browserType" => @browser_type, "startUrl" => start_url}
         @@logger.an_event.debug "param #{param}"
         exec_command("launchPreconfiguredBrowser", param)
+
+      rescue Exception => e
+        @@logger.an_event.fatal e.message
+        raise Error.new(OPEN_DRIVER_FAILED, :error => e)
+      end
+
+      count_try = 3
+      begin
         i = 0
-        while (i < 500 and !is_ready?)
+        while (i < 50 and !is_ready?)
           i+=1
           # break if
-          sleep(0.1)
+          sleep(1)
         end
 
-        raise unless is_ready?
+        raise "browser type #{@browser_type} not ready" unless is_ready?
+
       rescue Exception => e
+        @@logger.an_event.warn "try #{count_try}, #{e.message}"
+        count_try-= 1
+        retry if count_try >= 0
         @@logger.an_event.fatal e.message
         raise Error.new(OPEN_DRIVER_FAILED, :error => e)
 
@@ -348,7 +368,7 @@ module Sahi
 
       rescue Exception => e
         if count_try > 0
-          @@logger.an_event.debug  "try #{count_try}, browser type #{@browser_type} has no pid : #{e.message}"
+          @@logger.an_event.debug "try #{count_try}, browser type #{@browser_type} has no pid : #{e.message}"
           sleep (1)
           retry
         else
