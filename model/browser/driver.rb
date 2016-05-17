@@ -226,22 +226,37 @@ module Sahi
 
     def kill
       unless @browser_pid.nil?
+        count_try = 3
+
+        @@logger.an_event.debug "going to kill pid #{@browser_pid} browser #{@browser_type}"
         begin
-          Process.kill("KILL", @browser_pid) # kill piloté par ruby
-          Process.waitall
+          #TODO remplacer taskkill par kill pour linux
+          res = IO.popen("taskkill /PID #{@browser_pid} /T /F").read
 
-        rescue Errno::ESRCH => e
-          # le process du browser n'existe plus
+          @@logger.an_event.debug "taskkill for #{@browser_type} pid #{@browser_pid} : #{res}"
 
-        rescue SignalException => e
-          raise Error.new(CLOSE_DRIVER_FAILED, :error => e)
+        rescue Exception => e
+          count_try -= 1
 
+          if count_try > 0
+            @@logger.an_event.debug "try #{count_try},kill browser type #{@browser_type} pid #{@browser_pid}: #{e.message}"
+            sleep (1)
+            retry
+
+          else
+            @@logger.an_event.error "failed to kill pid #{@browser_pid} browser #{@browser_type} : #{e.message}"
+            raise Error.new(CLOSE_DRIVER_FAILED, :error => e)
+
+          end
         else
+          @@logger.an_event.debug "kill pid #{@browser_pid} browser #{@browser_type}"
 
         ensure
 
         end
+
       else
+        @@logger.an_event.error "failed to kill browser #{@browser_type} because no pid"
         raise Error.new(CLOSE_DRIVER_FAILED, :error => e)
 
       end

@@ -199,8 +199,10 @@ begin
       pool_size = {}
       vf_arr.each { |vf|
         pool_size.merge!({vf.pattern => vf.pool_size})
+        logger.an_event.info "pool size #{vf.pattern} : #{vf.pool_size}"
       }
-      Monitoring.send_pool_size(pool_size, logger)
+      #TODO suppress monitoring
+      #Monitoring.send_pool_size(pool_size, logger)
     end
 
     Supervisor.send_online(File.basename(__FILE__, '.rb'))

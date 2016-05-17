@@ -177,9 +177,7 @@ class VisitorFactory
 
           end
         end
-        EM::PeriodicTimer.new(5 * 60) do
-          @logger.an_event.info "size pool for #{@pattern} #{@pool.num_waiting} "
-        end
+
       end
     rescue Exception => e
       @logger.an_event.error "scan visit file for #{@pattern} catch exception : #{e.message} => restarting"
@@ -343,6 +341,8 @@ class VisitorFactory
         image_name = "firefox.exe"
       when "Chrome"
         image_name = "chrome.exe"
+      when "Opera"
+        image_name = "opera.exe"
     end
 
     begin
