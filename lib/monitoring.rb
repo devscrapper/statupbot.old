@@ -267,14 +267,15 @@ module Monitoring
   end
 
 
-  def change_state_visit(visit_id, state)
+  def change_state_visit(visit_id, state, reason=nil)
 
 
     begin
       load_parameter()
 
       response = RestClient.patch "http://#{@statupweb_server_ip}:#{@statupweb_server_port}/visits/#{visit_id}",
-                                  JSON.generate({:state => state}),
+                                  JSON.generate(reason.nil? ? {:state => state} :
+                                                              {:state => state, :reason => reason}),
                                   :content_type => :json,
                                   :accept => :json
       raise response.content if response.code != 201
@@ -295,7 +296,7 @@ module Monitoring
 
       response = RestClient.patch "http://#{@statupweb_server_ip}:#{@statupweb_server_port}/visits/#{visit_id}/started",
                                   JSON.generate({:actions => actions,
-                                                :ip_geo_proxy => ip_geo_proxy}),
+                                                 :ip_geo_proxy => ip_geo_proxy}),
                                   :content_type => :json,
                                   :accept => :json
       raise response.content if response.code != 201

@@ -192,7 +192,7 @@ module Input_flows
       geo_flow = Flow.from_basename(TMP, geo_filename)
       geo_flow.write(geolocation_details)
       geo_flow.close
-
+      geo_flow.archive_previous
       geo_flow
     end
     def send_to_visitor_factory(visit_details)
@@ -216,6 +216,7 @@ module Input_flows
                            1, ".yml")
       tmp_visit.write(visit_details.to_yaml)
       tmp_visit.close
+
 
       tmp_visit
     end

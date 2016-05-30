@@ -14,10 +14,18 @@ module EngineSearches
       @id_search = 'q'
       @type_search = "searchbox"
       @label_search_button = "go"
+      @captcha_fqdn ="" #TODO à definir
     end
+
     def adverts(body)
-       []
+      []
     end
+
+    def captcha?
+      #determine si la page courant affiche un captcha bot Search
+      false #TODO par defaut
+    end
+
     def links(body)
       links = []
       body.css('li.b_algo > h2 > a').each { |l|
@@ -42,6 +50,7 @@ module EngineSearches
         {:href => body.css('a.sb_pagP').first["href"], :text => body.css('a.sb_pagP').first.text}
       end
     end
+
     private
     def input(driver)
       driver.searchbox(@id_search)

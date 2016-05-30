@@ -167,12 +167,39 @@ module Browsers
 
     end
 
+            #----------------------------------------------------------------------------------------------------------------
+    # set_input_search
+    #----------------------------------------------------------------------------------------------------------------
+    # affecte les mot clés dans la zone de recherche du moteur de recherche
+    #----------------------------------------------------------------------------------------------------------------
+    # input :
+    # type :
+    # input :
+    # keywords :
+    # output : RAS
+    #----------------------------------------------------------------------------------------------------------------
     def set_input_search(type, input, keywords)
-        r =  "#{type}(\"#{input}\", \"#{keywords}\")"
+      begin
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "type"}) if type.nil? or type == ""
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "input"}) if input.nil? or input == ""
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "keywords"}) if keywords.nil? or keywords == ""
+
+        r = "#{type}(\"#{input}\", \"#{keywords}\")"
         eval(r)
+        sleep(4) #liasse le temps à Chrome de raffraichir la page.
         # google pour IE au travers de sahi fait ubn redirect wevrs www.google.fr/webhp? ... en supprimant les keywords
         # on rejoue alors l'affectation de la zone de recherche par le keyword
         eval(r)
+
+      rescue Exception => e
+        @@logger.an_event.fatal "set input search #{type} #{input} with #{keywords} : #{e.message}"
+        raise Error.new(BROWSER_NOT_SET_INPUT_SEARCH, :values => {:browser => name, :type => type, :input => input, :keywords => keywords}, :error => e)
+
+      else
+        @@logger.an_event.debug "set input search #{type} #{input} with #{keywords}"
+
+      end
     end
+
   end
 end

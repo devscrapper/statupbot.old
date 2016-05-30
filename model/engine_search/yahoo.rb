@@ -14,10 +14,18 @@ module EngineSearches
       @id_search = 'p'
       @type_search = "textbox"
       @label_search_button = "Rechercher"
+      @captcha_fqdn ="" #TODO à definir
     end
+
     def adverts(body)
-       []
+      []
     end
+
+    def captcha?
+      #determine si la page courant affiche un captcha bot Search
+      false #TODO par defaut
+    end
+
     def links(body)
       links = []
       body.css('h3.title > a.td-u').each { |link|

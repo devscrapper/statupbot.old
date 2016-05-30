@@ -6,7 +6,7 @@ require 'csv'
 require 'pathname'
 require 'nokogiri'
 require 'addressable/uri'
-#require 'win32/screenshot'
+require 'win32/screenshot'
 
 require_relative '../engine_search/engine_search'
 require_relative '../page/link'
@@ -48,6 +48,8 @@ module Browsers
     BROWSER_NOT_GO_TO = 319
     BROWSER_NOT_FOUND_BODY = 320
     BROWSER_CLICK_MAX_COUNT = 321
+    BROWSER_NOT_SET_INPUT_SEARCH = 322
+
     #----------------------------------------------------------------------------------------------------------------
     # constant
     #----------------------------------------------------------------------------------------------------------------
@@ -130,7 +132,7 @@ module Browsers
           #TODO mettre en oeuvre Safari
           #  return Safari.new(visitor_dir, browser_details)
           when "Opera"
-          #TODO mettre en oeuvre Opera
+            #TODO mettre en oeuvre Opera
             return Opera.new(visitor_dir, browser_details)
           else
             raise Error.new(BROWSER_UNKNOWN, :values => {:browser => browser_name})
@@ -622,10 +624,7 @@ module Browsers
       end
     end
 
-    def set_input_search(type, input, keywords)
-        r =  "#{type}(\"#{input}\", \"#{keywords}\")"
-        eval(r)
-    end
+
 
     #----------------------------------------------------------------------------------------------------------------
     # name
@@ -730,8 +729,35 @@ module Browsers
       input = @driver.searchbox(var)
       input.value = val
     end
+        #----------------------------------------------------------------------------------------------------------------
+    # set_input_search
+    #----------------------------------------------------------------------------------------------------------------
+    # affecte les mot clés dans la zone de recherche du moteur de recherche
+    #----------------------------------------------------------------------------------------------------------------
+    # input :
+    # type :
+    # input :
+    # keywords :
+    # output : RAS
+    #----------------------------------------------------------------------------------------------------------------
+    def set_input_search(type, input, keywords)
+      begin
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "type"}) if type.nil? or type == ""
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "input"}) if input.nil? or input == ""
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "keywords"}) if keywords.nil? or keywords == ""
 
+        r = "#{type}(\"#{input}\", \"#{keywords}\")"
+        eval(r)
 
+      rescue Exception => e
+        @@logger.an_event.fatal "set input search #{type} #{input} with #{keywords} : #{e.message}"
+        raise Error.new(BROWSER_NOT_SET_INPUT_SEARCH, :values => {:browser => name, :type => type, :input => input, :keywords => keywords}, :error => e)
+
+      else
+        @@logger.an_event.debug "set input search #{type} #{input} with #{keywords}"
+
+      end
+    end
     #-----------------------------------------------------------------------------------------------------------------
     # submit
     #-----------------------------------------------------------------------------------------------------------------
@@ -753,7 +779,7 @@ module Browsers
         @driver.submit(form).click
 
       rescue Exception => e
-        @@logger.an_event.error e.message
+        @@logger.an_event.error "browser #{name} #{@id} submit form #{form} : #{ e.message}"
         raise Error.new(BROWSER_NOT_SUBMIT_FORM, :values => {:browser => name, :form => form}, :error => e)
 
       else
@@ -786,10 +812,15 @@ module Browsers
         begin
           @@logger.an_event.debug @driver.title
 
-          title = title
+          title = @driver.title
           @@logger.an_event.debug title
           output_file = Flow.new(SCREENSHOT, id_visitor, title[0..32], Date.today, vol, ".png")
           output_file.delete if output_file.exist?
+            #TODO Win32::Screenshot::Take.of(:window, title: title).write!(output_file.absolute_path)
+
+        rescue RAutomation::UnknownWindowException => e
+          #TODO  Win32::Screenshot::Take.of(:foreground).write!(output_file.absolute_path)
+          @@logger.an_event.warn "screenshot take foreground for browser #{name} : #{e.message}"
 
         rescue Exception => e
           @@logger.an_event.error e.message

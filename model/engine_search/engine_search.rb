@@ -1,5 +1,6 @@
 require_relative '../../lib/error'
 
+
 module EngineSearches
   class EngineSearch
     #----------------------------------------------------------------------------------------------------------------
@@ -37,7 +38,8 @@ module EngineSearches
                 :path, #le path de la page du moteur de recherche
                 :id_search, # id de de lobjet javascript qui contient les mot clé à saisir
                 :type_search, #le type de lobjet javascript qui contient les mot clé à saisir
-                :label_search_button
+                :label_search_button,
+                :captcha_fqdn # fqdn de l'url qui affiche le captcha du moteur de recherche
 
     #----------------------------------------------------------------------------------------------------------------
     # class methods

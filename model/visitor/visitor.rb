@@ -55,6 +55,7 @@ module Visitors
     VISITOR_NOT_CHOOSE_ADVERT = 629
     VISITOR_NOT_FOUND_LANDING = 630
     VISITOR_NOT_CLICK_ON_REFERRAL = 631
+    VISITOR_SEE_CAPTCHA = 632
     #----------------------------------------------------------------------------------------------------------------
     # constants
     #----------------------------------------------------------------------------------------------------------------
@@ -367,6 +368,7 @@ module Visitors
             #TODO à deplacer ou conditionner pour les pages du Website
             #TODO discriminer les pages poour afficher des couleurs differente dans statupweb pour sur search, referral, website, advert
             Monitoring.page_browse(@visit.id)
+            take_screenshot if $debugging
 
           ensure
             @@logger.an_event.debug "index action #{count_actions}"
@@ -1166,7 +1168,7 @@ module Visitors
 
       @@logger.an_event.info "visitor #{@id} begin reading <#{page.url}> during #{page.sleeping_time}s"
 
-      sleep page.sleeping_time
+      sleep page.sleeping_time if $staging != "development"
 
       @@logger.an_event.debug "visitor #{@id} finish reading on page <#{page.url}>"
 
@@ -1181,13 +1183,35 @@ module Visitors
 
         #permet d'utiliser des méthodes differentes en fonction des moteurs de recherche qui n'identifie pas l'input
         #des mot clé avec le même objet html
-        #le omportement de Internet Explorer est différent donc creation d'une méthode pour gérer l'initialisation de la zone de recerche.
+        #le omportement de Internet Explorer/Chrome/Opera est différent donc creation d'une méthode pour gérer l'initialisation de la zone de recerche.
         @browser.set_input_search(@current_page.type, @current_page.input, keywords)
+
+        @@logger.an_event.debug "set input search #{@current_page.type} #{@current_page.input} #{keywords}"
 
         @browser.submit(@current_page.submit_button)
 
+      rescue Error => e
+        case e.code
+          when BROWSER_NOT_SET_INPUT_SEARCH
+            # identifier si un cpacha est apparu
+            r = "#{@current_page.type}(\"#{@browser.url}\")"
+            if eval(r) # on a trouve un captcha
+              e = Error.new(VISITOR_SEE_CAPTCHA, :values => {:type => @current_page.type}, :error => e)
+            end
+
+          when BROWSER_NOT_SUBMIT_FORM
+
+
+          else
+
+
+        end
+
+        raise Error.new(VISITOR_NOT_SUBMIT_FINAL_SEARCH, :error => e)
+
       rescue Exception => e
-        @@logger.an_event.error e.message
+        @@logger.an_event.error "visitor #{@id} submited final search <#{keywords}> : #{e.message}"
+
         raise Error.new(VISITOR_NOT_SUBMIT_FINAL_SEARCH, :error => e)
 
       else
@@ -1235,10 +1259,31 @@ module Visitors
 
         #permet d'utiliser des méthodes differentes en fonction des moteurs de recherche qui n'identifie pas l'input
         #des mot clé avec le même objet html
-        #le omportement de Internet Explorer est différent donc creation d'une méthode pour gérer l'initialisation de la zone de recerche.
+        #le omportement de Internet Explorer/Chrome/Opera est différent donc creation d'une méthode pour gérer l'initialisation de la zone de recerche.
         @browser.set_input_search(@current_page.type, @current_page.input, keywords)
 
+        @@logger.an_event.debug "set input search #{@current_page.type} #{@current_page.input} #{keywords}"
+
         @browser.submit(@current_page.submit_button)
+
+      rescue Error => e
+        case e.code
+          when BROWSER_NOT_SET_INPUT_SEARCH
+            # identifier si un cpacha est apparu
+            r = "#{@current_page.type}(\"#{@browser.url}\")"
+            if eval(r) # on a trouve un captcha
+              e = Error.new(VISITOR_SEE_CAPTCHA, :values => {:type => @current_page.type}, :error => e)
+            end
+
+          when BROWSER_NOT_SUBMIT_FORM
+
+
+          else
+
+
+        end
+
+        raise Error.new(VISITOR_NOT_SUBMIT_FINAL_SEARCH, :error => e)
 
       rescue Exception => e
         @@logger.an_event.error e.message

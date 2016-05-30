@@ -1,3 +1,5 @@
+require 'addressable/uri'
+
 require_relative '../../lib/error'
 module EngineSearches
   class Google < EngineSearch
@@ -13,6 +15,7 @@ module EngineSearches
       @id_search = 'q'
       @type_search = "textbox"
       @label_search_button = "Recherche Google"
+      @captcha_fqdn ="ipv4.google.com"
     end
 
     def adverts(body)
@@ -23,6 +26,22 @@ module EngineSearches
       adverts
     end
 
+    def captcha?(url)
+      #determine si la page courant affiche un captcha bot Search
+      found = false
+      begin
+
+        uri = Addressable::URI.parse(url)
+
+      rescue Exception => e
+
+      else
+        found = uri.host == @captcha_fqdn
+
+      ensure
+        found
+      end
+    end
     def links(body)
       links = []
       body.css('h3.r > a').each { |l|
@@ -54,6 +73,8 @@ module EngineSearches
     def input(driver)
       driver.textbox(@id_search)
     end
+
+
   end
 
 end

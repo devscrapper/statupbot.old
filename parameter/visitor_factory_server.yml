@@ -3,7 +3,7 @@ development:
   :delay_periodic_scan: 10 #en seconde
   :delay_periodic_pool_size_monitor: 5 #en minute
   :delay_periodic_load_geolocations: 60 #en minute
-  :delay_out_of_time: 15 #delais max d'une visit depasse par rapport a son heure de demarrage en minute
+  :delay_out_of_time: 15 # en minute, delais max d'une visit depasse par rapport a son heure de demarrage, si =0 alors les visits ne sont jamais out of time
   :monitoring_server_ip: 127.0.0.1
   :http_server_listening_port: 8083
   :periodicity_supervision: 15m  #(minute)
@@ -15,7 +15,7 @@ test:
   :delay_periodic_scan: 60  #en seconde
   :delay_periodic_pool_size_monitor: 5 #en minute
   :delay_periodic_load_geolocations: 60 #en minute
-  :delay_out_of_time: 15 # delais max d'une visit depasse par rapport a son heure de demarrage
+  :delay_out_of_time: 15 # en minute, delais max d'une visit depasse par rapport a son heure de demarrage, si =0 alors les visits ne sont jamais out of time
   :monitoring_server_ip: 192.168.1.85
   :http_server_listening_port: 18421 #8083
   :periodicity_supervision: 15m  #(minute)
@@ -27,7 +27,7 @@ production:
   :delay_periodic_scan: 60
   :delay_periodic_pool_size_monitor: 5 #en minute
   :delay_periodic_load_geolocations: 60 #en minute
-  :delay_out_of_time: 15 # delais max d'une visit depasse par rapport a son heure de demarrage
+  :delay_out_of_time: 15 # en minute, delais max d'une visit depasse par rapport a son heure de demarrage, si =0 alors les visits ne sont jamais out of time
   :monitoring_server_ip: 127.0.0.1
   :http_server_listening_port: 8083
   :periodicity_supervision: 15m  #(minute)
