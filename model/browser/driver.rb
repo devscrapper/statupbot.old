@@ -1,5 +1,6 @@
 require_relative '../../lib/os'
 require_relative '../../lib/error'
+require 'win32/window'
 require 'rexml/document'
 require 'sahi'
 
@@ -47,7 +48,7 @@ module Sahi
     # attribut
     #----------------------------------------------------------------------------------------------------------------
 
-    attr_reader :browser_type, :browser_pid, :browser_process_name
+    attr_reader :browser_type, :browser_pid, :browser_process_name, :browser_window_handle
 
     #----------------------------------------------------------------------------------------------------------------
     # class methods
@@ -334,7 +335,7 @@ module Sahi
         execute_step("window.document.title =" + Utils.quoted(@sahisid.to_s))
         @@logger.an_event.debug "set windows title browser #{@browser_type} with #{@sahisid.to_s}"
         get_pid_browser
-
+        get_handle_window_browser
       ensure
 
       end
@@ -358,6 +359,23 @@ module Sahi
       exist = false
       windows.each { |win| exist = exist || (win["wasOpened"] == "1" && win["windowURL"] != url) }
       exist
+    end
+
+    def take_screenshot(to_absolute_path)
+      #TODO update for linux
+      begin
+        Win32::Screenshot::Take.of(:window,
+                                   hwnd: @browser_window_handle).write!(to_absolute_path)
+      rescue Exception => e
+        Win32::Screenshot::Take.of(:desktop).write!(to_absolute_path)
+      else
+      end
+    end
+
+    def resize (width, height)
+      #TODO update for linux
+      Window.from_handle(@browser_window_handle).resize(width,
+                                                        height)
     end
 
     private
@@ -396,7 +414,11 @@ module Sahi
 
       end
     end
-  end
+
+    def get_handle_window_browser
+      @browser_window_handle = Window.find(:title => /#{@sahisid.to_s}/).first.handle
+    end
+  end # Browser
 
 
   #-------------------------------------------------------------------------------------------------------------

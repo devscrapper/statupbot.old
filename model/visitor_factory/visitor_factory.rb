@@ -130,14 +130,20 @@ class VisitorFactory
           # ceci afin de ne pas dénaturer la planification calculer par enginebot.
           # pour pallier à cet engorgement, il faut augmenter le nombre d'instance concurrente de navigateur dans le fichier browser_type.csv
           # un jour peut être ce fonctionnement sera revu pour adapter automatiquement le nombre d'instance concurrente d'un nivagteur (cela nécessite de prévoir un pool de numero de port pour sahi proxy)
+          # ajout 18/05/2016 : si delay_out_of_time == 0 alors les visits ne sont jamais hors delais comme developpement
+          # qq soient la policy (seaattack, traffic, rank).
+          # Demain cela pourrait être conditionné en fonction du type de visit qui nécessite absoluement de suivre
+          # la planifiication comme Traffic pour ne pas dénaturé les statisitique GA du website
           start_time_visit = tmp_flow_visit.date.split(/-/)
 
-          if $staging == "development" or ($staging != "development" and Time.now - Time.local(start_time_visit[0],
+          if $staging == "development" or  # en developpement => pas de visit hors delais
+              @delay_out_of_time == 0 or # si delay_out_of_time == 0 => pas de visit hors délais
+              ($staging != "development" and Time.now - Time.local(start_time_visit[0],
                                                                                                start_time_visit[1],
                                                                                                start_time_visit[2],
                                                                                                start_time_visit[3],
                                                                                                start_time_visit[4],
-                                                                                               start_time_visit[5]) <= @delay_out_of_time * 60)
+                                                                                               start_time_visit[5]) <= @delay_out_of_time * 60) # huere de déclenchement de la visit doit être dans le délaus imparti par @delay_out_of_time
 
             @pool.perform do |dispatcher|
               dispatcher.dispatch do |details|
@@ -171,8 +177,6 @@ class VisitorFactory
               @logger.an_event.warn e.message
 
             end
-            #TODO à supprimer
-            Monitoring.send_visit_out_of_time(@pattern, logger)
             @logger.an_event.warn "visit #{tmp_flow_visit.basename} for #{@pattern} is out of time."
 
           end

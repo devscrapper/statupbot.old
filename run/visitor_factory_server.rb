@@ -201,8 +201,7 @@ begin
         pool_size.merge!({vf.pattern => vf.pool_size})
         logger.an_event.info "pool size #{vf.pattern} : #{vf.pool_size}"
       }
-      #TODO suppress monitoring
-      #Monitoring.send_pool_size(pool_size, logger)
+
     end
 
     Supervisor.send_online(File.basename(__FILE__, '.rb'))

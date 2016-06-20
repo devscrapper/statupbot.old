@@ -87,15 +87,52 @@ Trollop::die :proxy_ip, "is require with proxy" if opts[:proxy_type] != "none" a
 Trollop::die :proxy_port, "is require with proxy" if opts[:proxy_type] != "none" and opts[:proxy_port].nil?
 
 
+#-----------------------------------------------------------------------------------------------------------------------
+# gestion des erreurs :
+# visitor_bot retourne à la fois un CR à visitor_factory et envoie une raison de l'erreur à statupweb
+# tableau d'alignement des CR et des raisons :
+#-----------------------------------------------------------------------------------------------------------------------
+# ERROR                          | CR                      | RAISON
+#-----------------------------------------------------------------------------------------------------------------------
+# no error                       | OK                      | no reason
+# error not identifie            | KO                      | "error not catch"
+#-----------------------------------------------------------------------------------------------------------------------
+# ARGUMENT_UNDEFINE              | ERR_VISIT_DEFINITION    | "visit definition"
+# VISIT_NOT_LOAD                 | ERR_VISIT_LOADING       | "visit loading"
+# VISIT_NOT_CREATE               | ERR_VISIT_CREATION      | "visit creation"
+# VISITOR_NOT_FULL_EXECUTE_VISIT | ERR_VISIT_EXECUTION     | "visit execution"
+# Timeout::Error                 | ERR_VISIT_OVER_TTL      | "visit over ttl"
+#-----------------------------------------------------------------------------------------------------------------------
+# ARGUMENT_UNDEFINE              | ERR_VISITOR_DEFINITON   | "visitor definition"
+# VISITOR_NOT_CREATE             | ERR_VISITOR_CREATION    | "visitor creation"
+# VISITOR_NOT_BORN               | ERR_VISITOR_BIRTH       | "visitor birth"
+# VISITOR_NOT_DIE                | ERR_VISITOR_DEATH       | "visitor death"
+# VISITOR_NOT_INHUME             | ERR_VISITOR_INHUMATION  | "visitor inhumation"
+#-----------------------------------------------------------------------------------------------------------------------
+# VISITOR_NOT_OPEN               | ERR_BROWSER_OPENING     | "browser opening"
+# VISITOR_NOT_CLOSE              | ERR_BROWSER_CLOSING     | "browser closing"
+#-----------------------------------------------------------------------------------------------------------------------
+# BROWSER_NOT_FOUND_LINK         | ERR_LINK_TRACKING       | "link tracking"
+# NONE_ADVERT                    | ERR_ADVERT_TRACKING     | "advert tracking"
+# VISITOR_SEE_CAPTCHA            | ERR_CAPTCHA_SUBMITTING    | "captcha occurence"
+#-----------------------------------------------------------------------------------------------------------------------
 OK = 0
 KO = 1
-NO_AD = 2
-NO_LANDING = 3
-OVER_TTL = 4
-NO_CLOSE = 5
-NO_DIE = 6
-NO_OPEN = 7
-
+ERR_VISIT_DEFINITION = 2
+ERR_VISIT_LOADING = 3
+ERR_VISIT_CREATION = 4
+ERR_VISIT_OVER_TTL = 5
+ERR_VISITOR_DEFINITON = 6
+ERR_VISITOR_CREATION = 7
+ERR_VISITOR_BIRTH = 8
+ERR_VISITOR_DEATH = 9
+ERR_VISITOR_INHUMATION = 10
+ERR_BROWSER_OPENING = 11
+ERR_BROWSER_CLOSING = 12
+ERR_LINK_TRACKING = 13
+ERR_ADVERT_TRACKING = 14
+ERR_CAPTCHA_SUBMITTING = 15
+ERR_VISIT_EXECUTION = 16
 
 def visit_started(visit, visitor, logger)
   begin
@@ -108,9 +145,9 @@ def visit_started(visit, visitor, logger)
   end
 end
 
-def change_visit_state(visit_id, state, logger)
+def change_visit_state(visit_id, state, logger, reason=nil)
   begin
-    Monitoring.change_state_visit(visit_id, state)
+    Monitoring.change_state_visit(visit_id, state, reason)
 
   rescue Exception => e
     logger.an_event.warn e.message
@@ -126,49 +163,51 @@ def visitor_is_no_slave(max_time_to_live_visit, opts, logger)
 
 
     exit_status = Timeout::timeout(max_time_to_live_visit * 60) {
-      #---------------------------------------------------------------------------------------------------------------------
-      # chargement du fichier definissant la visite
-      #---------------------------------------------------------------------------------------------------------------------
-      visit_details,
-          website_details,
-          visitor_details = Visit.load(opts[:visit_file_name])
 
-
-      context = ["visit=#{visit_details[:id]}"]
-      logger.ndc context
-
-
-      #---------------------------------------------------------------------------------------------------------------------
-      # Creation de la visit
-      #---------------------------------------------------------------------------------------------------------------------
-      visit = Visit.build(visit_details, website_details)
-
-      #---------------------------------------------------------------------------------------------------------------------
-      # Creation du visitor
-      #---------------------------------------------------------------------------------------------------------------------
-      visitor_details[:browser][:proxy_system] = opts[:proxy_system] == "yes"
-      visitor_details[:browser][:listening_port_proxy] = opts[:listening_port_sahi_proxy]
-      visitor_details[:browser][:proxy_ip] = opts[:proxy_ip]
-      visitor_details[:browser][:proxy_port] = opts[:proxy_port]
-      visitor_details[:browser][:proxy_user] = opts[:proxy_user]
-      visitor_details[:browser][:proxy_pwd] = opts[:proxy_pwd]
-
-      visitor = Visitor.new(visitor_details)
-
-      #---------------------------------------------------------------------------------------------------------------------
-      # Naissance du Visitor
-      #---------------------------------------------------------------------------------------------------------------------
-      visitor.born
-      #---------------------------------------------------------------------------------------------------------------------
-      # Visitor open browser
-      #---------------------------------------------------------------------------------------------------------------------
       begin
+        #---------------------------------------------------------------------------------------------------------------------
+        # chargement du fichier definissant la visite
+        #---------------------------------------------------------------------------------------------------------------------
+        visit_details,
+            website_details,
+            visitor_details = Visit.load(opts[:visit_file_name])
+
+
+        context = ["visit=#{visit_details[:id]}"]
+        logger.ndc context
+
+
+        #---------------------------------------------------------------------------------------------------------------------
+        # Creation de la visit
+        #---------------------------------------------------------------------------------------------------------------------
+        visit = Visit.build(visit_details, website_details)
+
+        #---------------------------------------------------------------------------------------------------------------------
+        # Creation du visitor
+        #---------------------------------------------------------------------------------------------------------------------
+        visitor_details[:browser][:proxy_system] = opts[:proxy_system] == "yes"
+        visitor_details[:browser][:listening_port_proxy] = opts[:listening_port_sahi_proxy]
+        visitor_details[:browser][:proxy_ip] = opts[:proxy_ip]
+        visitor_details[:browser][:proxy_port] = opts[:proxy_port]
+        visitor_details[:browser][:proxy_user] = opts[:proxy_user]
+        visitor_details[:browser][:proxy_pwd] = opts[:proxy_pwd]
+
+        visitor = Visitor.new(visitor_details)
+
+        #---------------------------------------------------------------------------------------------------------------------
+        # Naissance du Visitor
+        #---------------------------------------------------------------------------------------------------------------------
+        visitor.born
+
+        #---------------------------------------------------------------------------------------------------------------------
+        # Visitor open browser
+        #---------------------------------------------------------------------------------------------------------------------
         visitor.open_browser
 
         #---------------------------------------------------------------------------------------------------------------------
         # Visitor execute visit
         #---------------------------------------------------------------------------------------------------------------------
-        visit_started(visit,  visitor, logger)
+        visit_started(visit, visitor, logger)
 
         visitor.execute(visit)
         #---------------------------------------------------------------------------------------------------------------------
@@ -183,76 +222,103 @@ def visitor_is_no_slave(max_time_to_live_visit, opts, logger)
 
         #---------------------------------------------------------------------------------------------------------------------
         # Visitor inhume
-        #---------------------------------------------------------------------------------------------------------------------
+        #---------------------------------------------------------------------------------------------------------------
         visitor.inhume
 
       rescue Exception => e
-        exit_status = KO
-
+        # fail debut
         case e.code
-          when Visits::Visit::ARGUMENT_UNDEFINE,
-              Visits::Visit::VISIT_NOT_LOAD,
-              Visits::Visit::VISIT_NOT_CREATE
-            change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
+          when Visits::Visit::ARGUMENT_UNDEFINE
+            exit_status = ERR_VISIT_DEFINITION
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "visit definition")
 
-          when Visitors::Visitor::ARGUMENT_UNDEFINE,
-              Visitors::Visitor::VISITOR_NOT_CREATE,
-              Visitors::Visitor::VISITOR_NOT_BORN,
-              Visitors::Visitor::VISITOR_NOT_DIE,
-              Visitors::Visitor::VISITOR_NOT_INHUME
-            change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
+          when Visits::Visit::VISIT_NOT_LOAD
+            exit_status = ERR_VISIT_LOADING
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "visit loading")
 
-          when Visitors::Visitor::VISITOR_NOT_OPEN,
-              Visitors::Visitor::VISITOR_NOT_CLOSE
+          when Visits::Visit::VISIT_NOT_CREATE
+            exit_status = ERR_VISIT_CREATION
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "visit creation")
+
+          when Visitors::Visitor::ARGUMENT_UNDEFINE
+            exit_status = ERR_VISITOR_DEFINITON
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "visitor definition")
+
+          when Visitors::Visitor::VISITOR_NOT_CREATE
+            exit_status = ERR_VISITOR_CREATION
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "visitor creation")
+
+          when Visitors::Visitor::VISITOR_NOT_BORN
+            exit_status = ERR_VISITOR_BIRTH
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "visitor birth")
+
+          when Visitors::Visitor::VISITOR_NOT_DIE
+            exit_status = ERR_VISITOR_DEATH
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "visitor death")
+
+          when Visitors::Visitor::VISITOR_NOT_INHUME
+            exit_status = ERR_VISITOR_INHUMATION
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "visitor inhumation")
+
+          when Visitors::Visitor::VISITOR_NOT_OPEN
+            exit_status = ERR_BROWSER_OPENING
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "browser opening")
+
+          when Visitors::Visitor::VISITOR_NOT_CLOSE
+            exit_status = ERR_BROWSER_CLOSING
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "browser closing")
+
             begin
               visitor.die
-            rescue Exception => e
-            else
-            ensure
-              change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
 
-              if e.history.include?(Visitors::Visitor::VISITOR_NOT_OPEN)
-                exit_status = NO_OPEN
-              elsif e.history.include?(Visitors::Visitor::VISITOR_NOT_CLOSE)
-                exit_status = NO_CLOSE
-              elsif e.history.include?(Visitors::Visitor::VISITOR_NOT_DIE)
-                exit_status = NO_DIE
-              else
-                exit_status = KO
-              end
+            rescue Exception => e
 
             end
 
           when Visitors::Visitor::VISITOR_NOT_FULL_EXECUTE_VISIT
+            if e.history.include?(Browsers::Browser::BROWSER_NOT_FOUND_LINK)
+              change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "link tracking")
+              exit_status = ERR_LINK_TRACKING
+
+            elsif e.history.include?(Visitors::Visitor::VISITOR_NOT_CHOOSE_ADVERT)
+              change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "advert tracking")
+              exit_status = ERR_ADVERT_TRACKING
+
+            elsif e.history.include?(Visitors::Visitor::VISITOR_NOT_CLOSE)
+              change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "browser closing")
+              exit_status = ERR_BROWSER_CLOSING
+
+            elsif e.history.include?(Visitors::Visitor::VISITOR_NOT_DIE)
+              change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "visitor death")
+              exit_status = ERR_VISITOR_DEATH
+
+            elsif e.history.include?(Visitors::Visitor::VISITOR_NOT_SUBMIT_CAPTCHA)
+              change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "captcha submitting")
+              exit_status = ERR_CAPTCHA_SUBMITTING
+
+            else
+              exit_status = ERR_VISIT_EXECUTION
+              change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "visit execution")
+            end
+
             begin
               visitor.close_browser
               visitor.die
+
             rescue Exception => e
-            else
-            ensure
-              change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
-
-              if e.history.include?(Browsers::Browser::BROWSER_NOT_FOUND_LINK)
-                exit_status = NO_LANDING
-              elsif e.history.include?(Visits::Advertisings::Advertising::NONE_ADVERT)
-                exit_status = NO_AD
-              elsif e.history.include?(Visitors::Visitor::VISITOR_NOT_CLOSE)
-                exit_status = NO_CLOSE
-              elsif e.history.include?(Visitors::Visitor::VISITOR_NOT_DIE)
-                exit_status = NO_DIE
-              else
-                exit_status = KO
-              end
-
             end
 
+            exit_status
 
           else
-            change_visit_state(visit_details[:id], Monitoring::FAIL, logger)
+            change_visit_state(visit_details[:id], Monitoring::FAIL, logger, "error not catch")
             exit_status = KO
 
         end
+        exit_status
+          # fail end
       else
+        # Success
         change_visit_state(visit_details[:id], Monitoring::SUCCESS, logger)
         exit_status = OK
 
@@ -264,178 +330,21 @@ def visitor_is_no_slave(max_time_to_live_visit, opts, logger)
 
 
   rescue Timeout::Error => e
-    visitor.close_browser
-    visitor.die
+    begin
+      visitor.close_browser
+      visitor.die
+    rescue Exception => e
+    end
     visit_details,
         website_details,
         visitor_details = Visit.load(opts[:visit_file_name])
-    change_visit_state(visit_details[:id], Monitoring::OVERTTL, logger)
-    exit_status = OVER_TTL
+    change_visit_state(visit_details[:id], Monitoring::OVERTTL, logger, "visit over ttl")
+    exit_status = ERR_VISIT_OVER_TTL
 
   ensure
     exit_status
 
   end
-end
-
-
-#------------------------------------------------------------------------------------------------------------------
-# #------------------------------------------------------------------------------------------------------------------
-# #------------------------------------------------------------------------------------------------------------------
-# #------------------------------------------------------------------------------------------------------------------
-def visitor_is_no_slave_old(opts, logger)
-  visit = nil
-  visitor = nil
-
-  #---------------------------------------------------------------------------------------------------------------------
-  # chargement du fichier definissant la visite
-  #---------------------------------------------------------------------------------------------------------------------
-  begin
-
-    visit_details,
-        website_details,
-        visitor_details = Visit.load(opts[:visit_file_name])
-
-  rescue Exception => e
-
-    Monitoring.send_failure(e, opts[:visit_file_name], logger)
-    return KO
-
-  end
-
-  context = ["visit=#{visit_details[:id]}"]
-  logger.ndc context
-
-  #---------------------------------------------------------------------------------------------------------------------
-  # Creation de la visit
-  #---------------------------------------------------------------------------------------------------------------------
-  begin
-
-    visit = Visit.build(visit_details, website_details)
-
-  rescue Exception => e
-
-    Monitoring.send_failure(e, visit_details, logger)
-    return KO
-
-  end
-  #---------------------------------------------------------------------------------------------------------------------
-  # Creation du visitor
-  #---------------------------------------------------------------------------------------------------------------------
-  visitor_details[:browser][:proxy_system] = opts[:proxy_system] == "yes"
-  visitor_details[:browser][:listening_port_proxy] = opts[:listening_port_sahi_proxy]
-  visitor_details[:browser][:proxy_ip] = opts[:proxy_ip]
-  visitor_details[:browser][:proxy_port] = opts[:proxy_port]
-  visitor_details[:browser][:proxy_user] = opts[:proxy_user]
-  visitor_details[:browser][:proxy_pwd] = opts[:proxy_pwd]
-
-  begin
-
-    visitor = Visitor.new(visitor_details)
-
-  rescue Exception => e
-
-    Monitoring.send_failure(e, visit_details, logger)
-    return KO
-
-  end
-
-  #---------------------------------------------------------------------------------------------------------------------
-  # Naissance du Visitor
-  #---------------------------------------------------------------------------------------------------------------------
-  begin
-
-    visitor.born
-
-  rescue Exception => e
-
-    Monitoring.send_failure(e, visit_details, logger)
-    return KO
-
-  end
-
-  #---------------------------------------------------------------------------------------------------------------------
-  # Visitor open browser
-  #---------------------------------------------------------------------------------------------------------------------
-  begin
-
-    visitor.open_browser
-
-  rescue Exception => e
-
-    Monitoring.send_failure(e, visit_details, logger)
-    visitor.die
-    return KO
-
-  end
-
-  #---------------------------------------------------------------------------------------------------------------------
-  # Visitor execute visit
-  #---------------------------------------------------------------------------------------------------------------------
-  begin
-
-    visitor.execute(visit)
-
-  rescue Exception => e
-
-    Monitoring.send_failure(e, visit_details, logger)
-    visitor.close_browser
-    visitor.die
-    if e.history.include?(Browsers::Browser::BROWSER_NOT_FOUND_LINK)
-      cr = NO_LANDING
-    elsif e.history.include?(Visits::Advertisings::Advertising::NONE_ADVERT)
-      cr = NO_AD
-    else
-      cr = KO
-    end
-    return cr
-
-  end
-
-
-  begin
-
-    visitor.close_browser
-
-  rescue Exception => e
-
-    Monitoring.send_failure(e, visit_details, logger)
-    visitor.die
-    return KO
-
-  end
-
-  #---------------------------------------------------------------------------------------------------------------------
-  # Visitor die
-  #---------------------------------------------------------------------------------------------------------------------
-  begin
-
-    visitor.die
-
-  rescue Exception => e
-
-    Monitoring.send_failure(e, visit_details, logger)
-    return KO
-
-  end
-
-  #---------------------------------------------------------------------------------------------------------------------
-  # Visitor inhume
-  #---------------------------------------------------------------------------------------------------------------------
-  begin
-
-    visitor.inhume
-
-  rescue Exception => e
-
-    Monitoring.send_failure(e, visit_details, logger)
-    return KO
-
-  end
-
-
-  Monitoring.send_success(visit_details, logger)
-  OK
 end
 
 
@@ -491,6 +400,7 @@ else
   logger.an_event.debug "begin execution visitor_bot"
   #exit_status = visitor_is_slave(opts) if opts[:slave] == "yes"  pour gerer le return visitor
   exit_status = visitor_is_no_slave(max_time_to_live_visit, opts, logger) if opts[:slave] == "no"
+
   logger.an_event.debug "end execution visitor_bot, with state #{exit_status}"
   Process.exit(exit_status)
 

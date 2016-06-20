@@ -32,14 +32,18 @@ module EngineSearches
     #| :page_url            |    X     |   X  |
     #| :tag_search          |    X     |      |
     #| :id_search           |    X     |   X  |
-    #| :label_search_button |          |   X  |
+    #| :label_button_search |          |   X  |
     #+----------------------------------------+
-    attr_reader :fqdn,  #fqdn de la page du moteur ded recherche
-                :path, #le path de la page du moteur de recherche
+    attr_reader :fqdn_search,  #fqdn de la page du moteur ded recherche
+                :path_search, #le path de la page du moteur de recherche
                 :id_search, # id de de lobjet javascript qui contient les mot clé à saisir
                 :type_search, #le type de lobjet javascript qui contient les mot clé à saisir
-                :label_search_button,
-                :captcha_fqdn # fqdn de l'url qui affiche le captcha du moteur de recherche
+                :label_button_search, #label du bouton pour executer la recherche
+                :id_captcha, #id de l'objet javascript qui contient le captcha à saisir
+                :type_captcha, #le type de l'objet jaavscript qui contient le captcha à saisir
+                :fqdn_captcha, # fqdn de l'url qui affiche le captcha du moteur de recherche
+                :label_button_captcha, # label du bouton pour valider le captcha
+                :id_image_captcha # id de l'objet javascript présentant l'image du captcha
 
     #----------------------------------------------------------------------------------------------------------------
     # class methods
@@ -69,7 +73,7 @@ module EngineSearches
 
 
     def page_url
-      "#{@fqdn}#{path}"
+      "#{@fqdn_search}#{@path_search}"
     end
 
 

@@ -49,7 +49,7 @@ module Browsers
     BROWSER_NOT_FOUND_BODY = 320
     BROWSER_CLICK_MAX_COUNT = 321
     BROWSER_NOT_SET_INPUT_SEARCH = 322
-
+    BROWSER_NOT_SET_INPUT_CAPTCHA = 323
     #----------------------------------------------------------------------------------------------------------------
     # constant
     #----------------------------------------------------------------------------------------------------------------
@@ -132,8 +132,8 @@ module Browsers
           #TODO mettre en oeuvre Safari
           #  return Safari.new(visitor_dir, browser_details)
           when "Opera"
-            #TODO mettre en oeuvre Opera
             return Opera.new(visitor_dir, browser_details)
+
           else
             raise Error.new(BROWSER_UNKNOWN, :values => {:browser => browser_name})
         end
@@ -295,7 +295,7 @@ module Browsers
 
         if link.is_a?(Sahi::ElementStub)
           link_element = link
-          raise "browser #{@id} not found link_element #{link_element.to_s}" unless link_element.exists?
+          raise "browser #{@id} not found Sahi::ElementStub #{link_element.to_s}" unless link_element.exists?
 
           # on sait que le link exist, mais on ne sait pas avec element il a été identifié
           # alors on re-test l'existance pour trouver le bon find_element
@@ -310,21 +310,21 @@ module Browsers
                 if found = link_element.exists?
                   break
                 else
-                  @@logger.an_event.warn "browser #{@id} not found link_element #{link_element.to_s}"
+                  @@logger.an_event.warn "browser #{@id} not found Pages::Link #{link_element.to_s}"
                 end
               rescue Exception => e
               end
             end
           }
-          raise "browser #{@id} not found link_element #{link_element.to_s}" unless found
+          raise "browser #{@id} not found Pages::Link #{link_element.to_s}" unless found
 
         elsif link.is_a?(URI)
           link_element = @driver.link(link.to_s)
-          raise "browser #{@id} not found link_element #{link_element.to_s}" unless link_element.exists?
+          raise "browser #{@id} not found URI #{link_element.to_s}" unless link_element.exists?
 
         elsif link.is_a?(String)
           link_element = @driver.link(link)
-          raise "browser #{@id} not found link_element #{link_element.to_s}" unless link_element.exists?
+          raise "browser #{@id} not found String #{link_element.to_s}" unless link_element.exists?
 
         end
       rescue Exception => e
@@ -625,7 +625,6 @@ module Browsers
     end
 
 
-
     #----------------------------------------------------------------------------------------------------------------
     # name
     #----------------------------------------------------------------------------------------------------------------
@@ -658,6 +657,7 @@ module Browsers
 
       begin
         @driver.open
+        @driver.resize(@width.to_i, @height.to_i)
 
       rescue Exception => e
         @@logger.an_event.error e.message
@@ -729,7 +729,8 @@ module Browsers
       input = @driver.searchbox(var)
       input.value = val
     end
-        #----------------------------------------------------------------------------------------------------------------
+
+    #----------------------------------------------------------------------------------------------------------------
     # set_input_search
     #----------------------------------------------------------------------------------------------------------------
     # affecte les mot clés dans la zone de recherche du moteur de recherche
@@ -758,6 +759,37 @@ module Browsers
 
       end
     end
+
+    #----------------------------------------------------------------------------------------------------------------
+    # set_input_captcha
+    #----------------------------------------------------------------------------------------------------------------
+    # affecte le mot du captcha dans la zone de saisie du captcha
+    #----------------------------------------------------------------------------------------------------------------
+    # input :
+    # type :
+    # input :
+    # keywords :
+    # output : RAS
+    #----------------------------------------------------------------------------------------------------------------
+    def set_input_captcha(type, input, captcha)
+      begin
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "type"}) if type.nil? or type == ""
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "input"}) if input.nil? or input == ""
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "captcha"}) if captcha.nil? or captcha == ""
+
+        r = "#{type}(\"#{input}\", \"#{captcha}\")"
+        eval(r)
+
+      rescue Exception => e
+        @@logger.an_event.fatal "set input captcha #{type} #{input} with #{captcha} : #{e.message}"
+        raise Error.new(BROWSER_NOT_SET_INPUT_CAPTCHA, :values => {:browser => name, :type => type, :input => input, :keywords => captcha}, :error => e)
+
+      else
+        @@logger.an_event.debug "set input search #{type} #{input} with #{captcha}"
+
+      end
+    end
+
     #-----------------------------------------------------------------------------------------------------------------
     # submit
     #-----------------------------------------------------------------------------------------------------------------
@@ -795,7 +827,10 @@ module Browsers
     # take_screenshot
     #-----------------------------------------------------------------------------------------------------------------
     # input : RAS
-    # output : image du contenu du browser dans le repertoire screenshot
+    # output : image du contenu du browser stocker dans un fichier :
+    #  localisé dans le repertoire screenshot (par default), sinon défini par le flow
+    #  nom du fichier : browser_name, beowser_version, title_crt_page[0..32], date du jour.png, nombre de minute depuis 00:00
+    #  sinon défini par le flow
     # exception : none
     #-----------------------------------------------------------------------------------------------------------------
     # on ne genere pas d'execption pour ne pas perturber la remonter des exception de visitor_bot, car ce n'est pas
@@ -804,36 +839,36 @@ module Browsers
     #-----------------------------------------------------------------------------------------------------------------
 
 
-    def take_screenshot(id_visitor, vol = 1)
+    def take_screenshot(output_file=nil)
 
-      if id_visitor.nil?
-        @@logger.an_event.error Messages.instance[ARGUMENT_UNDEFINE, {:variable => "id_visitor"}]
-      else
-        begin
-          @@logger.an_event.debug @driver.title
+      begin
+        if output_file.nil?
 
           title = @driver.title
           @@logger.an_event.debug title
-          output_file = Flow.new(SCREENSHOT, id_visitor, title[0..32], Date.today, vol, ".png")
-          output_file.delete if output_file.exist?
-            #TODO Win32::Screenshot::Take.of(:window, title: title).write!(output_file.absolute_path)
-
-        rescue RAutomation::UnknownWindowException => e
-          #TODO  Win32::Screenshot::Take.of(:foreground).write!(output_file.absolute_path)
-          @@logger.an_event.warn "screenshot take foreground for browser #{name} : #{e.message}"
-
-        rescue Exception => e
-          @@logger.an_event.error e.message
-          @@logger.an_event.error Messages.instance[BROWSER_NOT_TAKE_SCREENSHOT, {:browser => name, :title => title}]
-
-        else
-
-          @@logger.an_event.info "browser #{name} take screen shot of #{title}"
-
-        ensure
+          output_file = Flow.new(SCREENSHOT,
+                                 @driver.name.gsub(" ", "-"),
+                                 title[0..32],
+                                 Date.today,
+                                 Time.parse(Tim.now).hour * 3600 + Time.parse(Time.now).min * 60,
+                                 ".png")
 
         end
+
+        @driver.take_screenshot(output_file.absolute_path)
+
+      rescue Exception => e
+        @@logger.an_event.error e.message
+        @@logger.an_event.error Messages.instance[BROWSER_NOT_TAKE_SCREENSHOT, {:browser => name, :title => title}]
+
+      else
+
+        @@logger.an_event.info "browser #{name} take screen shot"
+
+      ensure
+
       end
+
     end
 
     #----------------------------------------------------------------------------------------------------------------

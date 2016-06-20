@@ -42,11 +42,21 @@ module Visits
     def initialize(visit_details, website_details)
 
       begin
-        super(visit_details, website_details)
+        super(visit_details[:id],
+              visit_details[:start_date_time],
+              visit_details[:referrer])
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "advert"}) if visit_details[:advert].nil?
+
+        @@logger.an_event.debug "advert #{visit_details[:advert]}"
+
         @advertising = Advertising.build(visit_details[:advert])
         j = @advertising.advertiser.durations.size
+        @@logger.an_event.debug "count page advertiser (j) : #{j}"
+
         @regexp += "FH{#{j-1}}"
         @actions = /#{@regexp}/.random_example
+
+        @@logger.an_event.debug "@actions #{@actions}"
 
       rescue Exception => e
 

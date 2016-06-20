@@ -2,7 +2,7 @@ require 'uuid'
 require 'uri'
 require_relative '../../lib/error'
 require_relative '../../lib/logging'
-
+require_relative '../page/link'
 
 module Visits
   #--------------------------------------------------------------------------------------------------------------------
@@ -33,11 +33,40 @@ module Visits
   #--------------------------------------------------------------------------------------------------------------------
   class Rank < Visit
 
+    attr_reader :around, #perimètre de recherche des link (domain, sous domain) pour les policy qui surfent sur le website : traffic |rank,
+                :landing_link, #Object Pages::Link
+                :durations # liste des durations par page
+
+    def has_landing_link
+      true
+    end
+
     def initialize (visit_details, website_details)
       begin
-        super(visit_details, website_details)
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "f"}) if @referrer.durations.size == 0
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "i"}) if @durations.size == 0
+        super(visit_details[:id],
+              visit_details[:start_date_time],
+              visit_details[:referrer])
+
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "many_hostname"}) if website_details[:many_hostname].nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "many_account_ga"}) if website_details[:many_account_ga].nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "durations"}) if visit_details[:durations].nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing link fqdn"}) if visit_details[:landing][:fqdn].nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing link path"}) if visit_details[:landing][:path].nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing link scheme"}) if visit_details[:landing][:scheme].nil?
+
+        @@logger.an_event.debug "many_hostname #{website_details[:many_hostname]}"
+        @@logger.an_event.debug "many_account_ga #{website_details[:many_account_ga]}"
+        @@logger.an_event.debug "durations #{visit_details[:durations]}"
+        @@logger.an_event.debug "landing scheme #{visit_details[:landing][:scheme]}"
+        @@logger.an_event.debug "landing fqdn #{visit_details[:landing][:fqdn]}"
+        @@logger.an_event.debug "landing page path #{visit_details[:landing][:path]}"
+
+        @durations = visit_details[:durations]
+        @around = (website_details[:many_hostname] == :true and website_details[:many_account_ga] == :no) ? :inside_hostname : :inside_fqdn
+        @@logger.an_event.debug "around #{@around}"
+
+        @landing_link = Pages::Link.new("#{visit_details[:landing][:scheme]}://#{visit_details[:landing][:fqdn]}#{visit_details[:landing][:path]}")
+        @@logger.an_event.debug "landing link #{@landing_link}"
 
         i = @durations.size
         f = @referrer.durations.size
@@ -63,6 +92,17 @@ module Visits
       ensure
 
       end
+    end
+
+    def to_s
+      "id : #{@id} \n" +
+          "landing link : #{@landing_link} \n" +
+          "regexp : #{@regexp} \n" +
+          "actions : #{@actions} \n" +
+          "referrer : #{@referrer} \n" +
+          "durations : #{@durations} \n" +
+          "start date time : #{@start_date_time} \n" +
+          "around : #{@around} \n"
     end
   end
 

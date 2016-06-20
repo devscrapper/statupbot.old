@@ -1,4 +1,6 @@
 require_relative '../../lib/error'
+require_relative '../../lib/captcha'
+require "base64"
 
 module Pages
   #----------------------------------------------------------------------------------------------------------------
@@ -21,7 +23,7 @@ module Pages
   # cl_on_link_on_unknown	    | G	 | UnManage
   # cl_on_link_on_advertiser	| H	 | UnManage
   #----------------------------------------------------------------------------------------------------------------
-  class EngineSearch < Page
+  class Captcha < Page
     #----------------------------------------------------------------------------------------------------------------
     # include class
     #----------------------------------------------------------------------------------------------------------------
@@ -33,15 +35,18 @@ module Pages
     #----------------------------------------------------------------------------------------------------------------
     # constant
     #----------------------------------------------------------------------------------------------------------------
+    TMP = Pathname(File.join(File.dirname(__FILE__), "..", "..", "tmp")).realpath
     #----------------------------------------------------------------------------------------------------------------
     # variable de class
     #----------------------------------------------------------------------------------------------------------------
     #----------------------------------------------------------------------------------------------------------------
     # attribut
     #----------------------------------------------------------------------------------------------------------------
-    attr_reader :input, # zone de saisie des mot clés
+    attr_reader :input, # zone de saisie du capcha
                 :type, #type de la zone de saisie
-                :submit_button # bouton de validation du formulaire de recherche
+                :submit_button, # bouton de validation du formulaire de saisie de captcha
+                :image, # le capcha sous forme image
+                :str # la représentation du captcha sous forme d'une chaine de caractere
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
@@ -56,29 +61,37 @@ module Pages
     #
     #----------------------------------------------------------------------------------------------------------------
 
-    def initialize(visit, browser)
+    def initialize(browser)
       begin
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "visit"}) if visit.nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser"}) if browser.nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search"}) if  browser.engine_search.nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.id_captcha"}) if browser.engine_search.id_captcha.nil? or browser.engine_search.id_captcha.empty?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.type_captcha"}) if browser.engine_search.type_captcha.nil? or  browser.engine_search.type_captcha.empty?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.label_button_captcha"}) if browser.engine_search.label_button_captcha.nil? or  browser.engine_search.label_button_captcha.empty?
 
-        start_time = Time.now
 
-
-        @input = browser.engine_search.id_search
-        @type = browser.engine_search.type_search
-        @submit_button = browser.engine_search.label_button_search
+        @input = browser.engine_search.id_captcha
+        @type = browser.engine_search.type_captcha
+        @submit_button = browser.engine_search.label_button_captcha
 
         super(browser.url,
               browser.title,
-              visit.referrer.search_duration,
-              Time.now - start_time)
+              0,
+              0)
+
+        captcha_file = Flow.new(TMP, "captcha", browser.name, Date.today, nil, ".png")
+        browser.take_screenshot(captcha_file)
+        @image = Base64.urlsafe_encode64(captcha_file.read)
+        # TODO convertir le captcha en string
+        #@str = Captcha::convert_to_string(image)
+        @str = "not convert to string"
 
       rescue Exception => e
         @@logger.an_event.error e.message
         raise Error.new(PAGE_NOT_CREATE, :error => e)
 
       ensure
-        @@logger.an_event.debug "page engine search #{self.to_s}"
+        @@logger.an_event.debug "page engine captcha #{self.to_s}"
 
       end
     end

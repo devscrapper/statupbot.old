@@ -19,7 +19,7 @@ gem 'pony', '1.11'
 gem 'win32-taskscheduler'
 gem 'win32-process', '~> 0.7.4'
 gem 'ffi', '1.9.0'
-gem 'win32screenshot', '1.0.10'
+gem 'win32screenshot', '~> 2.1'
 gem 'selenium-webdriver', '2.43.0'
 gem 'nokogiri', '1.6.0'
 gem 'ruby-progressbar', '1.1.1'
@@ -29,6 +29,7 @@ gem 'regexp-examples'
 gem 'rest-client', '~> 1.6.7'
 gem 'win32-service', '~> 0.8.7'
 gem 'addressable', '~> 2.3.6'
+gem 'win32-window', '~> 0.2.0.pre'
 
 # fin new gem
 

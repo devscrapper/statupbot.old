@@ -48,6 +48,9 @@ module Visitors
   #                                 n’offrent qu’une liste des résultats dans laquelle n’apparait pas la landing_page.
   # 1  | sb_final_search          | saisie des mots clés et soumission de la recherche vers le MDR. Le mot clé permet
   #                                 d’offrir une liste des résultats dans laquelle apparait la landing_page
+  # 2  | sb_search                | saisie des mots clés et soumission de la recherche vers le MDR. Contrairement à
+  #                                 0 & 1 pas de surf sur les resultats obtenus.
+  # 3  | sb_captcha               | saisie du mot affiché dans le captcha présenter par le MDR
   #--------------------------------------------------------------------------------------------------------------------
 
   SEPARATOR = ";"

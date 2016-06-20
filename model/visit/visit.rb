@@ -3,7 +3,6 @@ require 'uuid'
 require 'uri'
 require_relative '../../lib/error'
 require_relative '../../lib/logging'
-require_relative '../page/link'
 require_relative 'advertising/advertising'
 require_relative 'referrer/referrer'
 
@@ -99,15 +98,13 @@ module Visits
     #----------------------------------------------------------------------------------------------------------------
     # attribut
     #----------------------------------------------------------------------------------------------------------------
-    attr_reader :landing_link, #Object Pages::Link
-                :regexp #expression reguliere définissant le scénario d'exécution de la visit
+    attr_reader :regexp #expression reguliere définissant le scénario d'exécution de la visit
 
     attr :actions, # liste des actions de la visite : construit à partir de la regexp
-         :referrer,
-         :durations,
-         :start_date_time,
-         :id,
-         :around #perimètre de recherche des link (domain, sous domain)
+         :id, # id de la visit
+         :referrer, # (none) | referral | organic
+         :start_date_time # date et heure de demarrage de la visit
+
 
 
     #----------------------------------------------------------------------------------------------------------------
@@ -219,40 +216,25 @@ module Visits
     # une visite qui est une ligne du flow : published-visits_label_date_hour.json
     # {"id_visit":"1321","start_date_time":"2013-04-21 00:13:00 +0200","account_ga":"pppppppppppppp","return_visitor":"true","browser":"Internet Explorer","browser_version":"8.0","operating_system":"Windows","operating_system_version":"XP","flash_version":"11.6 r602","java_enabled":"Yes","screens_colors":"32-bit","screen_resolution":"1024x768","referral_path":"(not set)","source":"google","medium":"organic","keyword":"(not provided)","pages":[{"id_uri":"856","delay_from_start":"33","hostname":"centre-aude.epilation-laser-definitive.info","page_path":"/ville-11-castelnaudary.htm","title":"Centre d'épilation laser CASTELNAUDARY centres de remise en forme CASTELNAUDARY"}]}
     #----------------------------------------------------------------------------------------------------------------
-    def initialize(visit_details, website_details)
-
-
-      @@logger.an_event.debug "id_visit #{visit_details[:id]}"
-      @@logger.an_event.debug "start_date_time #{visit_details[:start_date_time]}"
-      @@logger.an_event.debug "many_hostname #{website_details[:many_hostname]}"
-      @@logger.an_event.debug "many_account_ga #{website_details[:many_account_ga]}"
-      @@logger.an_event.debug "fqdn #{visit_details[:landing][:fqdn]}"
-      @@logger.an_event.debug "page_path #{visit_details[:landing][:page_path]}"
-      @@logger.an_event.debug "durations #{visit_details[:durations]}"
-
+    def initialize(id_visit, start_date_time, referrer)
       begin
 
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "id"}) if visit_details[:id].nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "start_date_time"}) if visit_details[:start_date_time].nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "many_hostname"}) if website_details[:many_hostname].nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "many_account_ga"}) if website_details[:many_account_ga].nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing link fqdn"}) if visit_details[:landing][:fqdn].nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing link path"}) if visit_details[:landing][:path].nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "landing link scheme"}) if visit_details[:landing][:scheme].nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "id"}) if id_visit.nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "start_date_time"}) if start_date_time.nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "referrer"}) if referrer.nil?
 
-        @id = visit_details[:id]
-        @start_date_time = visit_details[:start_date_time]
-        @durations = visit_details[:durations]
-        @around = (website_details[:many_hostname] == :true and website_details[:many_account_ga] == :no) ? :inside_hostname : :inside_fqdn
+        @@logger.an_event.debug "id_visit #{id_visit}"
+        @@logger.an_event.debug "start_date_time #{start_date_time}"
+        @@logger.an_event.debug "referrer #{referrer}"
 
-        @landing_link = Pages::Link.new("#{visit_details[:landing][:scheme]}://#{visit_details[:landing][:fqdn]}#{visit_details[:landing][:path]}")
+        @id = id_visit
+        @start_date_time = start_date_time
 
-        @referrer = Referrer.build(visit_details[:referrer])
-
+        @referrer = Referrer.build(referrer)
 
       rescue Exception => e
         @@logger.an_event.fatal e.message
-        raise e
+        raise e.message
 
       else
         @@logger.an_event.debug "visit #{@id} initialize"
@@ -272,16 +254,6 @@ module Visits
       @durations.shift
     end
 
-    def to_s
-      "id : #{@id} \n" +
-          "landing link : #{@landing_link} \n" +
-          "regexp : #{@regexp} \n" +
-          "actions : #{@actions} \n" +
-          "referrer : #{@referrer} \n" +
-          "durations : #{@durations} \n" +
-          "start date time : #{@start_date_time} \n" +
-          "around : #{@around} \n"
-    end
 
   end
 end

@@ -35,7 +35,7 @@ set :default, 'master'
 set :user, 'eric'
 set :pty, false
 set :use_sudo, false
-set :deploy_to, "/home/#{fetch(:user)}/apps/#{fetch(:application)}"
+set :deploy_to, "d:\\#{fetch(:application)}_test"
 
 
 # Default branch is :master

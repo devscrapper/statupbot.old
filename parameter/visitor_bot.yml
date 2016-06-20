@@ -3,7 +3,7 @@ development:
   :java_key_tool_path: ["\"C:", "Program Files", "Java", "jre6", "bin", "keytool.exe\""]
   :start_page_server_ip: "127.0.0.1"
   :start_page_server_port: 8080
-  :max_time_to_live_visit: 15 #en minute
+  :max_time_to_live_visit: 30 #en minute
   :debugging:  true
 test:
   :java_runtime_path: ["\"c:", "Program Files", "Java", "jre7", "bin", "java.exe\""]

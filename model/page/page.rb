@@ -21,6 +21,7 @@ module Pages
   # cl_on_link_on_unknown	    | G	 | UnManage
   # cl_on_link_on_advertiser	| H	 | UnManage
   #----------------------------------------------------------------------------------------------------------------
+  # noinspection RubyArgCount,RubyArgCount
   class Page
     #----------------------------------------------------------------------------------------------------------------
     # include class
@@ -164,3 +165,4 @@ require_relative 'engine_search'
 require_relative 'results'
 require_relative 'unmanage'
 require_relative 'website'
+require_relative 'captcha'

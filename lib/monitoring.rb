@@ -239,32 +239,7 @@ module Monitoring
     end
   end
 
-  def send_pool_size(pool_size, logger)
-    begin
-      load_parameter()
-      # par defaut on considere que EM est déjà actif => stop_EM = false
-      # cas d'usage  : visitor_factory_server ; il ne faut pas stoper la boucle EM avec EM.stop localisé dans unbind (ci-dessus)
-      stop_EM = false
-      EM.connect @monitor_server_ip, @pool_size_listening_port, PoolSizeClient, pool_size, logger, stop_EM
 
-    rescue RuntimeError => e
-      case e.message
-        # la mahcine EM n'est pas démarrée
-        when "eventmachine not initialized: evma_connect_to_server"
-          # EM n'est pas actif ; une exception a été levée alors on lance EM => stop_EM = true
-          # cas d'usage : visitor_bot ; il faut arrter la boucle EM au moyen del 'EM.stop localisé dans unbind(ci-dessus)
-          EM.run {
-            stop_EM = true
-            EM.connect @monitor_server_ip, @pool_size_listening_port, PoolSizeClient, pool_size, logger, stop_EM
-          }
-        else
-          logger.an_event.error "not sent pool size to monitoring server : #{e.message}"
-      end
-    rescue Exception => e
-      logger.an_event.error "not sent pool size to monitoring server : #{e.message}"
-
-    end
-  end
 
 
   def change_state_visit(visit_id, state, reason=nil)
@@ -281,7 +256,7 @@ module Monitoring
       raise response.content if response.code != 201
 
     rescue Exception => e
-      raise "change state to #{state} of visit #{visit_id} (#{@statupweb_server_ip}:#{@statupweb_server_port}) => #{e.message}"
+      $stderr << "change state to #{state} of visit #{visit_id} (#{@statupweb_server_ip}:#{@statupweb_server_port}) => #{e.message}"
 
     else
 
@@ -302,7 +277,7 @@ module Monitoring
       raise response.content if response.code != 201
 
     rescue Exception => e
-      raise "change state to started state of visit #{visit_id} (#{@statupweb_server_ip}:#{@statupweb_server_port}) => #{e.message}"
+      $stderr << "change state to started state of visit #{visit_id} (#{@statupweb_server_ip}:#{@statupweb_server_port}) => #{e.message}"
 
     else
 
@@ -311,17 +286,19 @@ module Monitoring
     end
   end
 
-  def page_browse(visit_id)
+  def page_browse(visit_id, actions)
+    # les actions sont optionnelles
     begin
       load_parameter()
 
       response = RestClient.patch "http://#{@statupweb_server_ip}:#{@statupweb_server_port}/visits/#{visit_id}/browsed_page",
+                                  JSON.generate({:actions => actions}),
                                   :content_type => :json,
                                   :accept => :json
       raise response.content if response.code != 201
 
     rescue Exception => e
-      raise "cannot change count browse page of visit #{visit_id} (#{@statupweb_server_ip}:#{@statupweb_server_port}) => #{e.message}"
+      $stderr << "cannot change count browse page of visit #{visit_id} (#{@statupweb_server_ip}:#{@statupweb_server_port}) => #{e.message}"
 
     else
 
@@ -358,7 +335,6 @@ module Monitoring
   module_function :send_return_code
   module_function :send_failure
   module_function :send_success
-  module_function :send_pool_size
   module_function :send_visit_out_of_time
   module_function :change_state_visit
   module_function :page_browse

@@ -9,13 +9,18 @@ module EngineSearches
     # attribut
     #----------------------------------------------------------------------------------------------------------------
 
-    def initialize       #https://www.google.fr/webhp?gws_rd=ssl&ei=ihspV9mfFYm5abK7oZAH&emsg=NCSR&noj=1
-      @fqdn = "https://www.google.fr"
-      @path = "/" #webhp?gws_rd=ssl&emsg=NCSR&noj=1"
+    def initialize #https://www.google.fr/webhp?gws_rd=ssl&ei=ihspV9mfFYm5abK7oZAH&emsg=NCSR&noj=1
+      @fqdn_search = "https://www.google.fr"
+      @path_search = "/" #webhp?gws_rd=ssl&emsg=NCSR&noj=1"
       @id_search = 'q'
       @type_search = "textbox"
-      @label_search_button = "Recherche Google"
-      @captcha_fqdn ="ipv4.google.com"
+      @label_button_search = "Recherche Google"
+
+      @fqdn_captcha ="ipv4.google.com"
+      @id_captcha = "captcha" , # id de l'objet javascript qui contient le captcha à saisir
+      @type_captcha = "textbox", # le type de l'objet jaavscript qui contient le captcha à saisir
+      @label_button_captcha = "Envoyer"  # label button captcha
+      @id_image_captcha  ="Activez l'affichage des images"    # id_image_captacha
     end
 
     def adverts(body)
@@ -26,7 +31,24 @@ module EngineSearches
       adverts
     end
 
-    def captcha?(url)
+    def captcha(body)
+      # retourne l'image captcha ou bien l'adresse de l'image sur le disk
+      # si captcha pas trouvé retourn nil
+
+      begin
+
+      rescue exception => e
+        captcha = nil
+
+      else
+
+      ensure
+        captcha
+
+      end
+    end
+
+    def is_captcha_page?(url)
       #determine si la page courant affiche un captcha bot Search
       found = false
       begin
@@ -36,12 +58,13 @@ module EngineSearches
       rescue Exception => e
 
       else
-        found = uri.host == @captcha_fqdn
+        found = uri.host == @fqdn_captcha
 
       ensure
         found
       end
     end
+
     def links(body)
       links = []
       body.css('h3.r > a').each { |l|
@@ -54,7 +77,7 @@ module EngineSearches
       if body.css('a#pnnext.pn').empty?
         {}
       else
-        {:href => "#{@fqdn}#{body.css('a#pnnext.pn')[0]["href"]}", :text => body.css('a#pnnext.pn > span').text}
+        {:href => "#{@fqdn_search}#{body.css('a#pnnext.pn')[0]["href"]}", :text => body.css('a#pnnext.pn > span').text}
       end
     end
 
@@ -63,7 +86,7 @@ module EngineSearches
       if body.css('a#pnprev.pn').empty?
         {}
       else
-        {:href => "#{@fqdn}#{body.css('a#pnprev.pn')[0]["href"]}", :text => body.css('a#pnprev.pn > span').text}
+        {:href => "#{@fqdn_search}#{body.css('a#pnprev.pn')[0]["href"]}", :text => body.css('a#pnprev.pn > span').text}
       end
     end
 

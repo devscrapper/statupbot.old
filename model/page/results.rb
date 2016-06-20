@@ -87,7 +87,7 @@ module Pages
         # maj du text du landing_link de l'objet Visit avec celui trouvé dans les résultats car les search engine ne publient pas
         # tous le même texte et celui retourné par engine bot n'est peut être pas le bon
         @links.delete_if { |l|
-           if l[:href] == visit.landing_link.url
+           if visit.has_landing_link &&  l[:href] == visit.landing_link.url
              visit.landing_link.text = l[:text]
              true
            end
@@ -107,6 +107,7 @@ module Pages
 
       else
         @@logger.an_event.debug "#{self.to_s}"
+        raise Error.new(PAGE_NONE_INSIDE_LINKS, :values => {:url => @uri.to_s}) if @links.empty?
 
       end
     end

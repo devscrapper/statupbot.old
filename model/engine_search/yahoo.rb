@@ -9,19 +9,24 @@ module EngineSearches
 
 
     def initialize
-      @fqdn = "https://fr.search.yahoo.com"
-      @path = "/"
+      @fqdn_search = "https://fr.search.yahoo.com"
+      @path_search = "/"
       @id_search = 'p'
       @type_search = "textbox"
-      @label_search_button = "Rechercher"
-      @captcha_fqdn ="" #TODO à definir
+      @label_button_search = "Rechercher"
+
+      @fqdn_captcha ="" #TODO à definir
+      @id_capcha ='' , # TODO id de l'objet javascript qui contient le captcha à saisir
+      @type_captcha = '', #TODO le type de l'objet jaavscript qui contient le captcha à saisir
+      @label_button_captcha = ""  #TODO à definir label button captcha
+      @id_image_captcha  =""    # TODO defnir id_image_captacha
     end
 
     def adverts(body)
       []
     end
 
-    def captcha?
+    def is_captcha_page?(url)
       #determine si la page courant affiche un captcha bot Search
       false #TODO par defaut
     end
