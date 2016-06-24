@@ -107,6 +107,7 @@
 907:  "engine search [engine] not submit search"
 1000: "argument [variable] not define"
 1001: "runtime browser path not found"
+1002: "none pool visitorfactory available"
 1100: "argument [variable] not define"
 1101: "browser types file not exist :[path] "
 1102: "browser [browser] version [vrs] not define"

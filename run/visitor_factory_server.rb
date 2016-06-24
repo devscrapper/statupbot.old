@@ -13,7 +13,6 @@ require_relative '../model/browser_type/browser_type'
 require_relative '../model/visitor_factory/visitor_factory'
 require_relative '../model/geolocation/geolocation_factory'
 require_relative '../lib/monitoring'
-require_relative '../model/visitor_factory/http_server'
 require_relative '../lib/supervisor'
 
 # factory which execute visitor_bot with a visit
@@ -68,26 +67,19 @@ rescue Exception => e
 else
   $staging = parameters.environment
   $debugging = parameters.debugging
-  $runtime_ruby = parameters.runtime_ruby.join(File::SEPARATOR)
-  $delay_periodic_scan = parameters.delay_periodic_scan
+  runtime_ruby = parameters.runtime_ruby.join(File::SEPARATOR)
+  delay_periodic_scan = parameters.delay_periodic_scan
   delay_out_of_time = parameters.delay_out_of_time
   delay_periodic_pool_size_monitor = parameters.delay_periodic_pool_size_monitor
   delay_periodic_load_geolocations = parameters.delay_periodic_load_geolocations
-  monitoring_server_ip = parameters.monitoring_server_ip
-  http_server_listening_port = parameters.http_server_listening_port
   periodicity_supervision = parameters.periodicity_supervision
-  # recuperation du mode debug ou pas de visitor_bot pour selectionner le fichier de log de visitor_bot à afficher dans le monitoring.
-  # l extension est differente entre debug et non debug
   max_count_current_visit = parameters.max_count_current_visit
-  debugging_visitor_bot = parameters_visitor_bot.debugging
 
-  if $runtime_ruby.nil? or
-      $delay_periodic_scan.nil? or
+  if runtime_ruby.nil? or
+      delay_periodic_scan.nil? or
       delay_out_of_time.nil? or
       delay_periodic_pool_size_monitor.nil? or
       delay_periodic_load_geolocations.nil? or
-      monitoring_server_ip.nil? or
-      http_server_listening_port.nil? or
       periodicity_supervision.nil? or
       max_count_current_visit.nil? or
       $debugging.nil? or
@@ -100,14 +92,11 @@ logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(
 
 logger.a_log.info "parameters of visitor factory server :"
 logger.a_log.info "geolocation is : #{opts[:proxy_type]}"
-logger.a_log.info "runtime ruby : #{$runtime_ruby}"
-logger.a_log.info "delay_periodic_scan (second) : #{$delay_periodic_scan}"
+logger.a_log.info "runtime ruby : #{runtime_ruby}"
+logger.a_log.info "delay_periodic_scan (second) : #{delay_periodic_scan}"
 logger.a_log.info "delay_periodic_pool_size_monitor (minute) : #{delay_periodic_pool_size_monitor}"
 logger.a_log.info "delay_periodic_load_geolocations (minute) : #{delay_periodic_load_geolocations}"
 logger.a_log.info "delay_out_of_time (minute): #{delay_out_of_time}"
-logger.a_log.info "monitoring_server_ip: #{monitoring_server_ip}"
-logger.a_log.info "http_server_listening_port: #{http_server_listening_port}"
-logger.a_log.info "debugging_visitor_bot: #{debugging_visitor_bot}"
 logger.a_log.info "periodicity supervision : #{periodicity_supervision}"
 logger.a_log.info "max count current visit : #{max_count_current_visit}"
 
@@ -128,8 +117,6 @@ begin
   bt.publish_to_sahi
   logger.a_log.info "publish browser type to \\lib\\sahi.in.co"
 
-
-  vf_arr = []
 
   EM.run do
     logger.a_log.info "visitor factory server is starting"
@@ -165,43 +152,77 @@ begin
 
     end
 
-    bt.browser.each { |name|
-      bt.browser_version(name).each { |version|
+    # si le nombre max d'occurence de visit concurrent est 1 alors toutes les visites qq soient les navugateurs
+    # s'exécuteront dans VisitorFactoryMonoInstance pour assurer une execution à la fois
+    case max_count_current_visit
+      when 0
+        raise Error.new(VisitorFactory::NONE_FACTORY)
 
-        runtime_browser_path = bt.runtime_path(name, version)
-        unless File.exist?(runtime_browser_path)
-          logger.an_event.error "runtime browser #{name} #{version} path <#{runtime_browser_path}> not found"
-          raise Error.new(VisitorFactory::RUNTIME_BROWSER_PATH_NOT_FOUND)
-        end
+      when 1
 
+        VisitorFactory.runtime_ruby = runtime_ruby
+        VisitorFactory.delay_out_of_time = delay_out_of_time
+        VisitorFactory.delay_periodic_scan = delay_periodic_scan
+        VisitorFactory.geolocation_factory = geolocation_factory.nil? ? geolocation_factory : geolocation_factory.dup
+        VisitorFactory.logger = logger
 
-        use_proxy_system = bt.proxy_system?(name, version) == true ? "yes" : "no"
+        vf_mono = VisitorFactoryMonoInstanceExecution.new
 
-        port_proxy_sahi = bt.listening_port_proxy(name, version)
+        bt.browser.each { |name|
+          bt.browser_version(name).each { |version|
 
-        vf = VisitorFactory.new(name,
-                                version,
-                                use_proxy_system,
-                                port_proxy_sahi,
-                                $runtime_ruby,
-                                $delay_periodic_scan,
-                                delay_out_of_time,
-                                max_count_current_visit,
-                                geolocation_factory.nil? ? geolocation_factory : geolocation_factory.dup,
-                                logger)
-        vf.scan_visit_file
-        vf_arr << vf
-      }
-    }
+            runtime_browser_path = bt.runtime_path(name, version)
+            unless File.exist?(runtime_browser_path)
+              logger.an_event.error "runtime browser #{name} #{version} path <#{runtime_browser_path}> not found"
+              raise Error.new(VisitorFactory::RUNTIME_BROWSER_PATH_NOT_FOUND)
+            end
 
+            vf_mono.scan_visit_file(name,
+                                    version,
+                                    bt.listening_port_proxy(name, version),
+                                    bt.proxy_system?(name, version) == true ? "yes" : "no")
 
-    EM.add_periodic_timer(delay_periodic_pool_size_monitor * 60) do
-      pool_size = {}
-      vf_arr.each { |vf|
-        pool_size.merge!({vf.pattern => vf.pool_size})
-        logger.an_event.info "pool size #{vf.pattern} : #{vf.pool_size}"
-      }
+          }
+        }
+        EM.add_periodic_timer(delay_periodic_pool_size_monitor * 60) do vf_mono.pool_size end
 
+      else
+
+        #ces variables sontdes variable de classe de VisitorFactory
+        VisitorFactory.runtime_ruby = runtime_ruby
+        VisitorFactory.delay_out_of_time = delay_out_of_time
+        VisitorFactory.delay_periodic_scan = delay_periodic_scan
+        VisitorFactory.geolocation_factory = geolocation_factory.nil? ? geolocation_factory : geolocation_factory.dup
+        VisitorFactory.logger = logger
+
+        vf_multi = VisitorFactoryMultiInstanceExecution.new(max_count_current_visit - 1) # -1 car une occurence pour VisitorFactoryMonoInstanceExecution
+        vf_mono = VisitorFactoryMonoInstanceExecution.new
+
+        bt.browser.each { |name|
+          bt.browser_version(name).each { |version|
+
+            runtime_browser_path = bt.runtime_path(name, version)
+            unless File.exist?(runtime_browser_path)
+              logger.an_event.error "runtime browser #{name} #{version} path <#{runtime_browser_path}> not found"
+              raise Error.new(VisitorFactory::RUNTIME_BROWSER_PATH_NOT_FOUND)
+            end
+
+            if bt.proxy_system?(name, version) == true
+              vf_mono.scan_visit_file(name,
+                                      version,
+                                      bt.listening_port_proxy(name, version),
+                                      bt.proxy_system?(name, version) == true ? "yes" : "no")
+
+            else
+              vf_multi.scan_visit_file(name,
+                                      version,
+                                      bt.listening_port_proxy(name, version),
+                                       bt.proxy_system?(name, version) == true ? "yes" : "no")
+            end
+          }
+        }
+        EM.add_periodic_timer(delay_periodic_pool_size_monitor * 60) do vf_mono.pool_size end
+        EM.add_periodic_timer(delay_periodic_pool_size_monitor * 60) do vf_multi.pool_size end
     end
 
     Supervisor.send_online(File.basename(__FILE__, '.rb'))

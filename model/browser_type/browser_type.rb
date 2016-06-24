@@ -101,7 +101,7 @@ class BrowserTypes
             data = {
                 "runtime_path" => elt_arr[RUNTIME_PATH],
                 "proxy_system" => elt_arr[PROXY_SYSTEM],
-                "listening_port_proxy" => Array.new(elt_arr[COUNT_PROXY].to_i) { |index| -1 * (index - elt_arr[START_LISTENING_PORT_PROXY].to_i) }
+                "listening_port_proxy" => elt_arr[START_LISTENING_PORT_PROXY].to_i
             }
 
             @browsers = {browser => {browser_version => data}} if @browsers.nil?
@@ -243,29 +243,28 @@ class BrowserTypes
   def Internet_Explorer(browser_versions)
     res = ""
     browser_versions.each_pair { |version, details|
-      details["listening_port_proxy"].each { |port|
-        name =""
-        use_system_proxy = ""
-        if details["proxy_system"] == "true"
-          name = "Internet_Explorer_#{version}"
-          use_system_proxy = "true"
-        else
-          name = "Internet_Explorer_#{version}_#{port}"
-          use_system_proxy = "false"
-        end
-        if details["sandbox"] == "true" and (details["multi_instance_proxy_compatible"] == "true" or details["multi_instance_proxy_compatible"] == "false")
-          name = "Internet_Explorer_#{version}_#{port}"
-          use_system_proxy = "false"
-        end
+      port = details["listening_port_proxy"]
 
-        display_name = "IE #{version}"
-        icon = "ie.png"
-        path = details["runtime_path"]
-        options = "-noframemerging"
-        process_name = "iexplore.exe"
+      if details["proxy_system"] == "true"
+        name = "Internet_Explorer_#{version}"
+        use_system_proxy = "true"
+      else
+        name = "Internet_Explorer_#{version}_#{port}"
+        use_system_proxy = "false"
+      end
+      if details["sandbox"] == "true" and (details["multi_instance_proxy_compatible"] == "true" or details["multi_instance_proxy_compatible"] == "false")
+        name = "Internet_Explorer_#{version}_#{port}"
+        use_system_proxy = "false"
+      end
 
-        res += browser_type(name, display_name, icon, path, options, process_name, use_system_proxy)
-      }
+      display_name = "IE #{version}"
+      icon = "ie.png"
+      path = details["runtime_path"]
+      options = "-noframemerging"
+      process_name = "iexplore.exe"
+
+      res += browser_type(name, display_name, icon, path, options, process_name, use_system_proxy)
+
     }
     res
   end
@@ -311,15 +310,15 @@ class BrowserTypes
   def Opera(browser_versions)
     # verifier que l'on peut appliquer la methode firefox, sinon sandboxing comme IE
     # <browserType>
-   	# 	<name>opera</name>
-   	# 	<displayName>Opera</displayName>
-   	# 	<icon>opera.png</icon>
-   	# 	<path>$ProgramFiles\Opera\opera.exe</path>
-   	# 	<options> </options>
-   	# 	<processName>opera.exe</processName>
-   	# 	<useSystemProxy>true</useSystemProxy>
-   	# 	<capacity>1</capacity>
-   	# </browserType>
+    # 	<name>opera</name>
+    # 	<displayName>Opera</displayName>
+    # 	<icon>opera.png</icon>
+    # 	<path>$ProgramFiles\Opera\opera.exe</path>
+    # 	<options> </options>
+    # 	<processName>opera.exe</processName>
+    # 	<useSystemProxy>true</useSystemProxy>
+    # 	<capacity>1</capacity>
+    # </browserType>
     res = ""
     browser_versions.each_pair { |version, details|
       name ="Opera_#{version}"

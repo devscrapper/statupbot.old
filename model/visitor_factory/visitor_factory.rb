@@ -2,6 +2,7 @@ require 'trollop'
 require 'eventmachine'
 require 'yaml'
 require 'em/threaded_resource'
+require 'em/pool'
 require_relative '../../lib/flow'
 require_relative '../../lib/logging'
 require_relative '../../lib/error'
@@ -21,6 +22,7 @@ class VisitorFactory
 
   ARGUMENT_UNDEFINE = 1000
   RUNTIME_BROWSER_PATH_NOT_FOUND = 1001
+  NONE_FACTORY = 1002
   #----------------------------------------------------------------------------------------------------------------
   # constant
   #----------------------------------------------------------------------------------------------------------------
@@ -29,30 +31,60 @@ class VisitorFactory
 
   OK = 0
   KO = 1
-  NO_AD = 2
-  NO_LANDING = 3
-  OVER_TTL = 4
-  NO_CLOSE = 5
-  NO_DIE = 6
-
+  ERR_VISIT_DEFINITION = 2
+  ERR_VISIT_LOADING = 3
+  ERR_VISIT_CREATION = 4
+  ERR_VISIT_OVER_TTL = 5
+  ERR_VISITOR_DEFINITON = 6
+  ERR_VISITOR_CREATION = 7
+  ERR_VISITOR_BIRTH = 8
+  ERR_VISITOR_DEATH = 9
+  ERR_VISITOR_INHUMATION = 10
+  ERR_BROWSER_OPENING = 11
+  ERR_BROWSER_CLOSING = 12
+  ERR_LINK_TRACKING = 13
+  ERR_ADVERT_TRACKING = 14
+  ERR_CAPTCHA_SUBMITTING = 15
+  ERR_VISIT_EXECUTION = 16
   #----------------------------------------------------------------------------------------------------------------
   # attribut
   #----------------------------------------------------------------------------------------------------------------
-  attr :pattern,
-       :use_proxy_system,
-       :port_proxy_sahi,
-       :runtime_ruby,
-       :delay_out_of_time,
-       :geolocation_factory,
+  attr :pool,
+       :count_running_visitor, #nombre de visitor s'executant
+       :patterns_managed, # liste des browsers/version pris en charge par le VisitorFactory
        :browser_not_properly_close,
-       :max_count_current_visit,
-       :logger
+       :mutex # mutex nombre de visitor s'executant
+
 
   #----------------------------------------------------------------------------------------------------------------
   # class methods
   #----------------------------------------------------------------------------------------------------------------
-  @@mutex = Mutex.new
-  @@count_current_visit = 0
+  @@runtime_ruby = nil
+  @@delay_out_of_time = nil
+  @@geolocation_factory = nil
+  @@delay_periodic_scan = nil
+  @@logger = nil
+
+  def self.runtime_ruby=(runtime_ruby)
+    @@runtime_ruby = runtime_ruby
+  end
+
+  def self.delay_out_of_time=(delay_out_of_time)
+    @@delay_out_of_time = delay_out_of_time
+  end
+
+  def self.geolocation_factory=(geolocation_factory)
+    @@geolocation_factory = geolocation_factory
+  end
+
+  def self.delay_periodic_scan=(delay_periodic_scan)
+    @@delay_periodic_scan = delay_periodic_scan
+  end
+
+  def self.logger=(logger)
+    @@logger = logger
+  end
+
   #----------------------------------------------------------------------------------------------------------------
   # instance methods
   #----------------------------------------------------------------------------------------------------------------
@@ -60,142 +92,112 @@ class VisitorFactory
   #-----------------------------------------------------------------------------------------------------------------
   # initialize
   #-----------------------------------------------------------------------------------------------------------------
-  # input : hash decrivant les propriétés du browser de la visit
-  # :name : Internet Explorer
-  # :version : '9.0'
-  # :operating_system : Windows
-  # :operating_system_version : '7'
-  # :flash_version : 11.7 r700   -- not use
-  # :java_enabled : 'Yes'        -- not use
-  # :screens_colors : 32-bit     -- not use
-  # :screen_resolution : 1600 x900
-  # output : un objet Browser
+  # input :
+  # output :
   # exception :
-  # StandardError :
-  # si le listening_port_proxy n'est pas defini
-  # si la resoltion d'ecran du browser n'est pas definie
   #-----------------------------------------------------------------------------------------------------------------
   #
   #-----------------------------------------------------------------------------------------------------------------
-  def initialize(browser, version, use_proxy_system, port_proxy_sahi, runtime_ruby, delay_periodic_scan, delay_out_of_time, max_count_current_visit, geolocation_factory, logger)
-    @use_proxy_system = use_proxy_system
-    @port_proxy_sahi = port_proxy_sahi
-    @runtime_ruby = runtime_ruby
-    @pattern = "#{browser} #{version}" # ne pas supprimer le blanc
+  def initialize(count_instance)
     @pool = EM::Pool.new
-    @delay_periodic_scan = delay_periodic_scan
-    @delay_out_of_time = delay_out_of_time
-    @logger = logger
-    @geolocation_factory = geolocation_factory
-    @max_count_current_visit = max_count_current_visit
-    @@count_current_visit = @max_count_current_visit
+    @mutex = Mutex.new
+    @count_running_visitor = 0
+    @patterns_managed = []
+    count_instance.times { @pool.add EM::ThreadedResource.new {} }
     @browser_not_properly_close = false
-    @port_proxy_sahi.each { |port|
-      visitor_instance = EM::ThreadedResource.new do
-        {:pattern => @pattern, :port_proxy_sahi => port}
-      end
-      @pool.add visitor_instance
-    }
-    @logger.an_event.info "Visitor Factory #{@pattern} is on"
   end
 
   #-----------------------------------------------------------------------------------------------------------------
-  # initialize
+  # scan_visit_file
   #-----------------------------------------------------------------------------------------------------------------
-  # input : hash decrivant les propriétés du browser de la visit
-  # :name : Internet Explorer
-  # :version : '9.0'
-  # :operating_system : Windows
-  # :operating_system_version : '7'
-  # :flash_version : 11.7 r700   -- not use
-  # :java_enabled : 'Yes'        -- not use
-  # :screens_colors : 32-bit     -- not use
-  # :screen_resolution : 1600 x900
-  # output : un objet Browser
+  # input :
+  # browser, version, port_proxy_sahi, use_proxy_system
+  # output :
   # exception :
   # StandardError :
-  # si le listening_port_proxy n'est pas defini
-  # si la resoltion d'ecran du browser n'est pas definie
   #-----------------------------------------------------------------------------------------------------------------
   #
   #-----------------------------------------------------------------------------------------------------------------
-  def scan_visit_file
+  def scan_visit_file (browser, version, port_proxy_sahi, use_proxy_system)
     begin
-      EM::PeriodicTimer.new(@delay_periodic_scan) do
-        tmp_flow_visit = Flow.first(TMP, {:type_flow => @pattern, :ext => "yml"}, @logger)
+      pattern = "#{browser} #{version}" # ne pas supprimer le blanc
+      @patterns_managed << pattern
+      EM::PeriodicTimer.new(@@delay_periodic_scan) do
+        #tmp_flow_visit = Flow.first(TMP, {:type_flow => pattern, :ext => "yml"}, @@logger)
 
-        if !tmp_flow_visit.nil?
-          @logger.an_event.info "visit flow #{tmp_flow_visit.basename} selected"
-          # si la date de planificiation de la visite portée par le nom du fichier est dépassée de 15mn alors la visit est out of time et ne sera jamais executé
-          # ceci afin de ne pas dénaturer la planification calculer par enginebot.
-          # pour pallier à cet engorgement, il faut augmenter le nombre d'instance concurrente de navigateur dans le fichier browser_type.csv
-          # un jour peut être ce fonctionnement sera revu pour adapter automatiquement le nombre d'instance concurrente d'un nivagteur (cela nécessite de prévoir un pool de numero de port pour sahi proxy)
-          # ajout 18/05/2016 : si delay_out_of_time == 0 alors les visits ne sont jamais hors delais comme developpement
-          # qq soient la policy (seaattack, traffic, rank).
-          # Demain cela pourrait être conditionné en fonction du type de visit qui nécessite absoluement de suivre
-          # la planifiication comme Traffic pour ne pas dénaturé les statisitique GA du website
-          start_time_visit = tmp_flow_visit.date.split(/-/)
+        tmp_flow_visits = Flow.list(TMP, {:type_flow => pattern, :ext => "yml"}, @@logger)
 
-          if $staging == "development" or  # en developpement => pas de visit hors delais
-              @delay_out_of_time == 0 or # si delay_out_of_time == 0 => pas de visit hors délais
-              ($staging != "development" and Time.now - Time.local(start_time_visit[0],
-                                                                                               start_time_visit[1],
-                                                                                               start_time_visit[2],
-                                                                                               start_time_visit[3],
-                                                                                               start_time_visit[4],
-                                                                                               start_time_visit[5]) <= @delay_out_of_time * 60) # huere de déclenchement de la visit doit être dans le délaus imparti par @delay_out_of_time
+        if !tmp_flow_visits.empty?
+          tmp_flow_visits.each { |tmp_flow_visit|
+            @@logger.an_event.info "visit flow #{tmp_flow_visit.basename} selected"
+            # si la date de planificiation de la visite portée par le nom du fichier est dépassée de 15mn alors la visit est out of time et ne sera jamais executé
+            # ceci afin de ne pas dénaturer la planification calculer par enginebot.
+            # pour pallier à cet engorgement, il faut augmenter le nombre d'instance concurrente de navigateur dans le fichier browser_type.csv
+            # un jour peut être ce fonctionnement sera revu pour adapter automatiquement le nombre d'instance concurrente d'un nivagteur (cela nécessite de prévoir un pool de numero de port pour sahi proxy)
+            # ajout 18/05/2016 : si delay_out_of_time == 0 alors les visits ne sont jamais hors delais comme developpement
+            # qq soient la policy (seaattack, traffic, rank).
+            # Demain cela pourrait être conditionné en fonction du type de visit qui nécessite absoluement de suivre
+            # la planifiication comme Traffic pour ne pas dénaturé les statisitique GA du website
+            start_time_visit = tmp_flow_visit.date.split(/-/)
 
-            @pool.perform do |dispatcher|
-              dispatcher.dispatch do |details|
-                if @@count_current_visit > 0
-                  tmp_flow_visit.archive
-                  @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
+            if $staging == "development" or # en developpement => pas de visit hors delais
+                @@delay_out_of_time == 0 or # si delay_out_of_time == 0 => pas de visit hors délais
+                ($staging != "development" and Time.now - Time.local(start_time_visit[0],
+                                                                     start_time_visit[1],
+                                                                     start_time_visit[2],
+                                                                     start_time_visit[3],
+                                                                     start_time_visit[4],
+                                                                     start_time_visit[5]) <= @@delay_out_of_time * 60) # huere de déclenchement de la visit doit être dans le délaus imparti par @delay_out_of_time
+              tmp_flow_visit.archive
 
-                  details[:visit_file] = tmp_flow_visit.absolute_path
-                  start_visitor_bot(details)
+              @@logger.an_event.debug "visit flow #{tmp_flow_visit.basename} archived"
 
-
-                else
-                  @@logger.an_event.info "visit flow #{tmp_flow_visit.basename} not start, only #{@@count_current_visit} visit concurrent executions"
+              @pool.perform do |dispatcher|
+                dispatcher.dispatch do
+                  start_visitor_bot({:pattern => pattern,
+                                     :visit_file => tmp_flow_visit.absolute_path,
+                                     :port_proxy_sahi => port_proxy_sahi,
+                                     :use_proxy_system => use_proxy_system})
 
                 end
               end
+
+            else
+              # la date de planification de la visit est dépassée
+              tmp_flow_visit.archive
+              @@logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
+
+              visit = YAML::load(tmp_flow_visit.read)[:visit]
+              tmp_flow_visit.close
+              #envoie de l'etat out fo time à statupweb
+              begin
+                Monitoring.change_state_visit(visit[:id], Monitoring::OUTOFTIME)
+
+              rescue Exception => e
+                @@logger.an_event.warn e.message
+
+              end
+              @@logger.an_event.warn "visit #{tmp_flow_visit.basename} for #{pattern} is out of time."
+
             end
+          }
+        else
+          @@logger.an_event.debug "none input visit for #{pattern}."
 
-          else
-            # la date de planification de la visit est dépassée
-            tmp_flow_visit.archive
-            @logger.an_event.info "visit flow #{tmp_flow_visit.basename} archived"
-
-            visit = YAML::load(tmp_flow_visit.read)[:visit]
-            tmp_flow_visit.close
-            #envoie de l'etat out fo time à statupweb
-            begin
-              Monitoring.change_state_visit(visit[:id], Monitoring::OUTOFTIME)
-
-            rescue Exception => e
-              @logger.an_event.warn e.message
-
-            end
-            @logger.an_event.warn "visit #{tmp_flow_visit.basename} for #{@pattern} is out of time."
-
-          end
         end
 
       end
     rescue Exception => e
-      @logger.an_event.error "scan visit file for #{@pattern} catch exception : #{e.message} => restarting"
+      @@logger.an_event.error "scan visit file for #{pattern} catch exception : #{e.message} => restarting"
       retry
 
     end
   end
 
-  def pool_size
-    @pool.num_waiting
-  end
 
+  private
   #-----------------------------------------------------------------------------------------------------------------
-  # initialize
+  # start_visitor_bot
   #-----------------------------------------------------------------------------------------------------------------
   #-----------------------------------------------------------------------------------------------------------------
   # pour sandboxer l'execution d'un visitor_bot :
@@ -210,9 +212,9 @@ class VisitorFactory
   #-----------------------------------------------------------------------------------------------------------------
   def start_visitor_bot(details)
     begin
-      @@mutex.synchronize { @@count_current_visit -= 1 }
+      @mutex.synchronize { @count_running_visitor += 1 }
 
-      @logger.an_event.info "start visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]}"
+      @@logger.an_event.info "start visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]}"
 
       # si pas d'avert alors :  [:advert][:advertising] = "none"
       # sinon le nom de l'advertising, exemple adsense
@@ -224,43 +226,48 @@ class VisitorFactory
       with_advertising = visit[:advert][:advertising] != :none
       with_google_engine = visitor[:browser][:engine_search] == :google && visit[:referrer][:medium] == :organic
 
-      cmd = "#{@runtime_ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  \
+      cmd = "#{@@runtime_ruby} -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)  \
       #{VISITOR_BOT} \
-                              -v #{details[:visit_file]} \
-                              -t #{details[:port_proxy_sahi]} \
-                              -p #{@use_proxy_system} \
+      -v #{details[:visit_file]} \
+      -t #{details[:port_proxy_sahi].to_i} \
+      -p #{details[:use_proxy_system]} \
       #{geolocation(with_advertising, with_google_engine)}"
 
-
-      @logger.an_event.debug "cmd start visitor_bot #{cmd}"
+      @@logger.an_event.debug "cmd start visitor_bot #{cmd}"
 
       visitor_bot_pid = 0
+
       visitor_bot_pid = Process.spawn(cmd)
       visitor_bot_pid, status = Process.wait2(visitor_bot_pid, 0)
 
     rescue Exception => e
-      @logger.an_event.error "lauching visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]} : #{e.message}"
+      @@logger.an_event.error "lauching visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]} : #{e.message}"
       change_visit_state(visit[:id], Monitoring::NEVERSTARTED)
 
     else
-      @logger.an_event.info "visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]} over : exit status #{status.exitstatus}"
+      @@logger.an_event.info "visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]} over : exit status #{status.exitstatus}"
 
       if status.exitstatus == OK
         delete_log_file(visitor[:id])
 
-      elsif status.exitstatus == NO_CLOSE
+      elsif status.exitstatus == ERR_BROWSER_CLOSING
         @browser_not_properly_close = true
       end
 
     ensure
-      @@mutex.synchronize {
-        @@count_current_visit += 1
-
-        # on tue tous les browser du pattern qui ne se sont pas fermés => nettoyage  qd aucune visit est en cours pour ce type de browser
-        # @browser_not_properly_close est maj dans kill_all_browser_from_pattern
-        kill_all_browser_from_pattern(visitor[:browser][:name]) if @browser_not_properly_close and @@count_current_visit == @max_count_current_visit
+      @@logger.an_event.info "stop visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]}"
+      @mutex.synchronize {
+        @count_running_visitor -= 1
+        # comme on est dans le synchronize, aucun start_visitor_bot est en cours de lancement car il est bloqué par
+        # le synchronize sur le mutex
+        # si aucun visitor du factory est en cours d'execution et qu'il y a eu une erreur de fermeture d'un visitor
+        # alors suppression de tous les browser gérer par le VisitorFactory
+        if @count_running_visitor == 0 and @browser_not_properly_close
+          @patterns_managed.each { |pattern| kill_all_browser_from_pattern(pattern.split(" ")[0]) }
+          # tous les browser sont morts donc on reinitialise la variable
+          @browser_not_properly_close = false
+        end
       }
-
     end
   end
 
@@ -284,13 +291,13 @@ class VisitorFactory
     # sinon un geolocation.
 
     begin
-              #TODO attention aton besoin de cette fonctionnalité sur la geolocation
-      # geo = @geolocation_factory.get(:country => with_advertising ? "fr" : nil,
+      #TODO attention aton besoin de cette fonctionnalité sur la geolocation
+      # geo = @@geolocation_factory.get(:country => with_advertising ? "fr" : nil,
       #                                :protocol => with_google_engine ? "https" : nil) unless @geolocation_factory.nil?
-       geo = @geolocation_factory.get(:country => nil,
-                                        :protocol =>  nil) unless @geolocation_factory.nil?
+      geo = @@geolocation_factory.get(:country => nil,
+                                      :protocol => nil) unless @@geolocation_factory.nil?
     rescue Exception => e
-      @logger.an_event.warn e.message
+      @@logger.an_event.warn e.message
       geo_to_s = ""
 
     else
@@ -300,24 +307,23 @@ class VisitorFactory
       geo_to_s += " -w #{geo.password}" unless geo.password.nil?
 
     ensure
-      @logger.an_event.info "geolocation is <#{geo_to_s}>"
+      @@logger.an_event.info "geolocation is <#{geo_to_s}>"
 
       return geo_to_s
 
     end
   end
 
-  private
 
   def change_visit_state(visit_id, state)
     begin
       Monitoring.change_state_visit(visit_id, state)
 
     rescue Exception => e
-      @logger.an_event.warn ("change state #{state} of visit #{visit_id} : #{e.message}")
+      @@logger.an_event.warn ("change state #{state} of visit #{visit_id} : #{e.message}")
 
     else
-      @logger.an_event.info("change state #{state} of visit #{visit_id}")
+      @@logger.an_event.info("change state #{state} of visit #{visit_id}")
     end
   end
 
@@ -328,10 +334,10 @@ class VisitorFactory
       FileUtils.rm_r(Dir.glob(files))
 
     rescue Exception => e
-      @logger.an_event.error "log file of visitor_bot #{visitor_id} not delete : #{e.message}"
+      @@logger.an_event.error "log file of visitor_bot #{visitor_id} not delete : #{e.message}"
 
     else
-      @logger.an_event.info "log file of visitor_bot #{visitor_id} delete"
+      @@logger.an_event.info "log file of visitor_bot #{visitor_id} delete"
 
     end
   end
@@ -370,9 +376,7 @@ class VisitorFactory
       end
 
     else
-      @@logger.an_event.debug "kill browser type #{name_browser}"
-      # tous les browser sont mort donc on reinitialise la variable
-      @browser_not_properly_close = false
+      @@logger.an_event.info "kill browser type #{name_browser}"
 
     end
   end
@@ -380,4 +384,27 @@ class VisitorFactory
 end
 
 
+class VisitorFactoryMultiInstanceExecution < VisitorFactory
 
+  def initialize(count_instance)
+    super(count_instance)
+    @@logger.an_event.info "Visitor Factory multi instance is on"
+
+  end
+
+  def pool_size
+    @@logger.an_event.info "pool size visitor factory multi instance [#{@patterns_managed.join(",")}] : #{@pool.num_waiting}"
+
+  end
+end
+class VisitorFactoryMonoInstanceExecution < VisitorFactory
+  def initialize
+    super(1)
+    @@logger.an_event.info "Visitor Factory mono instance is on"
+  end
+
+  def pool_size
+    @@logger.an_event.info "pool size visitor factory mono instance [#{@patterns_managed.join(",")}] : #{@pool.num_waiting}"
+
+  end
+end
