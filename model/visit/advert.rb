@@ -28,11 +28,12 @@ module Visits
   # de la visite
   # q : nombre de sites visités par page de resultats du MDR avant de passer à la visite ; calculé aléaoirement entre [2-3]
   #--------------------------------------------------------------------------------------------------------------------
-  # type    | random search | random suf | referrer | advertising | expression reguliere
+  # type    | random | random | referrer | advertising | advertising | expression reguliere
+  #         | search | surf   |          | on website  | on results  |
   #--------------------------------------------------------------------------------------------------------------------
-  # advert  | NON           | NON        | Direct   | OUI         | bdE{i-1}FH{j-1}
-  # advert  | OUI           | OUI        | Referral | OUI         | bf(00{k’’}(c+f+G{p}f)){k’}1A{f-1}eDE{i-1}FH{j-1}
-  # advert  | OUI           | OUI        | Search   | OUI         | bf(00{k’’}(c+f+G{p}f)){k’}1A{f-1}DE{i-1}FH{j-1}
+  # advert  | NON    | NON    | Direct   | OUI         | NON         | bdE{i-1}FH{j-1}
+  # advert  | OUI    | OUI    | Referral | OUI         | NON         | bf(00{k’’}(c+f+G{p}f)){k’}1A{f-1}eDE{i-1}FH{j-1}
+  # advert  | OUI    | OUI    | Search   | OUI         | NON         | bf(00{k’’}(c+f+G{p}f)){k’}1A{f-1}DE{i-1}FH{j-1}
   #--------------------------------------------------------------------------------------------------------------------
 
   class Advert < Traffic

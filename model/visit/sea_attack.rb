@@ -27,9 +27,10 @@ module Visits
   # de la visite
   # q : nombre de sites visités par page de resultats du MDR avant de passer à la visite ; calculé aléaoirement entre [2-5]
   #--------------------------------------------------------------------------------------------------------------------
-  # type    | random search | random suf | referrer | advertising | expression reguliere
+  # type    | random | random | referrer | advertising | advertising | expression reguliere
+  #         | search | surf   |          | on website  | on results  |
   #--------------------------------------------------------------------------------------------------------------------
-  # rank    | OUI           | NON        | Search   | NON         | b1((Cc){2,5}A){f-1}(Cc){2,5}DE{i-1}
+  # adwords | OUI    | NON    | Search   | NON         | OUI         | b1((Cc){2,5}A){f-1}(Cc){2,5}FH{j-1}
   #--------------------------------------------------------------------------------------------------------------------
   class Seaattack < Visit
 

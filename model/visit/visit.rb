@@ -28,16 +28,21 @@ module Visits
   # f : index de la page de resultats du MDR dans laquelle on trouve le lien de la landing page. ; issu du fichier yaml
   # de la visite
   # q : nombre de sites visités par page de resultats du MDR avant de passer à la visite ; calculé aléaoirement entre [2-3]
+    #--------------------------------------------------------------------------------------------------------------------
+  # type    | random | random | referrer | advertising | advertising | expression reguliere
+  #         | search | surf   |          | on website  | on results  |
   #--------------------------------------------------------------------------------------------------------------------
-  # type    | random search | random suf | referrer | advertising | expression reguliere
+  # advert  | NON    | NON    | Direct   | OUI         | NON         | bdE{i-1}FH{j-1}
+  # advert  | OUI    | OUI    | Referral | OUI         | NON         | bf(00{k’’}(c+f+G{p}f)){k’}1A{f-1}eDE{i-1}FH{j-1}
+  # advert  | OUI    | OUI    | Search   | OUI         | NON         | bf(00{k’’}(c+f+G{p}f)){k’}1A{f-1}DE{i-1}FH{j-1}
   #--------------------------------------------------------------------------------------------------------------------
-  # advert  | NON           | NON        | Direct   | OUI         | aE{i-1}FH{j-1}
-  # advert  | OUI           | OUI        | Referral | OUI         | b(00{k’’}(c+f+G{p}f)){k’}1A{f-1}eDE{i-1}FH{j-1}
-  # advert  | OUI           | OUI        | Search   | OUI         | b(00{k’’}(c+f+G{p}f)){k’}1A{f-1}DE{i-1}FH{j-1}
-  # traffic | NON           | NON        | Direct   | NON         | aE{i-1}
-  # traffic | OUI           | OUI        | Referral | NON         | b(00{k’’}(c+f+G{p}f)){k’}1A{f-1}eDE{i-1}
-  # traffic | OUI           | OUI        | Search   | NON         | b(00{k’’}(c+f+G{p}f)){k’}1A{f-1}DE{i-1}
-  # rank    | OUI           | NON        | Search   | NON         | b1((Cc){2,5}A){f-1}(Cc){2,5}DE{i}
+  # traffic | NON    | NON    | Direct   | NON         | NON         | aE{i-1}
+  # traffic | OUI    | OUI    | Referral | NON         | NON         | b((2+0A{1,q-1}CG{1,p-1})f){k}1A{f-1}I(G{1,p}e){x}DE{i-1}
+  # traffic | OUI    | OUI    | Search   | NON         | NON         | b((2+0A{1,q-1}CG{1,p-1})f){k}1A{f-1}DE{i-1}
+  #--------------------------------------------------------------------------------------------------------------------
+  # rank    | OUI    | NON    | Search   | NON         | NON         | b1((Cc){2,5}A){f-1}(Cc){2,5}DE{i-1}
+  #--------------------------------------------------------------------------------------------------------------------
+  # adwords | OUI    | NON    | Search   | NON         | OUI         | b1((Cc){2,5}A){f-1}(Cc){2,5}FH{j-1}
   #--------------------------------------------------------------------------------------------------------------------
   # Transitions go to url     | id | Description
   #--------------------------------------------------------------------------------------------------------------------
@@ -56,6 +61,10 @@ module Visits
   # sb_final_search 	        | 1  | saisie des mots clés et soumission de la recherche vers le MDR.
   #                           |    | Le mot clé permets d’offrir une liste des résultats dans laquelle apparait la
   #                           |    | landing_page.
+  # sb_search 	              | 2  | saisie des mots clés et soumission de la recherche vers le MDR.
+  #                           |    | Affichage des résultats et retour vers la saisie des mots clés
+  # sb_captcha                | 3  | affichage du captcha et de la zone de saisie de la chaine calculée à partir
+  #                           |    | du captcha.
   #--------------------------------------------------------------------------------------------------------------------
   # Transitions click link    | id | Description
   #--------------------------------------------------------------------------------------------------------------------
@@ -68,6 +77,7 @@ module Visits
   # cl_on_advert	            | F  | click sur un advert présent dans la page du site
   # cl_on_link_on_unknown	    | G  | click sur un lien d’une page d’un site inconnu, choisit au hasard
   # cl_on_link_on_advertiser  |	H  | click sur un lien d’une page d’un site inconnu, choisit au hasard
+  # cl_on_referral            | I  | click sur un resultat de recherche qui est la page d’arrivée du site referral
   #--------------------------------------------------------------------------------------------------------------------
 
   class Visit

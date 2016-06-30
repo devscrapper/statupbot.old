@@ -42,7 +42,7 @@ class BrowserTypes
   #----------------------------------------------------------------------------------------------------------------
   # attributs
   #----------------------------------------------------------------------------------------------------------------
-
+#TODO reviser les parametre de lancement des navigateur  :size window, ....
   attr :browsers,
        :current_os,
        :current_os_version

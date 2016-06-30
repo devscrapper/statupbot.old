@@ -56,7 +56,7 @@ module Visits
               return Adsense.new(Advertiser.new(pub_details[:advertiser]))
 
             when :adwords
-              return Adwords.new(pub_details[:advertiser][:label],
+              return Adwords.new(pub_details[:advertiser][:fqdn_advertisings],
                                  Advertiser.new(pub_details[:advertiser]))
 
             else

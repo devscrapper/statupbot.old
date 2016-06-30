@@ -50,7 +50,7 @@ class VisitorFactory
   # attribut
   #----------------------------------------------------------------------------------------------------------------
   attr :pool,
-       :count_running_visitor, #nombre de visitor s'executant
+       :count_running_visitor, #nombre de visitor s'executant utilisé pour nettoyer les browser qd il y a un pb
        :patterns_managed, # liste des browsers/version pris en charge par le VisitorFactory
        :browser_not_properly_close,
        :mutex # mutex nombre de visitor s'executant
@@ -98,12 +98,18 @@ class VisitorFactory
   #-----------------------------------------------------------------------------------------------------------------
   #
   #-----------------------------------------------------------------------------------------------------------------
-  def initialize(count_instance)
+  def initialize(count_instance, start_port_proxy_sahi)
     @pool = EM::Pool.new
     @mutex = Mutex.new
     @count_running_visitor = 0
     @patterns_managed = []
-    count_instance.times { @pool.add EM::ThreadedResource.new {} }
+
+    count_instance.times { |i|
+      visitor_instance = EM::ThreadedResource.new do
+      {:port_proxy_sahi => start_port_proxy_sahi - i}
+    end
+    @pool.add visitor_instance
+    }
     @browser_not_properly_close = false
   end
 
@@ -118,13 +124,12 @@ class VisitorFactory
   #-----------------------------------------------------------------------------------------------------------------
   #
   #-----------------------------------------------------------------------------------------------------------------
-  def scan_visit_file (browser, version, port_proxy_sahi, use_proxy_system)
+  def scan_visit_file (browser, version, use_proxy_system)
     begin
+
       pattern = "#{browser} #{version}" # ne pas supprimer le blanc
       @patterns_managed << pattern
       EM::PeriodicTimer.new(@@delay_periodic_scan) do
-        #tmp_flow_visit = Flow.first(TMP, {:type_flow => pattern, :ext => "yml"}, @@logger)
-
         tmp_flow_visits = Flow.list(TMP, {:type_flow => pattern, :ext => "yml"}, @@logger)
 
         if !tmp_flow_visits.empty?
@@ -147,16 +152,17 @@ class VisitorFactory
                                                                      start_time_visit[2],
                                                                      start_time_visit[3],
                                                                      start_time_visit[4],
-                                                                     start_time_visit[5]) <= @@delay_out_of_time * 60) # huere de déclenchement de la visit doit être dans le délaus imparti par @delay_out_of_time
+                                                                     start_time_visit[5]) <= @@delay_out_of_time * 60) # heure de déclenchement de la visit doit être dans le délaus imparti par @delay_out_of_time
               tmp_flow_visit.archive
 
               @@logger.an_event.debug "visit flow #{tmp_flow_visit.basename} archived"
 
               @pool.perform do |dispatcher|
-                dispatcher.dispatch do
+                dispatcher.dispatch do |details|
+                  @@logger.an_event.debug "port_proxy_sahi : #{details[:port_proxy_sahi]}"
                   start_visitor_bot({:pattern => pattern,
                                      :visit_file => tmp_flow_visit.absolute_path,
-                                     :port_proxy_sahi => port_proxy_sahi,
+                                     :port_proxy_sahi => details[:port_proxy_sahi],
                                      :use_proxy_system => use_proxy_system})
 
                 end
@@ -182,7 +188,7 @@ class VisitorFactory
             end
           }
         else
-          @@logger.an_event.debug "none input visit for #{pattern}."
+          #   @@logger.an_event.debug "none input visit for #{pattern}."
 
         end
 
@@ -307,7 +313,7 @@ class VisitorFactory
       geo_to_s += " -w #{geo.password}" unless geo.password.nil?
 
     ensure
-      @@logger.an_event.info "geolocation is <#{geo_to_s}>"
+      @@logger.an_event.debug "geolocation is <#{geo_to_s}>"
 
       return geo_to_s
 
@@ -386,8 +392,10 @@ end
 
 class VisitorFactoryMultiInstanceExecution < VisitorFactory
 
+  START_PORT_PROXY_SAHI = 9997
+
   def initialize(count_instance)
-    super(count_instance)
+    super(count_instance, START_PORT_PROXY_SAHI)
     @@logger.an_event.info "Visitor Factory multi instance is on"
 
   end
@@ -398,10 +406,14 @@ class VisitorFactoryMultiInstanceExecution < VisitorFactory
   end
 end
 class VisitorFactoryMonoInstanceExecution < VisitorFactory
+
+  START_PORT_PROXY_SAHI = 9998
+
   def initialize
-    super(1)
+    super(1, START_PORT_PROXY_SAHI)
     @@logger.an_event.info "Visitor Factory mono instance is on"
   end
+
 
   def pool_size
     @@logger.an_event.info "pool size visitor factory mono instance [#{@patterns_managed.join(",")}] : #{@pool.num_waiting}"

@@ -61,9 +61,10 @@ Trollop::die :proxy_port, "is require with proxy" if ["http"].include?(opts[:pro
 #--------------------------------------------------------------------------------------------------------------------
 begin
   parameters = Parameter.new(__FILE__)
-  parameters_visitor_bot = Parameter.new("visitor_bot.rb")
+
 rescue Exception => e
   $stderr << e.message << "\n"
+
 else
   $staging = parameters.environment
   $debugging = parameters.debugging
@@ -86,6 +87,7 @@ else
       $staging.nil?
     $stderr << "some parameters not define\n" << "\n"
     exit(1)
+
   end
 end
 logger = Logging::Log.new(self, :staging => $staging, :id_file => File.basename(__FILE__, ".rb"), :debugging => $debugging)
@@ -140,7 +142,8 @@ begin
       when "factory"
 
         logger.a_log.info "factory geolocation"
-        geolocation_factory = Geolocations::GeolocationFactory.new(delay_periodic_load_geolocations * 60, logger)
+        Geolocations::GeolocationFactory.logger =logger
+        geolocation_factory = Geolocations::GeolocationFactory.new
 
       when "http"
 
@@ -148,7 +151,8 @@ begin
         geo_flow = Flow.new(TMP, "geolocations", $staging, Date.today)
         geo_flow.write(["fr", opts[:proxy_type], opts[:proxy_ip], opts[:proxy_port], opts[:proxy_user], opts[:proxy_pwd]].join(Geolocations::Geolocation::SEPARATOR))
         geo_flow.close
-        geolocation_factory = Geolocations::GeolocationFactory.new(delay_periodic_load_geolocations * 60, logger)
+        Geolocations::GeolocationFactory.logger =logger
+        geolocation_factory = Geolocations::GeolocationFactory.new(geo_flow)
 
     end
 
@@ -179,8 +183,7 @@ begin
 
             vf_mono.scan_visit_file(name,
                                     version,
-                                    bt.listening_port_proxy(name, version),
-                                    bt.proxy_system?(name, version) == true ? "yes" : "no")
+                                    bt.proxy_system?(name, version) == true ? "yes" : "no") # use proxy_system
 
           }
         }
@@ -200,7 +203,6 @@ begin
 
         bt.browser.each { |name|
           bt.browser_version(name).each { |version|
-
             runtime_browser_path = bt.runtime_path(name, version)
             unless File.exist?(runtime_browser_path)
               logger.an_event.error "runtime browser #{name} #{version} path <#{runtime_browser_path}> not found"
@@ -210,14 +212,12 @@ begin
             if bt.proxy_system?(name, version) == true
               vf_mono.scan_visit_file(name,
                                       version,
-                                      bt.listening_port_proxy(name, version),
-                                      bt.proxy_system?(name, version) == true ? "yes" : "no")
+                                       "yes") # use proxy_system
 
             else
               vf_multi.scan_visit_file(name,
                                       version,
-                                      bt.listening_port_proxy(name, version),
-                                       bt.proxy_system?(name, version) == true ? "yes" : "no")
+                                      "no") # use proxy_system
             end
           }
         }

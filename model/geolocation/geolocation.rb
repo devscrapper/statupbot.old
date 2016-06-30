@@ -3,7 +3,8 @@ require_relative '../../lib/error'
 
 module Geolocations
   class Geolocation
-    SEPARATOR = "(:|;)"
+    SEPARATORS = "(:|;)"
+    SEPARATOR  = ";"
     include Errors
     attr_accessor :country,
                   :protocol,
@@ -14,7 +15,7 @@ module Geolocations
 
     def initialize(geo_line)
       # accepte les hsotname ou les @ip pour <ip>
-      r = /((?<country>.*)#{SEPARATOR})*((?<protocol>http|HTTP|https|HTTPS)#{SEPARATOR})*(?<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|.*\..*\..*)#{SEPARATOR}(?<port>\d{1,5})#{SEPARATOR}(?<user>.*)#{SEPARATOR}(?<password>.*)/.match(geo_line)
+      r = /((?<country>.*)#{SEPARATORS})*((?<protocol>http|HTTP|https|HTTPS)#{SEPARATORS})*(?<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|.*\..*\..*)#{SEPARATORS}(?<port>\d{1,5})#{SEPARATORS}(?<user>.*)#{SEPARATORS}(?<password>.*)/.match(geo_line)
       unless r.nil?
         @country = r[:country] || "fr"
         @protocol = r[:protocol] || "http"

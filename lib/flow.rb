@@ -195,14 +195,6 @@ class Flow
     # en prenant en compte le multivolume
     # l'objectif est de faire le ménage dans le répertoire qui contient l'instance courante
     # le ou les flow sont déplacés dans ARCHIVE
-    Flow.list(@dir, {:type_flow => @type_flow, :label => @label, :ext => @ext}).each { |flow|
-      if self != flow
-        p flow.to_s
-        flow.archive
-        @logger.an_event.info "archive previous <#{flow.basename}>"
-      end
-
-    }
     Flow.list(@dir, {:type_flow => @type_flow,
                      :label => @label,
                      :ext => @ext}).each { |flow| flow.archive if flow.is_before_day?(self) }

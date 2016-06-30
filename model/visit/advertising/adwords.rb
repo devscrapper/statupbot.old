@@ -4,18 +4,18 @@ module Visits
   module Advertisings
     class Adwords < Advertising
 
-      attr_reader :labels # array de libelles de l'advert adwords déclaré dans statupweb
+      attr_reader :fqdns # array de fqdn de l'advert adwords déclaré dans statupweb
       include Errors
 
-      def initialize(labels, advertiser)
+      def initialize(fqdns, advertiser)
 
-        @@logger.an_event.debug "labels #{labels}"
+        @@logger.an_event.debug "fqdns #{fqdns}"
         @@logger.an_event.debug "advertiser #{advertiser}"
 
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "advertiser"}) if advertiser.nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "labels"}) if labels.nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "fqdns"}) if fqdns.nil?
         @advertiser = advertiser
-        @labels = labels
+        @fqdns = fqdns
       end
 
       #advert retourne un Link_element ElementStub contenant le domain de Advertiser.domain
@@ -27,9 +27,9 @@ module Visits
           adwords = browser.engine_search.adverts(browser.body)
           adwords.each { |adword| @@logger.an_event.debug "adword : #{adword}" }
 
-          #TODO remplacer @labels par @fqdns
-          @labels.each { |label| @@logger.an_event.debug "labels : #{label}" }
-          tmp_fqdns = @labels.dup
+          #TODO remplacer @fqdns par @fqdns
+          @fqdns.each { |fqdn| @@logger.an_event.debug "fqdns : #{fqdn}" }
+          tmp_fqdns = @fqdns.dup
 
           # suppression des adwords dont le href n'est pas dans liste de fqdn
           href_adwords =[]
@@ -39,7 +39,7 @@ module Visits
             }
           }
 
-          raise "none labels advertisings #{@labels} found in adwords list #{adwords}" if href_adwords.empty?
+          raise "none fqdns advertisings #{@fqdns} found in adwords list #{adwords}" if href_adwords.empty?
 
           links = href_adwords.map { |href| browser.driver.link("#{href}") }
           @@logger.an_event.debug "links : #{links}"
@@ -47,7 +47,7 @@ module Visits
           links.delete_if { |link| !link.exists? }
           @@logger.an_event.debug "links : #{links}"
 
-          raise "none label advertising visible" if links.empty?
+          raise "none fqdn advertising visible" if links.empty?
 
           link = links.shuffle[0]
           @@logger.an_event.debug "link : #{link}"

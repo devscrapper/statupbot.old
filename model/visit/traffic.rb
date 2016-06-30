@@ -33,11 +33,12 @@ module Visits
   # f : index de la page de resultats du MDR dans laquelle on trouve le lien de la landing page. ; issu du fichier yaml
   # de la visite
   #--------------------------------------------------------------------------------------------------------------------
-  # type    | random search | random suf | referrer | advertising | expression reguliere
+  # type    | random | random | referrer | advertising | advertising | expression reguliere
+  #         | search | surf   |          | on website  | on results  |
   #--------------------------------------------------------------------------------------------------------------------
-  # traffic | NON           | NON        | Direct   | NON         | aE{i-1}
-  # traffic | OUI           | OUI        | Referral | NON         | b((2+0A{1,q-1}CG{1,p-1})f){k}1A{f-1}I(G{1,p}e){x}DE{i-1}
-  # traffic | OUI           | OUI        | Search   | NON         | b((2+0A{1,q-1}CG{1,p-1})f){k}1A{f-1}DE{i-1}
+  # traffic | NON    | NON    | Direct   | NON         | NON         | aE{i-1}
+  # traffic | OUI    | OUI    | Referral | NON         | NON         | b((2+0A{1,q-1}CG{1,p-1})f){k}1A{f-1}I(G{1,p}e){x}DE{i-1}
+  # traffic | OUI    | OUI    | Search   | NON         | NON         | b((2+0A{1,q-1}CG{1,p-1})f){k}1A{f-1}DE{i-1}
   #--------------------------------------------------------------------------------------------------------------------
   #----------------------------------------------------------------------------------------------------------------
   # Calcul des fakes keyword
