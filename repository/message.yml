@@ -127,6 +127,7 @@
 1304: "geolocation file [path] not found"
 1305: "none geolocation compliant"
 1306: "geolocation not compliant (country = [country], protocol = [protocol])"
+1307: "geolocation not retrieve from saas"
 1400: "argument [variable] not define"
 1401: "no free listening port phantomjs in webscraper factory"
 1402: "webscraper not book"

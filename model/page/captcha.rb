@@ -69,10 +69,15 @@ module Pages
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.type_captcha"}) if browser.engine_search.type_captcha.nil? or  browser.engine_search.type_captcha.empty?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.label_button_captcha"}) if browser.engine_search.label_button_captcha.nil? or  browser.engine_search.label_button_captcha.empty?
 
+        @@logger.an_event.debug "engine_search : #{browser.engine_search}"
 
         @input = browser.engine_search.id_captcha
         @type = browser.engine_search.type_captcha
         @submit_button = browser.engine_search.label_button_captcha
+
+        @@logger.an_event.debug "input #{@input}"
+        @@logger.an_event.debug "type #{@type}"
+        @@logger.an_event.debug "submit_button #{@submit_button}"
 
         super(browser.url,
               browser.title,
@@ -80,11 +85,17 @@ module Pages
               0)
 
         captcha_file = Flow.new(TMP, "captcha", browser.name, Date.today, nil, ".png")
+        @@logger.an_event.debug "captcha file :  #{captcha_file.absolute_path}"
+
         browser.take_screenshot(captcha_file)
+
         @image = Base64.urlsafe_encode64(captcha_file.read)
+        @@logger.an_event.debug "encode image en base64"
+
         # TODO convertir le captcha en string
         #@str = Captcha::convert_to_string(image)
         @str = "not convert to string"
+        @@logger.an_event.debug "receive string of captcha"
 
       rescue Exception => e
         @@logger.an_event.error e.message
@@ -96,6 +107,14 @@ module Pages
       end
     end
 
+    def to_s
+      super +
+          "input : #{@input}\n" +
+             "type : #{@type}\n" +
+             "submit_button : #{@submit_button}\n" +
+             "image : #{@image}\n" +
+             "str : #{@str}\n"
+    end
 
   end
 end

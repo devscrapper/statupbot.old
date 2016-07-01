@@ -1209,6 +1209,8 @@ module Visitors
     def sb_captcha
 
       begin
+        @@logger.an_event.debug "action #{__method__}"
+
         @browser.set_input_captcha(@current_page.type, @current_page.input, @current_page.str)
 
         @browser.submit(@current_page.submit_button)

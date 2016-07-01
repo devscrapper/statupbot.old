@@ -104,11 +104,15 @@ class VisitorFactory
     @count_running_visitor = 0
     @patterns_managed = []
 
+    @@logger.an_event.debug "count_instance : #{count_instance}"
+    @@logger.an_event.debug "start_port_proxy_sahi : #{start_port_proxy_sahi}"
+
     count_instance.times { |i|
       visitor_instance = EM::ThreadedResource.new do
       {:port_proxy_sahi => start_port_proxy_sahi - i}
     end
     @pool.add visitor_instance
+      @@logger.an_event.debug "add one visitor instance : #{visitor_instance.inspect}"
     }
     @browser_not_properly_close = false
   end
@@ -401,6 +405,7 @@ class VisitorFactoryMultiInstanceExecution < VisitorFactory
   end
 
   def pool_size
+
     @@logger.an_event.info "pool size visitor factory multi instance [#{@patterns_managed.join(",")}] : #{@pool.num_waiting}"
 
   end

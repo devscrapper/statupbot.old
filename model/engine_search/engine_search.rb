@@ -45,6 +45,7 @@ module EngineSearches
                 :label_button_captcha, # label du bouton pour valider le captcha
                 :id_image_captcha # id de l'objet javascript présentant l'image du captcha
 
+
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
@@ -76,7 +77,18 @@ module EngineSearches
       "#{@fqdn_search}#{@path_search}"
     end
 
-
+    def to_s
+      "fqdn_search : #{@fqdn_search}\n" +
+          "fqdn_search : #{@fqdn_search}\n" +
+          "path_search : #{@path_search}\n" +
+          "id_search : #{@id_search}\n" +
+          "type_search : #{@type_search}\n" +
+          "label_button_search : #{@label_button_search}\n" +
+          "id_captcha : #{@id_captcha}\n" +
+          "type_captcha : #{@type_captcha}\n" +
+          "label_button_captcha : #{@label_button_captcha}\n" +
+          "id_image_captcha : #{@id_image_captcha}\n"
+    end
 
     private
 

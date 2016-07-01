@@ -747,7 +747,12 @@ module Browsers
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "input"}) if input.nil? or input == ""
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "keywords"}) if keywords.nil? or keywords == ""
 
+        @@logger.an_event.debug "type : #{type}"
+        @@logger.an_event.debug "input : #{input}"
+        @@logger.an_event.debug "keywords : #{keywords}"
+
         r = "#{type}(\"#{input}\", \"#{keywords}\")"
+        @@logger.an_event.debug "eval(r) : #{r}"
         eval(r)
 
       rescue Exception => e
@@ -777,7 +782,12 @@ module Browsers
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "input"}) if input.nil? or input == ""
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "captcha"}) if captcha.nil? or captcha == ""
 
+        @@logger.an_event.debug "type : #{type}"
+        @@logger.an_event.debug "input : #{input}"
+        @@logger.an_event.debug "captcha : #{captcha}"
+
         r = "#{type}(\"#{input}\", \"#{captcha}\")"
+        @@logger.an_event.debug "eval(r) : #{r}"
         eval(r)
 
       rescue Exception => e
