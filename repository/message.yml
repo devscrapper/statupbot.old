@@ -44,6 +44,7 @@
 321:  "browser [browser] click max on link [link]"
 322:  "browser [browser] not set input search [type] [input] with keywords [keywords]"
 323:  "browser [browser] not set input captcha [type] [input] with keywords [captcha]"
+324:  "browser [browser] not take captcha on [title]"
 400:  "argument [variable] not define"
 401:  "link [link] not activate"
 402:  "link [link] not exist"

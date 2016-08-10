@@ -1,41 +1,46 @@
 #---------------------------------------------------------------------------------------------------------------------
-# deploy Rail 4 avec capistrano V3
+# deploy avec capistrano V3
 #---------------------------------------------------------------------------------------------------------------------
 #
-# first deploy :
-# -------------
-# install rvm :
-# install ruby :
-# install mysql :
-# install passenger/nginx :
-
-# Next deploy :
-# -------------
-# avant tout deploy, il faut publier sur https://devscrapper/statupweb.git avec la commande
+# ce script de deploiement n'est utilisé que pour déployer les composants executable sur une machine linux
+# qui partage ces composants pour des machines windows.
+# aucune execution ne sera réalisée sur la machine cible de déploiement.
+# toutes les machines exécutant ces composants quelles soient linix ou windows devront pointer sur ces composants.
+# les données ou fichiers produits par l'exécution des composants seront stockés localement à la machine linux ou
+# windows exécutante.
+#
+#---------------------------------------------------------------------------------------------------------------------
+#
+# actions à réalisées sur la machine d'exécution linux ou windows
+# le runtime ruby être deployé
+# les gem doivent être déployé et maintenu   (bundle install)
+# le lancement et l'arret des serveurs
+# la purge des répertoires de travail ('log', 'tmp', 'output', 'input', 'data', 'archive')
+# la connection au répertoire :deploy_to/current
+# ---------------------------------------------------------------------------------------------------------------------
+#
+# avant tout deploy, il faut publier sur https://devscrapper/statupbot.git avec la commande
 # git push origin master
 #
 # pour deployer dans un terminal avec ruby 223 dans la path : cap production deploy
 # cette commande prend en charge :
 # la publication des sources vers le serveur cible
-# les migration mysql
-# la publication des fichiers de paramèrage : database.yml, secret.yml(n'est pas utilisé, car on lit la var d'enviroennemnt
-# dans le fichier application.config.rb => la var est defini dans le fichier /etc/profile : EXPORT SECRET_KEY_BASE="la clé")
-# les liens vers les repertoires partagés et le current vers les relaease
-# le redemarrage de passenger
-# le redemraage de delay_job (en production)
+# la publication des fichiers de paramètrage
+# les liens du current vers les relaease
 #---------------------------------------------------------------------------------------------------------------------
 
 lock '3.4.0'
 
 set :application, 'statupbot'
-set :repo_url, "git@github.com://github.com/devscrapper/#{fetch(:application)}.git/"
 set :repo_url, "https://github.com/devscrapper/#{fetch(:application)}.git/"
 set :github_access_token, '64c0b7864a901bc6a9d7cd851ab5fb431196299e'
 set :default, 'master'
 set :user, 'eric'
-set :pty, false
+set :pty, true
 set :use_sudo, false
-set :deploy_to, "d:\\#{fetch(:application)}_test"
+set :deploy_to, "/home/#{fetch(:user)}/apps/#{fetch(:application)}"
+set :rvm_ruby_version, '2.2.3'
+set :server_list, []
 
 
 # Default branch is :master
@@ -54,52 +59,61 @@ set :deploy_to, "d:\\#{fetch(:application)}_test"
 set :log_level, :debug
 
 # Default value for :pty is false
-# set :pty, true
+#set :pty, true
 
-SSHKit::Backend::Netssh.configure do |ssh|
-  ssh.ssh_options = {
-      user: fetch(:user),
-      auth_methods: ['publickey']
-  }
-end
+# Default value for :linked_files is []
+#set :linked_files, fetch(:linked_files, [])
 
+# Default value for linked_dirs is []
+#set :linked_dirs, fetch(:linked_dirs, []).push('log', 'tmp', 'output', 'input', 'data', 'archive')
+
+# Default value for default_env is {}
+set :default_env, {path: "/opt/ruby/bin:$PATH"}
+
+# Default value for keep_releases is 5
+set :keep_releases, 3
+
+#before 'deploy:check:linked_files', 'config:push'
+
+# before 'deploy:starting', 'github:deployment:create'
+# after  'deploy:starting', 'github:deployment:pending'
+# after  'deploy:finished', 'github:deployment:success'
+# after  'deploy:failed',   'github:deployment:failure'
 
 #----------------------------------------------------------------------------------------------------------------------
-# task list : log
+# task list : git push
 #----------------------------------------------------------------------------------------------------------------------
-namespace :log do
-  task :down do
-    host = SSHKit::Host.new(fetch(:server))
-    # host.password = "Brembo01"
-    host.user = fetch(:user)
-    host.port = 22
-    on host do  |host|
-    ls_output = capture(:ls, '-l')
-    p ls_output
+namespace :git do
+  task :push do
+    on roles(:all) do
+      run_locally do
+        system 'git push origin master'
+      end
+    end
   end
-
- end
 end
-
-
+#----------------------------------------------------------------------------------------------------------------------
+# task list : deploy
+#----------------------------------------------------------------------------------------------------------------------
 namespace :deploy do
   task :bundle_install do
     on roles(:app) do
       within release_path do
-        execute :bundle, "--gemfile Gemfile --path #{shared_path}/bundle  --binstubs #{shared_path}bin --without [:development]"
+       # le bundle doit être réalisé sur la machine d'exécution pas sur la machine contenant les exécutable/sources
+       # execute :bundle, "--gemfile Gemfile --path #{shared_path}/bundle  --binstubs #{shared_path}bin --without [:development]"
       end
     end
   end
-  after 'deploy:updating', 'deploy:bundle_install'
 
-
-  after :restart, :clear_cache do
-    on roles(:web), in: :groups, limit: 3, wait: 10 do
-      # Here we can do anything such as:
-      # within release_path do
-      #   execute :rake, 'cache:clear'
-      # end
+  task :environment do
+    on roles(:app) do
+      within release_path do
+        execute("echo 'staging: test' >  #{File.join(current_path, 'parameter', 'environment.yml')}")
+      end
     end
   end
 
 end
+
+before 'deploy:updating', "git:push"
+

@@ -13,46 +13,49 @@ require 'timeout'
 
 include Visits
 include Visitors
-# bot which surf on website
-#
-# Usage:
-#        visitor_bot [options]
-# where [options] are:
-#   -v, --visit-file-name=<s>                                                                                                      Path and name of visit file to browse
-#   -s, --slave=<s>                                                                                                                Visitor
-#                                                                                                                                  is slave
-#                                                                                                                                  of
-#                                                                                                                                  Visitor
-#                                                                                                                                  Factory
-#                                                                                                                                  (yes/no)
-#                                                                                                                                  (default:
-#                                                                                                                                  no)
-#   -p, --proxy-system=<s>                                                                                                         browser
-#                                                                                                                                  use
-#                                                                                                                                  proxy
-#                                                                                                                                  system
-#                                                                                                                                  of
-#                                                                                                                                  windows
-#                                                                                                                                  (yes/no)
-#                                                                                                                                  (default:
-#                                                                                                                                  no)
-#   -l, --listening-port-visitor-factory=<i>                                                                                       Listening port of Visitor Factory (default: 9220)
-#   -i, --listening-port=<i>                                                                                                       Listening port of Visitor Bot (default: 9800)
-#   -t, --listening-port-sahi-proxy=<i>                                                                                            Listening port of Sahi proxy (default: 9999)
-#   -r, --proxy-type=<s>                                                                                                           Type of geolocation
-#                                                                                                                                  proxy use
-#                                                                                                                                  (none|http|https|socks)
-#                                                                                                                                  (default:
-#                                                                                                                                  none)
-#   -o, --proxy-ip=<s>                                                                                                             @ip of geolocation proxy
-#   -x, --proxy-port=<i>                                                                                                           Port of geolocation proxy
-#   -y, --proxy-user=<s>                                                                                                           Identified user of geolocation proxy
-#   -w, --proxy-pwd=<s>                                                                                                            Authentified pwd of geolocation proxy
-#   -[, --[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]]
-#   -[, --[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]]
-#   -[, --[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]]
-#   -e, --version                                                                                                                  Print version and exit
-#   -h, --help                                                                                                                     Show this message
+=begin
+bot which surf on website
+
+Usage:
+       visitor_bot [options]
+where [options] are:
+  -v, --visit-file-name=<s>                                                                                                      Path and name of visit file to browse
+  -s, --slave=<s>                                                                                                                Visitor
+                                                                                                                                 is slave
+                                                                                                                                 of
+                                                                                                                                 Visitor
+                                                                                                                                 Factory
+                                                                                                                                 (yes/no)
+                                                                                                                                 (default:
+                                                                                                                                 no)
+  -p, --proxy-system=<s>                                                                                                         browser
+                                                                                                                                 use
+                                                                                                                                 proxy
+                                                                                                                                 system
+                                                                                                                                 of
+                                                                                                                                 windows
+                                                                                                                                 (yes/no)
+                                                                                                                                 (default:
+                                                                                                                                 no)
+  -l, --listening-port-visitor-factory=<i>                                                                                       Listening port of Visitor Factory (default: 9220)
+  -i, --listening-port=<i>                                                                                                       Listening port of Visitor Bot (default: 9800)
+  -t, --listening-port-sahi-proxy=<i>                                                                                            Listening port of Sahi proxy (default: 9999)
+  -r, --proxy-type=<s>                                                                                                           Type of geolocation
+                                                                                                                                 proxy use
+                                                                                                                                 (none|http|https|socks)
+                                                                                                                                 (default:
+                                                                                                                                 none)
+  -o, --proxy-ip=<s>                                                                                                             @ip of geolocation proxy
+  -x, --proxy-port=<i>                                                                                                           Port of geolocation proxy
+  -y, --proxy-user=<s>                                                                                                           Identified user of geolocation proxy
+  -w, --proxy-pwd=<s>                                                                                                            Authentified pwd of geolocation proxy
+  -m, --max-time-to-live-visit=<i>                                                                                               Max time to live visit (minute) (default: 30)
+  -[, --[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]]
+  -[, --[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]]
+  -[, --[[:depends, [:proxy-type, :proxy-ip]], [:depends, [:proxy-type, :proxy-port]], [:depends, [:proxy-user, :proxy-pwd]]]
+  -e, --version                                                                                                                  Print version and exit
+  -h, --help                                                                                                                     Show this message
+=end
 
 opts = Trollop::options do
   version "test 0.12 (c) 2013 Dave Scrapper"
@@ -74,6 +77,7 @@ where [options] are:
   opt :proxy_port, "Port of geolocation proxy", :type => :integer
   opt :proxy_user, "Identified user of geolocation proxy", :type => :string
   opt :proxy_pwd, "Authentified pwd of geolocation proxy", :type => :string
+  opt :max_time_to_live_visit, "Max time to live visit (minute)", :type => :integer, :default => 30
 
   #opt depends(:slave, :listening_port, :listening_port_visitor_factory)
   opt depends(:proxy_type, :proxy_ip)
@@ -155,14 +159,14 @@ def change_visit_state(visit_id, state, logger, reason=nil)
   end
 end
 
-def visitor_is_no_slave(max_time_to_live_visit, opts, logger)
+def visitor_is_no_slave(opts, logger)
   visit = nil
   visitor = nil
 
   begin
 
 
-    exit_status = Timeout::timeout(max_time_to_live_visit * 60) {
+    exit_status = Timeout::timeout(opts[:max_time_to_live_visit] * 60) {
 
       begin
         #---------------------------------------------------------------------------------------------------------------------
@@ -365,7 +369,7 @@ else
   $java_key_tool_path = parameters.java_key_tool_path.join(File::SEPARATOR)
   $start_page_server_ip = parameters.start_page_server_ip
   $start_page_server_port = parameters.start_page_server_port
-  max_time_to_live_visit = parameters.max_time_to_live_visit
+
 
   visitor_id = YAML::load(File.read(opts[:visit_file_name]))[:visitor][:id]
 
@@ -375,7 +379,6 @@ else
   logger.a_log.info "java key tool path : #{$java_key_tool_path}"
   logger.a_log.info "start page server ip : #{$start_page_server_ip}"
   logger.a_log.info "start page server port: #{$start_page_server_port}"
-  logger.a_log.info "max time to live visit: #{max_time_to_live_visit}"
   logger.a_log.info "debugging : #{$debugging}"
   logger.a_log.info "staging : #{$staging}"
   logger.an_event.debug "File Parameters end------------------------------------------------------------------------------"
@@ -387,7 +390,6 @@ else
       $java_key_tool_path.nil? or
       $start_page_server_ip.nil? or
       $start_page_server_port.nil? or
-      max_time_to_live_visit.nil? or
       $debugging.nil? or
       $staging.nil?
     $stderr << "some parameters not define" << "\n"
@@ -399,7 +401,7 @@ else
 
   logger.an_event.debug "begin execution visitor_bot"
   #exit_status = visitor_is_slave(opts) if opts[:slave] == "yes"  pour gerer le return visitor
-  exit_status = visitor_is_no_slave(max_time_to_live_visit, opts, logger) if opts[:slave] == "no"
+  exit_status = visitor_is_no_slave(opts, logger) if opts[:slave] == "no"
 
   logger.an_event.debug "end execution visitor_bot, with state #{exit_status}"
   Process.exit(exit_status)

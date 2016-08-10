@@ -4,7 +4,6 @@ require_relative '../browser/browser'
 require_relative '../visit/referrer/referrer'
 require_relative '../visit/advertising/advertising'
 require_relative '../../lib/monitoring'
-require_relative '../../lib/captcha'
 require_relative '../../lib/error'
 require 'pathname'
 
@@ -83,6 +82,7 @@ module Visitors
                 "1" => "sb_final_search",
                 "3" => "sb_captcha"}
 
+    MAX_COUNT_SUBMITING_CAPTCHA = 3 # nombre max de submission de captcha
     #----------------------------------------------------------------------------------------------------------------
     # variable de class
     #----------------------------------------------------------------------------------------------------------------
@@ -364,12 +364,21 @@ module Visitors
                 Monitoring.page_browse(@visit.id, script)
 
               when VISITOR_SEE_CAPTCHA
-                #ajour dans le script d'un action pour gérer une page affichant un capcha du MDR
+                #ajout dans le script d'un action pour gérer une page affichant un capcha du MDR
+                # pour eviter une boucle infini, on limite le nombre de submit captcha à 3, pour cela on compte le
+                # nombre d'action '3' présentes dans le script. Si > MAX_COUNT_SUBMITING_CAPTCHA alors VISITOR_NOT_SUBMIT_CAPTCHA
                 act = "3"
-                script.insert(count_actions + 1, [act, action]).flatten!
-                @@logger.an_event.info "visitor #{@id} make action <#{COMMANDS[act]}> before <#{COMMANDS[action]}> again"
-                count_actions +=1
-                Monitoring.page_browse(@visit.id, script)
+                if script.count("3") < MAX_COUNT_SUBMITING_CAPTCHA
+                  script.insert(count_actions + 1, [act, action]).flatten!
+                  @@logger.an_event.info "visitor #{@id} make action <#{COMMANDS[act]}> before <#{COMMANDS[action]}> again"
+                  count_actions +=1
+                  Monitoring.page_browse(@visit.id, script)
+
+                else
+                  @@logger.an_event.error "visitor #{@id} submited too many captchas"
+                  raise Error.new(VISITOR_NOT_FULL_EXECUTE_VISIT, :error => e)
+
+                end
 
               else
                 @@logger.an_event.error "visitor #{@id} make action  <#{COMMANDS[action]}> : #{e.message}"
@@ -385,7 +394,7 @@ module Visitors
           else
             @@logger.an_event.info "visitor #{@id} executed action <#{COMMANDS[action]}>."
             Monitoring.page_browse(@visit.id, script)
-            take_screenshot(count_actions, action) if $debugging
+            take_screenshot(count_actions, action)
             count_actions +=1
 
           ensure
@@ -1032,10 +1041,34 @@ module Visitors
       else
 
         @@logger.an_event.info "visitor #{@id} went back to previous page <#{@current_page.url}>"
+        if @browser.engine_search.is_captcha_page?(@browser.url)
+          #--------------------------------------------------------------------------------------------------------
+          # captcha page replace search page
+          #--------------------------------------------------------------------------------------------------------
 
-        read(@current_page)
+          begin
+
+            @current_page = Pages::Captcha.new(@browser, @id, @home)
+
+          rescue Exception => e
+            @@logger.an_event.error e.message
+            raise Error.new(VISITOR_NOT_GO_BACK, :error => e)
+
+          else
+            @@logger.an_event.info "visitor #{@id} see captcha page"
+            raise Error.new(VISITOR_SEE_CAPTCHA, :values => {:type => @current_page.type})
+
+          end
+
+        else
+          read(@current_page)
+          @history << [@browser.driver, @current_page]
+          @@logger.an_event.info "visitor #{@id} read previous page <#{@current_page.url}>"
+
+        end
+
       ensure
-        @history << [@browser.driver, @current_page]
+
 
       end
     end
@@ -1108,6 +1141,9 @@ module Visitors
 
         read(@current_page)
       ensure
+        @max_count_submiting_captcha = MAX_COUNT_SUBMITING_CAPTCHA #initialisation du nombre de submiting captcha
+        # pour éviter de partir en boucle infini si on arrive pas a converntir l'image en string
+
         @history << [@browser.driver, @current_page]
 
       end
@@ -1148,6 +1184,9 @@ module Visitors
         read(@current_page)
 
       ensure
+        @max_count_submiting_captcha = MAX_COUNT_SUBMITING_CAPTCHA #initialisation du nombre de submiting captcha
+        # pour éviter de partir en boucle infini si on arrive pas a converntir l'image en string
+
         @history << [@browser.driver, @current_page]
 
       end
@@ -1211,16 +1250,53 @@ module Visitors
       begin
         @@logger.an_event.debug "action #{__method__}"
 
-        @browser.set_input_captcha(@current_page.type, @current_page.input, @current_page.str)
+        @browser.set_input_captcha(@current_page.type, @current_page.input, @current_page.text)
 
         @browser.submit(@current_page.submit_button)
 
       rescue Exception => e
-        @@logger.an_event.error "visitor #{@id} submited captcha search <#{@current_page.str}> : #{e.message}."
+        @@logger.an_event.error "visitor #{@id} submited captcha search <#{@current_page.text}> : #{e.message}."
         raise Error.new(VISITOR_NOT_SUBMIT_CAPTCHA, :error => e)
 
       else
-        @@logger.an_event.info "visitor #{@id} submited captcha search <#{@current_page.str}>."
+        sleep 2
+
+        if @browser.engine_search.is_captcha_page?(@browser.url)
+          #--------------------------------------------------------------------------------------------------------
+          # new captcha page replace captcha page
+          #--------------------------------------------------------------------------------------------------------
+
+          begin
+            #si la soumission du text du captcha a échoué alors, google en affiche un nouveau.
+            #le nouveau screenshot est dans un nouveau volume du flow.
+            #le captcha précédent peut être déclaré comme bad aupres de de-capcher.
+            #TODO Captchas::bad_string(id_visitor)
+
+
+            @current_page = Pages::Captcha.new(@browser, @id, @home)
+
+          rescue Exception => e
+            @@logger.an_event.error e.message
+            raise Error.new(VISITOR_NOT_SUBMIT_CAPTCHA, :error => e)
+
+          else
+            @@logger.an_event.info "visitor #{@id} see captcha page"
+            raise Error.new(VISITOR_SEE_CAPTCHA, :values => {:type => @current_page.type})
+
+          end
+
+        else
+          @@logger.an_event.info "visitor #{@id} submited captcha search <#{@current_page.text}>."
+          #il y a pu avoir un succession de saisie de captcha => on les supprime pour trouver la denire page
+          history_without_captcha_page = @history.reject { |browser, page| page.is_a?(Pages::Captcha) }
+          @@logger.an_event.debug "history_without_captcha_page #{history_without_captcha_page}"
+
+          #on se repositionne sur le dernierélement de l'history et prend la page associée qui a amener le captcha
+          @current_page = history_without_captcha_page.last[1]
+          @@logger.an_event.info "current page #{@current_page}"
+
+        end
+
 
       end
     end
@@ -1243,6 +1319,7 @@ module Visitors
 
         @browser.submit(@current_page.submit_button)
 
+
       rescue Error, Exception => e
         sleep 5
 
@@ -1253,7 +1330,7 @@ module Visitors
 
           begin
 
-            @current_page = Pages::Captcha.new(@browser)
+            @current_page = Pages::Captcha.new(@browser, @id, @home)
 
           rescue Exception => e
             @@logger.an_event.error e.message
@@ -1292,7 +1369,7 @@ module Visitors
           #--------------------------------------------------------------------------------------------------------
           begin
 
-            @current_page = Pages::Captcha.new(@browser)
+            @current_page = Pages::Captcha.new(@browser, @id, @home)
 
           rescue Exception => e
             @@logger.an_event.error e.message
@@ -1346,7 +1423,7 @@ module Visitors
           #--------------------------------------------------------------------------------------------------------
           begin
 
-            @current_page = Pages::Captcha.new(@browser)
+            @current_page = Pages::Captcha.new(@browser, @id, @home)
 
           rescue Exception => e
             @@logger.an_event.error e.message
@@ -1391,7 +1468,7 @@ module Visitors
           #--------------------------------------------------------------------------------------------------------
           begin
 
-            @current_page = Pages::Captcha.new(@browser)
+            @current_page = Pages::Captcha.new(@browser, @id, @home)
 
           rescue Exception => e
             @@logger.an_event.error e.message

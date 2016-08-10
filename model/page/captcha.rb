@@ -1,6 +1,7 @@
 require_relative '../../lib/error'
-require_relative '../../lib/captcha'
-require "base64"
+require_relative '../../lib/captchas'
+require_relative '../../lib/flow'
+
 
 module Pages
   #----------------------------------------------------------------------------------------------------------------
@@ -35,7 +36,7 @@ module Pages
     #----------------------------------------------------------------------------------------------------------------
     # constant
     #----------------------------------------------------------------------------------------------------------------
-    TMP = Pathname(File.join(File.dirname(__FILE__), "..", "..", "tmp")).realpath
+
     #----------------------------------------------------------------------------------------------------------------
     # variable de class
     #----------------------------------------------------------------------------------------------------------------
@@ -46,7 +47,7 @@ module Pages
                 :type, #type de la zone de saisie
                 :submit_button, # bouton de validation du formulaire de saisie de captcha
                 :image, # le capcha sous forme image
-                :str # la reprÈsentation du captcha sous forme d'une chaine de caractere
+                :text # la reprÔøΩsentation du captcha sous forme d'une chaine de caractere
     #----------------------------------------------------------------------------------------------------------------
     # class methods
     #----------------------------------------------------------------------------------------------------------------
@@ -61,50 +62,62 @@ module Pages
     #
     #----------------------------------------------------------------------------------------------------------------
 
-    def initialize(browser)
+    def initialize(browser, id_visitor, home_visitor)
       begin
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser"}) if browser.nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "id_visitor"}) if id_visitor.nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "home_visitor"}) if home_visitor.nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search"}) if  browser.engine_search.nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.id_captcha"}) if browser.engine_search.id_captcha.nil? or browser.engine_search.id_captcha.empty?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.type_captcha"}) if browser.engine_search.type_captcha.nil? or  browser.engine_search.type_captcha.empty?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.label_button_captcha"}) if browser.engine_search.label_button_captcha.nil? or  browser.engine_search.label_button_captcha.empty?
 
-        @@logger.an_event.debug "engine_search : #{browser.engine_search}"
-
         @input = browser.engine_search.id_captcha
         @type = browser.engine_search.type_captcha
         @submit_button = browser.engine_search.label_button_captcha
-
-        @@logger.an_event.debug "input #{@input}"
-        @@logger.an_event.debug "type #{@type}"
-        @@logger.an_event.debug "submit_button #{@submit_button}"
 
         super(browser.url,
               browser.title,
               0,
               0)
 
-        captcha_file = Flow.new(TMP, "captcha", browser.name, Date.today, nil, ".png")
-        @@logger.an_event.debug "captcha file :  #{captcha_file.absolute_path}"
+        i = 0
+        while (screenshot_file = Flow.new(home_visitor, "screenshot", id_visitor, Date.today, i = i + 1, ".png")).exist?
+        end
+        @@logger.an_event.debug "screenshot file #{screenshot_file}"
 
-        browser.take_screenshot(captcha_file)
+        browser.take_screenshot(screenshot_file)
 
-        @image = Base64.urlsafe_encode64(captcha_file.read)
-        @@logger.an_event.debug "encode image en base64"
+        i = 0
+        while (captcha_file = Flow.new(home_visitor, "captcha", id_visitor, Date.today, i = i + 1, ".png")).exist?
+        end
+        @@logger.an_event.debug "captcha file #{captcha_file}"
 
-        # TODO convertir le captcha en string
-        #@str = Captcha::convert_to_string(image)
-        @str = "not convert to string"
-        @@logger.an_event.debug "receive string of captcha"
+        browser.take_captcha(captcha_file)
+
+        @text = Captchas::convert_to_text(:screenshot => screenshot_file.absolute_path,
+                                         :captcha => captcha_file.absolute_path,
+                                         :id_visitor => id_visitor)
+
+        @@logger.an_event.debug "captcha converted to string : #{@text}"
 
       rescue Exception => e
         @@logger.an_event.error e.message
         raise Error.new(PAGE_NOT_CREATE, :error => e)
 
+      else
+        # i = 0
+        # while (screenshot_file = Flow.new(home_visitor, "screenshot", id_visitor, Date.today, i = i + 1, ".png")).exist?
+        #   screenshot_file.delete
+        # end
+        # les screenshot ou les captcha seront supprim√© par la suppression du repertoire d"execution du visitor lors de l'hinume"
+
       ensure
-        @@logger.an_event.debug "page engine captcha #{self.to_s}"
+
+        @@logger.an_event.debug "#{self.to_s}"
 
       end
+
     end
 
     def to_s
@@ -113,7 +126,7 @@ module Pages
              "type : #{@type}\n" +
              "submit_button : #{@submit_button}\n" +
              "image : #{@image}\n" +
-             "str : #{@str}\n"
+             "str : #{@text}\n"
     end
 
   end

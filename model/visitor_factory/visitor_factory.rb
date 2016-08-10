@@ -3,6 +3,7 @@ require 'eventmachine'
 require 'yaml'
 require 'em/threaded_resource'
 require 'em/pool'
+require 'timeout'
 require_relative '../../lib/flow'
 require_relative '../../lib/logging'
 require_relative '../../lib/error'
@@ -50,10 +51,7 @@ class VisitorFactory
   # attribut
   #----------------------------------------------------------------------------------------------------------------
   attr :pool,
-       :count_running_visitor, #nombre de visitor s'executant utilisé pour nettoyer les browser qd il y a un pb
-       :patterns_managed, # liste des browsers/version pris en charge par le VisitorFactory
-       :browser_not_properly_close,
-       :mutex # mutex nombre de visitor s'executant
+       :patterns_managed # liste des browsers/version pris en charge par le VisitorFactory
 
 
   #----------------------------------------------------------------------------------------------------------------
@@ -63,6 +61,7 @@ class VisitorFactory
   @@delay_out_of_time = nil
   @@geolocation_factory = nil
   @@delay_periodic_scan = nil
+  @@max_time_to_live_visit = nil
   @@logger = nil
 
   def self.runtime_ruby=(runtime_ruby)
@@ -79,6 +78,10 @@ class VisitorFactory
 
   def self.delay_periodic_scan=(delay_periodic_scan)
     @@delay_periodic_scan = delay_periodic_scan
+  end
+
+  def self.max_time_to_live_visit=(max_time_to_live_visit)
+    @@max_time_to_live_visit = max_time_to_live_visit
   end
 
   def self.logger=(logger)
@@ -100,8 +103,8 @@ class VisitorFactory
   #-----------------------------------------------------------------------------------------------------------------
   def initialize(count_instance, start_port_proxy_sahi)
     @pool = EM::Pool.new
-    @mutex = Mutex.new
-    @count_running_visitor = 0
+
+
     @patterns_managed = []
 
     @@logger.an_event.debug "count_instance : #{count_instance}"
@@ -109,12 +112,12 @@ class VisitorFactory
 
     count_instance.times { |i|
       visitor_instance = EM::ThreadedResource.new do
-      {:port_proxy_sahi => start_port_proxy_sahi - i}
-    end
-    @pool.add visitor_instance
+        {:port_proxy_sahi => start_port_proxy_sahi - i}
+      end
+      @pool.add visitor_instance
       @@logger.an_event.debug "add one visitor instance : #{visitor_instance.inspect}"
     }
-    @browser_not_properly_close = false
+
   end
 
   #-----------------------------------------------------------------------------------------------------------------
@@ -222,7 +225,6 @@ class VisitorFactory
   #-----------------------------------------------------------------------------------------------------------------
   def start_visitor_bot(details)
     begin
-      @mutex.synchronize { @count_running_visitor += 1 }
 
       @@logger.an_event.info "start visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]}"
 
@@ -241,14 +243,24 @@ class VisitorFactory
       -v #{details[:visit_file]} \
       -t #{details[:port_proxy_sahi].to_i} \
       -p #{details[:use_proxy_system]} \
+      -m #{@@max_time_to_live_visit}                   \
       #{geolocation(with_advertising, with_google_engine)}"
 
       @@logger.an_event.debug "cmd start visitor_bot #{cmd}"
 
       visitor_bot_pid = 0
 
-      visitor_bot_pid = Process.spawn(cmd)
-      visitor_bot_pid, status = Process.wait2(visitor_bot_pid, 0)
+      visitor_bot_pid = Timeout::timeout((@@max_time_to_live_visit + 2) * 60) {
+        visitor_bot_pid = Process.spawn(cmd)
+        visitor_bot_pid, status = Process.wait2(visitor_bot_pid, 0)
+        visitor_bot_pid
+      }
+    rescue Timeout::Error => e
+      #TODO remplacer taskkill par kill pour linux
+      # kill du process qui contient ruby.exe, parfois il n'est pas tuer par windows qd visitor_bot s'arrete, prkoi ????
+      # par sécurité => nettoyage.
+      res = IO.popen("taskkill /PID #{visitor_bot_pid} /T /F").read
+      @@logger.an_event.debug ("ruby.exe(#{visitor_bot_pid}) for visitor #{visitor} was killed : #{res}")  unless res == ""
 
     rescue Exception => e
       @@logger.an_event.error "lauching visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]} : #{e.message}"
@@ -261,23 +273,17 @@ class VisitorFactory
         delete_log_file(visitor[:id])
 
       elsif status.exitstatus == ERR_BROWSER_CLOSING
-        @browser_not_properly_close = true
+
       end
 
     ensure
       @@logger.an_event.info "stop visitor_bot with browser #{details[:pattern]} and visit file #{details[:visit_file]}"
-      @mutex.synchronize {
-        @count_running_visitor -= 1
-        # comme on est dans le synchronize, aucun start_visitor_bot est en cours de lancement car il est bloqué par
-        # le synchronize sur le mutex
-        # si aucun visitor du factory est en cours d'execution et qu'il y a eu une erreur de fermeture d'un visitor
-        # alors suppression de tous les browser gérer par le VisitorFactory
-        if @count_running_visitor == 0 and @browser_not_properly_close
-          @patterns_managed.each { |pattern| kill_all_browser_from_pattern(pattern.split(" ")[0]) }
-          # tous les browser sont morts donc on reinitialise la variable
-          @browser_not_properly_close = false
-        end
-      }
+      #TODO remplacer taskkill par kill pour linux
+      # kill du process qui contient ruby.exe, parfois il n'est pas tuer par windows qd visitor_bot s'arrete, prkoi ????
+      # par sécurité => nettoyage.
+      res = IO.popen("taskkill /PID #{visitor_bot_pid} /T /F").read
+      @@logger.an_event.debug ("ruby.exe(#{visitor_bot_pid}) for visitor #{visitor} was killed : #{res}") unless res == ""
+
     end
   end
 
@@ -352,44 +358,7 @@ class VisitorFactory
     end
   end
 
-  def kill_all_browser_from_pattern(name_browser)
-    count_try = 3
-    case name_browser
-      when "Internet Explorer"
-        image_name = "iexplore.exe"
-      when "Firefox"
-        image_name = "firefox.exe"
-      when "Chrome"
-        image_name = "chrome.exe"
-      when "Opera"
-        image_name = "opera.exe"
-    end
 
-    begin
-
-      #TODO remplacer taskkill par kill pour linux
-      res = IO.popen("taskkill /IM #{image_name}").read
-
-      @@logger.an_event.debug "taskkill for #{name_browser} : #{res}"
-
-    rescue Exception => e
-      count_try -= 1
-      if count_try > 0
-        @@logger.an_event.debug "try #{count_try},kill browser type #{name_browser} : #{e.message}"
-        sleep (1)
-        retry
-
-      else
-        @@logger.an_event.error "kill browser type #{name_browser}  : #{e.message}"
-        # lors de la prochaine visit qui stoppera alors à nouveau on tentera sur tuer les browser de ce type là
-        # donc @browser_not_properly_close reste à true
-      end
-
-    else
-      @@logger.an_event.info "kill browser type #{name_browser}"
-
-    end
-  end
 
 end
 

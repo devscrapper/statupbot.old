@@ -50,6 +50,7 @@ module Browsers
     BROWSER_CLICK_MAX_COUNT = 321
     BROWSER_NOT_SET_INPUT_SEARCH = 322
     BROWSER_NOT_SET_INPUT_CAPTCHA = 323
+    BROWSER_NOT_TAKE_CAPTCHA = 324
     #----------------------------------------------------------------------------------------------------------------
     # constant
     #----------------------------------------------------------------------------------------------------------------
@@ -881,6 +882,35 @@ module Browsers
 
     end
 
+    #-----------------------------------------------------------------------------------------------------------------
+    # take_captcha
+    #-----------------------------------------------------------------------------------------------------------------
+    # input : output file captcha, coordonate of captcha on screen
+    # output : image du captcha
+    # exception : technique
+    #-----------------------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------------------------
+
+
+    def take_captcha(output_file, coord_captcha)
+
+      begin
+
+        @driver.take_area_screenshot(output_file.absolute_path, coord_captcha)
+
+      rescue Exception => e
+        @@logger.an_event.fatal "take captcha : #{e.message}"
+        raise Error.new(BROWSER_NOT_TAKE_SCREENSHOT, :values => {:browser => name, :title => title}, :error => e)
+
+      else
+
+        @@logger.an_event.info "browser #{name} take captcha"
+
+      ensure
+
+      end
+
+    end
     #----------------------------------------------------------------------------------------------------------------
     # textbox
     #----------------------------------------------------------------------------------------------------------------

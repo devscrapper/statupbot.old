@@ -75,6 +75,7 @@ else
   delay_periodic_load_geolocations = parameters.delay_periodic_load_geolocations
   periodicity_supervision = parameters.periodicity_supervision
   max_count_current_visit = parameters.max_count_current_visit
+  max_time_to_live_visit = parameters.max_time_to_live_visit
 
   if runtime_ruby.nil? or
       delay_periodic_scan.nil? or
@@ -83,6 +84,7 @@ else
       delay_periodic_load_geolocations.nil? or
       periodicity_supervision.nil? or
       max_count_current_visit.nil? or
+      max_time_to_live_visit.nil? or
       $debugging.nil? or
       $staging.nil?
     $stderr << "some parameters not define\n" << "\n"
@@ -101,7 +103,7 @@ logger.a_log.info "delay_periodic_load_geolocations (minute) : #{delay_periodic_
 logger.a_log.info "delay_out_of_time (minute): #{delay_out_of_time}"
 logger.a_log.info "periodicity supervision : #{periodicity_supervision}"
 logger.a_log.info "max count current visit : #{max_count_current_visit}"
-
+logger.a_log.info "max time to live visit: #{max_time_to_live_visit}"
 logger.a_log.info "debugging : #{$debugging}"
 logger.a_log.info "staging : #{$staging}"
 #--------------------------------------------------------------------------------------------------------------------
@@ -127,6 +129,8 @@ begin
     Signal.trap("TERM") { EventMachine.stop; }
 
     # supervision
+
+    Supervisor.send_online(File.basename(__FILE__, '.rb'))
     Rufus::Scheduler.start_new.every periodicity_supervision do
       Supervisor.send_online(File.basename(__FILE__, '.rb'))
     end
@@ -167,6 +171,7 @@ begin
         VisitorFactory.runtime_ruby = runtime_ruby
         VisitorFactory.delay_out_of_time = delay_out_of_time
         VisitorFactory.delay_periodic_scan = delay_periodic_scan
+        VisitorFactory.max_time_to_live_visit = max_time_to_live_visit
         VisitorFactory.geolocation_factory = geolocation_factory.nil? ? geolocation_factory : geolocation_factory.dup
         VisitorFactory.logger = logger
 
@@ -195,6 +200,7 @@ begin
         VisitorFactory.runtime_ruby = runtime_ruby
         VisitorFactory.delay_out_of_time = delay_out_of_time
         VisitorFactory.delay_periodic_scan = delay_periodic_scan
+        VisitorFactory.max_time_to_live_visit = max_time_to_live_visit
         VisitorFactory.geolocation_factory = geolocation_factory.nil? ? geolocation_factory : geolocation_factory.dup
         VisitorFactory.logger = logger
 
@@ -224,8 +230,6 @@ begin
         EM.add_periodic_timer(delay_periodic_pool_size_monitor * 60) do vf_mono.pool_size end
         EM.add_periodic_timer(delay_periodic_pool_size_monitor * 60) do vf_multi.pool_size end
     end
-
-    Supervisor.send_online(File.basename(__FILE__, '.rb'))
 
   end
 
