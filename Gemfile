@@ -35,9 +35,8 @@ gem 'win32-window', '~> 0.2.0.pre'
 
 #group :development
 group :development do
-  # gem 'capistrano', '~> 3.1'
-  # gem 'capistrano-bundler', '~> 1.1.2'
-  gem "capistrano-windows-server"
+  gem 'capistrano'
+  gem 'capistrano-rvm'
   gem 'sshkit'
 end
 

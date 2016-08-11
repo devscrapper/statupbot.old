@@ -33,7 +33,7 @@ module Geolocations
          :geolocations_file,
          :download_proxy
 
-    TMP = Pathname(File.join(File.dirname(__FILE__), "..", "..", "tmp")).realpath
+    DIR_TMP = [File.dirname(__FILE__), "..", "..", "tmp"]
 
     def self.logger=(logger)
       @@logger=logger
@@ -153,7 +153,12 @@ module Geolocations
       now = Time.now
       vol = now.hour
       date = now.strftime("%Y-%m-%d")
-      @geolocations_file = Flow.new(TMP, "geolocations", $staging, date, vol, '.txt')
+      @geolocations_file = Flow.new(File.join($dir_tmp || DIR_TMP),
+                                    "geolocations", 
+                                    $staging, 
+                                    date, 
+                                    vol, 
+                                    '.txt')
 
       begin
         proxy_list = Proxy.get

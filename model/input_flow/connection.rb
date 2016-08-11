@@ -14,7 +14,7 @@ module Input_flows
     ACTION_NOT_EXECUTE = 1802
     RESSOURCE_NOT_MANAGE = 1803
     VERBE_HTTP_NOT_MANAGE = 1804
-    TMP = Pathname(File.join(File.dirname(__FILE__), "..", "..", "tmp")).realpath
+    DIR_TMP = [File.dirname(__FILE__), "..", "..", "tmp"]
 
     @@title_html = ""
 
@@ -189,7 +189,7 @@ module Input_flows
     # visit est un flux json
     def send_to_geolocation_factory(geo_filename, geolocation_details)
 
-      geo_flow = Flow.from_basename(TMP, geo_filename)
+      geo_flow = Flow.from_basename(File.join($dir_tmp || DIR_TMP), geo_filename)
       geo_flow.write(geolocation_details)
       geo_flow.close
       geo_flow.archive_previous
@@ -209,7 +209,7 @@ module Input_flows
       @logger.an_event.debug "browser_version #{visit_details[:visitor][:browser][:version]}"
       @logger.an_event.debug "website_label #{visit_details[:website][:label]}"
       @logger.an_event.debug "date #{visit_details[:visit][:start_date_time]}"
-      tmp_visit = Flow.new(TMP,
+      tmp_visit = Flow.new(File.join($dir_tmp || DIR_TMP),
                            "#{visit_details[:visitor][:browser][:name]}-#{visit_details[:visitor][:browser][:version]}",
                            visit_details[:website][:label],
                            date,

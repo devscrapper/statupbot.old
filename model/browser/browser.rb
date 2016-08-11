@@ -54,7 +54,7 @@ module Browsers
     #----------------------------------------------------------------------------------------------------------------
     # constant
     #----------------------------------------------------------------------------------------------------------------
-    TMP_DIR = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'tmp')).realpath
+    TMP_DIR = Pathname.new(File.join($dir_tmp || [File.dirname(__FILE__), '..', '..', 'tmp'])).realpath
     SCREENSHOT = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'screenshot')).realpath
     NO_REFERER = "noreferrer"
     DATA_URI = "datauri"

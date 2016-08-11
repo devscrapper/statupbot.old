@@ -83,15 +83,15 @@ set :keep_releases, 3
 #----------------------------------------------------------------------------------------------------------------------
 # task list : git push
 #----------------------------------------------------------------------------------------------------------------------
-namespace :git do
-  task :push do
-    on roles(:all) do
-      run_locally do
-        system 'git push origin master'
-      end
-    end
-  end
-end
+# namespace :git do
+#   task :push do
+#     on roles(:all) do
+#       run_locally do
+#         system 'git push origin master'
+#       end
+#     end
+#   end
+# end
 #----------------------------------------------------------------------------------------------------------------------
 # task list : deploy
 #----------------------------------------------------------------------------------------------------------------------
@@ -115,5 +115,5 @@ namespace :deploy do
 
 end
 
-before 'deploy:updating', "git:push"
+#before 'deploy:updating', "git:push"
 

@@ -7,7 +7,7 @@ class Flow
 
   MAX_SIZE = 1000000 # taille max d'un volume
   SEPARATOR = "_" # separateur entre elemet composant (type_flow, label, date, vol) le nom du volume (basename)
-  ARCHIVE = Pathname.new(File.join(File.dirname(__FILE__), '..', 'archive')).realpath #localisation du repertoire d'archive
+  DIR_ARCHIVE =  [File.dirname(__FILE__), '..', 'archive'] #localisation du repertoire d'archive
   FORBIDDEN_CHAR = /[_ :\/]/ # liste des caractères interdits dans le typeflow et label d'un volume
   attr :descriptor,
        :dir,
@@ -180,21 +180,21 @@ class Flow
   end
 
   def archive
-    # archive le flow courant : deplace le fichier dans le repertoire ARCHIVE
+    # archive le flow courant : deplace le fichier dans le repertoire DIR_ARCHIVE
     raise StandardError, "Flow <#{absolute_path}> not exist" unless exist?
-    FileUtils.mv(absolute_path, ARCHIVE, :force => true)
+    FileUtils.mv(absolute_path, File.join($dir_archive || DIR_ARCHIVE), :force => true)
     delete if exist?
-    @dir = ARCHIVE
-    @logger.an_event.debug "archiving <#{basename}> to #{ARCHIVE}" if $debugging
+    @dir = File.join($dir_archive || DIR_ARCHIVE)
+    @logger.an_event.debug "archiving <#{basename}> to #{File.join($dir_archive || DIR_ARCHIVE)}" if $debugging
   end
 
 
   def archive_previous
-    # N'ARCHIVE PAS L'INSTANCE COURANTE
+    # N'DIR_ARCHIVE PAS L'INSTANCE COURANTE
     # archive le flow ou les flows qui sont antérieurs à l'instance courante
     # en prenant en compte le multivolume
     # l'objectif est de faire le ménage dans le répertoire qui contient l'instance courante
-    # le ou les flow sont déplacés dans ARCHIVE
+    # le ou les flow sont déplacés dans DIR_ARCHIVE
     Flow.list(@dir, {:type_flow => @type_flow,
                      :label => @label,
                      :ext => @ext}).each { |flow| flow.archive if flow.is_before_day?(self) }

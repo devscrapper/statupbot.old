@@ -34,7 +34,8 @@ module Logging
   STAGING_PROD = "production"
 
   class Log
-    DIR_LOG = File.dirname(__FILE__) + "/../log"
+    DIR_LOG = [File.dirname(__FILE__), "..", "log"]
+
     attr_reader :logger
     attr :staging,
          :debugging,
@@ -147,7 +148,9 @@ module Logging
     def rollfile()
       opt = {:truncate => true, :size => 5000000, :keep => 10, :roll_by => :number} if @debugging
       opt = {:age => :daily, :keep => 7, :roll_by => :date} unless @debugging
-      Logging::Appenders.rolling_file(File.join(DIR_LOG, "#{@id_file}.log"), opt)
+      #$dir_log permet de spécialiser les log dans un répertoire
+      #particulier qui n'est pas sous la racine qui contient les sources.
+      Logging::Appenders.rolling_file(File.join($dir_log || DIR_LOG, "#{@id_file}.log"), opt)
     end
 
 
@@ -171,7 +174,9 @@ module Logging
     end
 
     def debfile
-      Logging::Appenders.rolling_file(File.join(DIR_LOG, "#{@id_file}.deb"),
+      #$dir_log permet de spécialiser les log dans un répertoire
+      #particulier qui n'est pas sous la racine qui contient les sources.
+      Logging::Appenders.rolling_file(File.join($dir_log || DIR_LOG, "#{@id_file}.deb"),
                                       {:age => :daily,
                                        :keep => 7,
                                        :roll_by => :date,
@@ -181,7 +186,9 @@ module Logging
     end
 
     def ymlfile
-      Logging::Appenders.rolling_file(File.join(DIR_LOG, "#{@id_file}.yml"),
+      #$dir_log permet de spécialiser les log dans un répertoire
+      #particulier qui n'est pas sous la racine qui contient les sources.
+      Logging::Appenders.rolling_file(File.join($dir_log || DIR_LOG, "#{@id_file}.yml"),
                                       {:age => :daily,
                                        :keep => 7,
                                        :roll_by => :date,

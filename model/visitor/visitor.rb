@@ -60,7 +60,7 @@ module Visitors
     #----------------------------------------------------------------------------------------------------------------
     # constants
     #----------------------------------------------------------------------------------------------------------------
-    DIR_VISITORS = Pathname(File.join(File.dirname(__FILE__), '..', '..', 'visitors')).realpath
+    DIR_VISITORS = [File.dirname(__FILE__), '..', '..', 'visitors']
 
     COMMANDS = {"a" => "go_to_start_landing",
                 "b" => "go_to_start_engine_search",
@@ -156,7 +156,7 @@ module Visitors
         @id = visitor_details[:id]
 
 
-        @home = File.join(DIR_VISITORS, @id)
+        @home = File.join($dir_visitors || DIR_VISITORS, @id)
 
 
         #------------------------------------------------------------------------------------------------------------

@@ -21,6 +21,9 @@ else
   $debugging = parameters.debugging
   listening_port = parameters.listening_port
   periodicity_supervision = parameters.periodicity_supervision
+  $dir_archive = parameters.archive
+  $dir_log = parameters.log
+  $dir_tmp = parameters.tmp
 
   if listening_port.nil? or
       $debugging.nil? or
@@ -38,6 +41,9 @@ logger.a_log.info "listening port : #{listening_port}"
 logger.a_log.info "periodicity supervision : #{periodicity_supervision}"
 logger.a_log.info "debugging : #{$debugging}"
 logger.a_log.info "staging : #{$staging}"
+logger.a_log.info "specify dir archive : #{$dir_archive}"
+logger.a_log.info "specify dir log : #{$dir_log}"
+logger.a_log.info "specify dir tmp : #{$dir_tmp}"
 
 include Input_flows
 

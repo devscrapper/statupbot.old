@@ -33,7 +33,7 @@ require_relative '../lib/supervisor'
 #   -v, --version                                    Print version and exit
 #   -h, --help                                       Show this message
 
-TMP = Pathname(File.join(File.dirname(__FILE__), "..", "tmp")).realpath
+DIR_TMP = [File.dirname(__FILE__), "..", "tmp"]
 
 opts = Trollop::options do
   version "visitor factory server 0.4 (c) 2014 Dave Scrapper"
@@ -76,6 +76,10 @@ else
   periodicity_supervision = parameters.periodicity_supervision
   max_count_current_visit = parameters.max_count_current_visit
   max_time_to_live_visit = parameters.max_time_to_live_visit
+  $dir_archive = parameters.archive
+  $dir_log = parameters.log
+  $dir_tmp = parameters.tmp
+  $dir_visitors = parameters.visitors
 
   if runtime_ruby.nil? or
       delay_periodic_scan.nil? or
@@ -106,6 +110,10 @@ logger.a_log.info "max count current visit : #{max_count_current_visit}"
 logger.a_log.info "max time to live visit: #{max_time_to_live_visit}"
 logger.a_log.info "debugging : #{$debugging}"
 logger.a_log.info "staging : #{$staging}"
+logger.a_log.info "specify dir archive : #{$dir_archive}"
+logger.a_log.info "specify dir log : #{$dir_log}"
+logger.a_log.info "specify dir tmp : #{$dir_tmp}"
+logger.a_log.info "specify dir visitors : #{$dir_visitors}"
 #--------------------------------------------------------------------------------------------------------------------
 # INCLUDE
 #--------------------------------------------------------------------------------------------------------------------
@@ -152,8 +160,15 @@ begin
       when "http"
 
         logger.a_log.info "default geolocation : #{opts[:proxy_ip]}:#{opts[:proxy_port]}"
-        geo_flow = Flow.new(TMP, "geolocations", $staging, Date.today)
-        geo_flow.write(["fr", opts[:proxy_type], opts[:proxy_ip], opts[:proxy_port], opts[:proxy_user], opts[:proxy_pwd]].join(Geolocations::Geolocation::SEPARATOR))
+        geo_flow = Flow.new(File.join($dir_tmp || DIR_TMP),
+                            "geolocations", 
+                            $staging,
+                            Date.today)
+        geo_flow.write(["fr", opts[:proxy_type],
+                        opts[:proxy_ip],
+                        opts[:proxy_port], 
+                        opts[:proxy_user], 
+                        opts[:proxy_pwd]].join(Geolocations::Geolocation::SEPARATOR))
         geo_flow.close
         Geolocations::GeolocationFactory.logger =logger
         geolocation_factory = Geolocations::GeolocationFactory.new(geo_flow)

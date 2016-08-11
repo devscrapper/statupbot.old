@@ -1,9 +1,0 @@
-development:
-  :start_page_server_port: 8080
-  :debugging:  true
-test:
-  :start_page_server_port: 8080
-  :debugging:  false
-production:
-  :start_page_server_port: 8080
-  :debugging:  false

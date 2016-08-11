@@ -28,7 +28,7 @@ class VisitorFactory
   # constant
   #----------------------------------------------------------------------------------------------------------------
   VISITOR_BOT = Pathname(File.join(File.dirname(__FILE__), "..", "..", "run", "visitor_bot.rb")).realpath
-  TMP = Pathname(File.join(File.dirname(__FILE__), "..", "..", "tmp")).realpath
+  DIR_TMP = [File.dirname(__FILE__), "..", "..", "tmp"]
 
   OK = 0
   KO = 1
@@ -137,7 +137,9 @@ class VisitorFactory
       pattern = "#{browser} #{version}" # ne pas supprimer le blanc
       @patterns_managed << pattern
       EM::PeriodicTimer.new(@@delay_periodic_scan) do
-        tmp_flow_visits = Flow.list(TMP, {:type_flow => pattern, :ext => "yml"}, @@logger)
+        tmp_flow_visits = Flow.list(File.join($dir_tmp || DIR_TMP),
+                                    {:type_flow => pattern, :ext => "yml"},
+                                    @@logger)
 
         if !tmp_flow_visits.empty?
           tmp_flow_visits.each { |tmp_flow_visit|

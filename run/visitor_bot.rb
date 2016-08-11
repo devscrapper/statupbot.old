@@ -369,7 +369,10 @@ else
   $java_key_tool_path = parameters.java_key_tool_path.join(File::SEPARATOR)
   $start_page_server_ip = parameters.start_page_server_ip
   $start_page_server_port = parameters.start_page_server_port
-
+  $dir_archive = parameters.archive
+  $dir_log = parameters.log
+  $dir_tmp = parameters.tmp
+  $dir_visitors = parameters.visitors
 
   visitor_id = YAML::load(File.read(opts[:visit_file_name]))[:visitor][:id]
 
@@ -381,6 +384,10 @@ else
   logger.a_log.info "start page server port: #{$start_page_server_port}"
   logger.a_log.info "debugging : #{$debugging}"
   logger.a_log.info "staging : #{$staging}"
+  logger.a_log.info "specify dir archive : #{$dir_archive}"
+  logger.a_log.info "specify dir log : #{$dir_log}"
+  logger.a_log.info "specify dir tmp : #{$dir_tmp}"
+  logger.a_log.info "specify dir visitors : #{$dir_visitors}"
   logger.an_event.debug "File Parameters end------------------------------------------------------------------------------"
   logger.an_event.debug "Start Parameters begin------------------------------------------------------------------------------"
   logger.an_event.debug opts.to_yaml
