@@ -67,7 +67,6 @@ set :log_level, :debug
 
 # Default value for :linked_files is []
 #set :linked_files, fetch(:linked_files, [])
-set :linked_files, fetch(:linked_files, ['parameter/environment.yml'])
 
 # Default value for linked_dirs is []
 #set :linked_dirs, fetch(:linked_dirs, []).push('log', 'tmp', 'output', 'input', 'data', 'archive')

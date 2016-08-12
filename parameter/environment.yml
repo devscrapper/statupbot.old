@@ -1,5 +1,5 @@
 # staging = [development, test, production]
-staging: development
+staging: test
 # os = [:windows, :linux, :mac]
 os: :windows
 # os_version = [:xp, :vista, :seven, :height]
