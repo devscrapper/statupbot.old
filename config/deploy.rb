@@ -12,11 +12,15 @@
 #---------------------------------------------------------------------------------------------------------------------
 #
 # actions à réalisées sur la machine d'exécution linux ou windows
+# la connection au répertoire :deploy_to/current
 # le runtime ruby être deployé
 # les gem doivent être déployé et maintenu   (bundle install)
-# le lancement et l'arret des serveurs
-# la purge des répertoires de travail ('log', 'tmp', 'output', 'input', 'data', 'archive')
-# la connection au répertoire :deploy_to/current
+# TODO le reboot quotidien de la machine (shutdown /r /f /t 0,
+# http://www.isunshare.com/windows-10/4-ways-to-set-auto-shutdown-in-windows-10.html
+# http://www.tenforums.com/tutorials/7370-restart-computer-windows-10-a.html)
+# suppression de la mire log pour ouvrir une session (http://www.windows8facile.fr/w10-supprimer-mot-de-passe-demarrage/)
+# TODO le lancement des serveurs  lors de louverture de la session : dans le répertoire de demarrage, creer un raccourci
+# TODO la purge hebdomadaire des répertoires de travail ('log', 'tmp', 'output', 'archive') (del /F /S /Q d:\statupbot)
 # ---------------------------------------------------------------------------------------------------------------------
 #
 # avant tout deploy, il faut publier sur https://devscrapper/statupbot.git avec la commande
@@ -63,6 +67,7 @@ set :log_level, :debug
 
 # Default value for :linked_files is []
 #set :linked_files, fetch(:linked_files, [])
+set :linked_files, fetch(:linked_files, ['parameter/environment.yml'])
 
 # Default value for linked_dirs is []
 #set :linked_dirs, fetch(:linked_dirs, []).push('log', 'tmp', 'output', 'input', 'data', 'archive')
@@ -83,15 +88,15 @@ set :keep_releases, 3
 #----------------------------------------------------------------------------------------------------------------------
 # task list : git push
 #----------------------------------------------------------------------------------------------------------------------
-# namespace :git do
-#   task :push do
-#     on roles(:all) do
-#       run_locally do
-#         system 'git push origin master'
-#       end
-#     end
-#   end
-# end
+namespace :git do
+  task :push do
+    on roles(:all) do
+      run_locally do
+        system 'git push origin master'
+      end
+    end
+  end
+end
 #----------------------------------------------------------------------------------------------------------------------
 # task list : deploy
 #----------------------------------------------------------------------------------------------------------------------
