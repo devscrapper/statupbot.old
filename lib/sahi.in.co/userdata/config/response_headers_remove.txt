@@ -1,0 +1,6 @@
+content-security-policy
+x-content-security-policy
+X-Content-Type-Options
+X-Frame-Options
+X-XSS-Protection	
+X-WebKit-CSP

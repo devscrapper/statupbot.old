@@ -1,0 +1,52 @@
+<!--
+/**
+ * Copyright Tyto Software Pvt. Ltd.
+ */
+-->
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <style>
+    body{font-family:verdana;font-size:9pt;}
+    b{background:brown;color:white;}
+    span{background:lightgrey;}
+    </style>
+    <title>$name</title>
+</head>
+<body>
+<br/>
+<span style="font-weight:bold;background:white;margin:10px;">$name</span> <span style='background:white' id='editscript'>(<a href='#' onClick="addRefactorTabOnParent()">Edit Script</a>)</span>
+<br/><br/>
+<pre>
+$js
+</pre>
+<script>
+  var urlPattern = new RegExp("^(https?|ftp).+$")
+  if(("" == "$dir" && urlPattern.test("$file")) || (document.URL.indexOf("Player_currentParsedScript") != -1))
+	document.getElementById('editscript').style.display = 'none';
+  
+  function addRefactorTabOnParent(){
+    if(inIframe()){
+      if(parent.openNewTab)
+        parent.openNewTab(decodeURIComponent('$dir'), decodeURIComponent('$file'));
+      else
+        parent.parent.openNewTab(decodeURIComponent('$dir'), decodeURIComponent('$file'));
+    }
+   else{
+      window.open("/_s_/spr/editor/editor.html?dir="
+      + '$dir' + "&file="
+      + '$file');
+    }
+    
+  }
+  
+  function inIframe(){
+    try {
+          return window.self !== window.top;
+      } catch (e) {
+          return true;
+      }
+  }
+</script>
+</body>
+</html>

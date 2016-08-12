@@ -1,0 +1,73 @@
+openssl req -x509 -new -config X509CA/openssl.cnf -days 3650 -out X509CA/ca/new_ca.pem -keyout X509CA/ca/new_ca_pk.pem
+
+keytool -genkey -alias mail.google.com -keypass sahipassword -storepass sahipassword -keyalg RSA -keystore certs/mail_google_com -dname "CN=mail.google.com, OU=Sahi, O=Sahi, L=Bangalore, S=Karnataka, C=IN" -validity 3650
+
+keytool -certreq -alias mail.google.com -file certs/mail_google_com.csr -keypass sahipassword -keystore certs/mail_google_com -storepass sahipassword
+
+openssl ca -config X509CA/openssl.cnf -days 3650 -in certs/mail_google_com.csr -out certs/mail_google_com.signed
+
+openssl x509 -in certs/mail_google_com.signed -out certs/mail_google_com.signed_pem -outform PEM
+
+copy certs\mail_google_com.signed_pem + X509CA\ca\new_ca.pem certs\mail_google_com.chain
+
+copy certs\mail_google_com certs\mail_google_com.orig
+
+keytool -import -file certs\mail_google_com.chain -keypass sahipassword -keystore certs/mail_google_com -storepass sahipassword
+
+-----------
+
+
+keytool -list -keystore certs\mail_google_com -storepass sahipassword
+keytool -import -alias sahi_root -keypass sahipassword -file X509CA\ca\new_ca.pem -keystore certs\mail_google_com -storepass sahipassword
+keytool -import -alias mail.google.com -keypass sahipassword -file mail_google_com.signed -keystore certs\mail_google_com -storepass sahipassword
+
+========
+creaate_certificate.bat
+--------
+cd /d %~dp0
+set DOMAIN_NAME=%1
+set FILE_NAME=%2
+
+echo %DOMAIN_NAME%
+echo %FILE_NAME%
+
+keytool -genkey -alias %DOMAIN_NAME% -keypass sahipassword -storepass sahipassword -keyalg RSA -keystore certs/%FILE_NAME% -dname "CN=%DOMAIN_NAME%, OU=Sahi, O=Sahi, L=Bangalore, S=Karnataka, C=IN" -validity 3650
+keytool -certreq -alias %DOMAIN_NAME% -file certs/%FILE_NAME%.csr -keypass sahipassword -keystore certs/%FILE_NAME% -storepass sahipassword
+openssl ca -config X509CA/openssl.cnf -days 3650 -in certs/%FILE_NAME%.csr -out certs/%FILE_NAME%.signed -batch -passin pass:sahipassword
+openssl x509 -in certs/%FILE_NAME%.signed -out certs/%FILE_NAME%.signed_pem -outform PEM
+copy certs\%FILE_NAME% certs\%FILE_NAME%.orig
+keytool -list -keystore certs\%FILE_NAME% -storepass sahipassword
+keytool -noprompt -import -alias sahi_root -keypass sahipassword -file X509CA\ca\new_ca.pem -keystore certs\%FILE_NAME% -storepass sahipassword
+keytool -noprompt -import -alias %DOMAIN_NAME% -keypass sahipassword -file certs\%FILE_NAME%.signed_pem -keystore certs\%FILE_NAME% -storepass sahipassword
+=========
+
+
+
+========
+sahi/bin/ssl.bat
+--------
+call D:\Dev\sahi\certgen\create_certificate.bat %1 %2
+copy D:\Dev\sahi\certgen\certs\%2 D:\Dev\sahi\sahi_993\userdata\certs
+========
+
+========
+sahi/conf/ssl.txt
+--------
+D:\\Dev\\sahi\\sahi_993\\bin\\ssl.bat $domain $keystore
+========
+
+64 Bit and Windows root cert acceptance:
+http://stackoverflow.com/questions/5252800/how-to-automatically-install-self-signed-certificate-in-ie-trusted-root-certifica
+https://forums.oracle.com/forums/thread.jspa?threadID=1526024
+openssl x509 -in D:\Dev\Sahi\sahi_pro\userdata\certgen\X509CA\ca\new_ca.pem -inform PEM -out D:\Dev\Sahi\sahi_pro\userdata\certgen\X509CA\ca\new_ca.der -outform DER
+
+For windows:
+1) Try certutil. If exists, check if user has admin privileges to execute it. If yes, execute and done.
+2) Use CertificateImporter to import the certificate. Works on all 32 bit Java and (64bit >= Java7)
+3) Directly launch new_ca.crt so that user can install manually.
+
+certutil behaviour:
+Admin + UAC min = Works
+Admin + UAC default = Does not work
+
+

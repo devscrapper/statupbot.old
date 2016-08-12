@@ -1,0 +1,74 @@
+<textarea id="input" cols="50", rows="20">
+_setValue(_textbox("user"), "test");
+_setValue(_password("password"), "secret");
+_click(_submit("Login"));
+_setValue(_textbox("q"), "2");
+_setValue(_textbox("q[1]"), "1");
+_setValue(_textbox("q[2]"), "1");
+_click(_button("Add"));
+_click(_cell("Rs.200[1]"));
+_assertExists(_textbox("total"));
+_assert(_isVisible(_textbox("total")));
+_assertEqual("1150", _getValue(_textbox("total")));
+_click(_button("Logout"));
+
+_navigateTo("http://sahi.co.in");
+_log("here");
+_log("here", "success");
+_wait(1000);
+_focus(_textbox("total"));
+_removeFocus(_textbox("total"));
+_blur(_textbox("total"));
+_keyPress(_textbox("total"), 'a');
+_keyUp(_textbox("total"), 'a');
+_keyDown(_textbox("total"), 'a');
+_rightClick(_button("Logout"));
+_check(_checkbox("abc"));
+_uncheck(_checkbox("abc"));
+_mouseOver(_button("Logout"));
+_mouseDown(_button("Logout"));
+_mouseUp(_button("Logout"));
+_dragDrop(_button("Logout"), _div("abc"));
+_type(_textbox("q"), "abcde");
+_setSelected(_select("q"), "red");
+_setSelected(_select("q"), 3);
+_setFile(_file("id"), "C:\\abc\\efg.jpg");
+_setFile(_file("id"), "C:\\abc\\efg.jpg", "formSubmit.jsp");
+</textarea>
+<br/>
+<input type="button" onclick="translateTA()" value="Translate!">
+<div id="eng" style="font-family:calibri;zfont-size:12px;"></div>
+
+<script src="translate_en.js"></script>
+<script type="text/javascript" src="/_s_/spr/util.js"></script>
+<script>
+function translateTA() {
+	var s = document.getElementById("input").value;
+	var samples = s.split("\n");
+	translateLines(samples);
+}
+var samples = [];
+samples[samples.length] = '_doubleClick(_button("Delete", _near(_label("Ram")), _under(_cell("Admin"))))'; 
+samples[samples.length] = '_click(_button(1, _near(_label("Ram")), _under(_cell("Admin"))))';
+samples[samples.length] = '_click(_button("Cancel[4]", _near(_label("Ram")), _under(_cell("Admin"))))';
+samples[samples.length] = '_click(_button("Logout[1]"))';
+samples[samples.length] = '_setValue(_textbox("quantity[1]"), "100")';
+
+function translateLines(samples) {
+	var t = new Translator();
+	var html = "";
+	for (var i=0; i<samples.length -1; i++) {
+		var s = samples[i];
+		try {
+			s = t.translate(s);
+		} catch (e) {
+			//document.getElementById("eng").innerHTML = html;
+			//throw e;
+		}
+		html += s + "<br/>";	
+	}
+	document.getElementById("eng").innerHTML = html;
+	return html;
+}
+translateLines(samples)
+</script>

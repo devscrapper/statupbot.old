@@ -1,0 +1,392 @@
+function SahiFrameWork(){
+	this.isSahiFrameWork = true;
+	this.$lastTestCaseName = null;
+	this.$lastKeyword = null;
+	this.$lastDataDriveKeyword = null;
+	this.$isSetUpFn = false;
+	this.$globalSetUpSteps = [];
+	this.$setUpSteps = null;
+	this.$globalTearDownSteps = [];
+	this.$isTearDownFn = false;
+	this.$tearDownSteps = null;
+	this.$createFn = false;
+	this.$keywordFn = "";
+	this._fw_status = "INFO";
+	this.$skipToNext = false;
+	this.$isGlobal = false;
+	this.$justEntered = false;
+	this.$isDataDriven = false;
+	this.$dummyRun = false;	
+	this.$idCounter = 0;
+} 
+SahiFrameWork.prototype.getAbsolutePath = function ($fileName){
+	var $abs = "" + net.sf.sahi.util.Utils.concatPaths(this.$rootExcelFile, $fileName);
+	return $abs;
+	//return _scriptPath().substring(0, _scriptPath().lastIndexOf("\\")) + "\\" + $fileName; 	
+}
+/*
+SahiFrameWork.prototype.xreadExcelFile = function ($filePath, $sheetName){
+	var $db = _getDB("sun.jdbc.odbc.JdbcOdbcDriver", 
+			"jdbc:odbc:Driver={Microsoft Excel Driver (*.xls, *.xlsx, *.xlsm, *.xlsb)};DBQ=" + $filePath + ";readOnly=false", 
+			"", 
+			"");
+	if (!$sheetName) $sheetName = "Sheet1";
+	var $result = $db.select("select * from [" + $sheetName + "$]");
+	_log($result);
+	return $result;
+}
+SahiFrameWork.prototype.readExcelFile = function ($fileName, $sheetName){
+	_readExcelFile($fileName, $sheetName);
+	var $excelPackage = new Packages.net.sf.sahi.util.ExcelPOI();
+	var $db = $excelPackage.readExcelFile($fileName);
+	//_alert($db);
+	$db = eval("(" + $db + ")");
+	//_alert("After eval"+typeof $db);
+	//_alert($db.result);
+    //$excelPackage.print2dArray($db);
+	return $db.result;
+}
+*/
+SahiFrameWork.prototype.wrap = function (fn) {
+	var el = this;
+	// ignoregroup_fn required to prevent code folding on anonymous function.
+	var ignoregroup_fn = function(){return fn.apply(el, arguments);};
+	return ignoregroup_fn;
+};
+SahiFrameWork.prototype.loadExcel = function ($fileName, $sheetName){
+	var $filePath = this.getAbsolutePath($fileName);
+	if(!net.sf.sahi.util.Utils.isURL($filePath)){
+		if (!(new java.io.File($filePath).exists())) {
+			throw ("File: " + $filePath + " does not exist.");
+		}
+	}
+	if ($fileName.indexOf(".xls") != -1) {
+		var $rs = _readExcelFile($filePath, $sheetName, true);
+	} else if ($fileName.indexOf(".s.csv") != -1) {
+		var $rs = _readCSVFile($filePath);
+		var $headerLength = this.getHeaderLength($rs);
+		for (var $i=1; $i<$rs.length; $i++){
+			for (var $j=$rs[$i].length; $j<$headerLength; $j++){
+				$rs[$i].push(null);
+			}
+		}
+	}
+	this.performSteps(this.wrap(this.performStep), $rs);	
+}
+SahiFrameWork.prototype.getHeaderLength = function ($data){
+	var headerLength = 0;
+	for(var i=0; i<$data.length; i++){
+		var rowLength = $data[i].length;
+		if(headerLength < rowLength)
+			headerLength = rowLength;
+	}
+	return headerLength;
+}
+function loadExcel($fileName, $sheetName) {
+	return _sahiFW.loadExcel($fileName, $sheetName);
+}
+SahiFrameWork.prototype.loadSahi = function ($fileName){
+	var $filePath = this.getAbsolutePath($fileName);
+	_dynamicInclude($filePath);
+}
+function loadSahi($fileName, $sheetName) {
+	return _sahiFW.loadSahi($fileName, $sheetName);
+}
+SahiFrameWork.prototype.isNum = function ($argument){
+	try {
+		return !isNaN(eval($argument));
+	}
+	catch(e){
+		return false;
+	}
+}
+SahiFrameWork.prototype.buildFunction = function ($keyword, $args){
+	var $s = "";
+	$s = $keyword + "(";
+	for (var i=2; i<$args.length; i++){
+		if($args[i] === null){
+			// do nothing
+		}
+		else if($args[i].charAt(0)=="'" && $args[i].charAt($args[i].length-1) == "'"){
+			// do nothing
+		}
+		else if($args[i].charAt(0)=="\"" && $args[i].charAt($args[i].length-1) == "\""){
+			// do nothing
+		}
+		else if(this.isNum($args[i])){
+			//do nothing
+		}
+		else if($args[i].indexOf("(") != -1 || $args[i].indexOf("$") != -1){
+			// do nothing
+		}
+		else{
+			$args[i] = "'" + $args[i] + "'";
+		}
+		$s += $args[i] + ", "; 
+	}
+	$s = $s.replace(/((null)?, )*$/, "");
+	$s += ");";
+	return $s;
+}
+SahiFrameWork.prototype.performStep = function (){
+	this.$isDataDriven = false;
+	var $args =[];
+	for (var $i=0; $i<arguments.length; $i++){
+		$args[$i] = "" + arguments[$i];
+		if ($args[$i] == "null") $args[$i] = null;
+	}
+	var $isBlankLine = $args.join("").replace(/null/g, "") == "";
+	
+	var $testCaseName = "" + $args[0];
+	var $comment = $testCaseName == "//";
+	//_debug("$testCaseName = " + $testCaseName);
+	if ($testCaseName != "null" && $testCaseName != "" && !$comment){
+		this.$skipToNext = false;
+		
+		if ($testCaseName.indexOf("//") == 0){
+			// A commented test case
+			this.$skipToNext = true;
+		}
+		if ($testCaseName == "[Global]"){
+			this.$isGlobal = true;
+		} else {
+			this.$isGlobal = false;
+		}
+		if (this.$createFn){
+			this.$keywordFn += "}";
+			//_debug(this.$keywordFn);
+			eval(this.$keywordFn);
+			this.$keywordFn = "";
+			this.$createFn = false;
+		} else {
+			if ($args[1] == "[CreateKeyword]"){
+				this.$createFn = true;
+				this.$keywordFn += $args[2].replace(/\s/g, "") + " = function";
+			} else {
+				if (this.$lastTestCaseName) {
+					if (!this.$isDataDriven) this.evalNoError(this.$tearDownSteps ? this.$tearDownSteps : this.$globalTearDownSteps);
+					if (this.$lastTestCase) this.$lastTestCase.end();
+				}
+				var $testCaseDescription = $testCaseName;
+				if (("" + $args[1]) == "[Documentation]") $testCaseDescription = "" + $args[2];
+				this.$lastTestCase = _sahi._testcase($testCaseName, $testCaseDescription);
+				this.$lastTestCase.start();				
+				this.$lastTestCaseName = $testCaseName;
+			}
+		}
+		this.$setUpSteps = null;
+		this.$tearDownSteps = null;
+		this.$justEntered = true;
+	}
+	var $keyword = $args[1];
+	//_debug("$keyword1=" + $keyword);
+	if ($keyword == "" || $keyword == null || $keyword == "null") {
+		if (this.$lastKeyword == null) return;
+		if ($isBlankLine) return;
+		else $keyword = this.$lastKeyword;
+	}
+	$keyword = $keyword.replace(/\s/g, "");
+	this.$lastKeyword = $keyword;
+	//_debug("$keyword=" + $keyword);
+	if ($keyword.match(/^\[.*\]$/)) {
+		if ($keyword == "[SetUp]") {
+			if (!this.$isGlobal) this.$setUpSteps = [];
+			this.$isSetUpFn = true;
+			this.$isTearDownFn = false;
+			return;
+		} else if ($keyword == "[TearDown]") {
+			if (!this.$isGlobal) this.$tearDownSteps = [];
+			this.$isSetUpFn = false;
+			this.$isTearDownFn = true;
+			return;
+		} else {
+			// unset setup teardown step buffering
+			this.$isSetUpFn = false;
+			this.$isTearDownFn = false;
+
+			if (this.$createFn && $keyword == "[Arguments]") {
+				this.$keywordFn += "(" + $args.slice(2).join(", ").replace(/((null)?, )*$/, "") + ") {";	
+				return;
+			} else if ($keyword == "[Keyword]") {
+				this.$lastDataDriveKeyword = $args[2].replace(/\s/g, "");
+				return;
+			} else if ($keyword == "[Data]") {
+				this.$isDataDriven = true;
+				$keyword = this.$lastDataDriveKeyword;
+				// do not return here
+			} else {
+				// documentation etc. Ignore
+				return;
+			}
+		}
+	}
+	var $s = "";
+	if ($keyword.match(/=$/)){
+		// for $var=
+		$s = $keyword + $args[2];
+	} else {
+		$s = this.buildFunction($keyword, $args);
+	}
+	var $modified = "" + net.sf.sahi.playback.SahiScript.modifySingleLine($s);
+	if (this.$createFn) {
+		this.$keywordFn += "\n" + $modified;
+	} else if (this.$isSetUpFn) {
+		if (this.$isGlobal) this.$globalSetUpSteps.push($modified);
+		else this.$setUpSteps.push($modified);
+		return;
+	} else if (this.$isTearDownFn) {
+		if (this.$isGlobal) this.$globalTearDownSteps.push($modified);
+		else this.$tearDownSteps.push($modified);
+		return;
+	} else {
+		if (this.$skipToNext) return;
+		if (this.$justEntered) {
+			if (!this.$isDataDriven) this.evalNoError(this.$setUpSteps ? this.$setUpSteps : this.$globalSetUpSteps);
+			this.$justEntered = false;
+		}
+		try{
+			var $ecBef = ScriptRunner.errorCount();
+			if (this.$isDataDriven) this.evalNoError(this.$setUpSteps ? this.$setUpSteps : this.$globalSetUpSteps);
+			if (!this.$dummyRun && !$comment) {
+				//_debug($modified);
+				eval($modified);
+			}
+			var $ecAft = ScriptRunner.errorCount();
+			this._fw_status = ($ecAft > $ecBef) ? "FAILURE" : "SUCCESS";
+		} catch (e) {
+			this._fw_status = "FAILURE";
+			throw e;
+		} finally {
+			if (this.$isDataDriven) this.evalNoError(this.$tearDownSteps ? this.$tearDownSteps : this.$globalTearDownSteps);
+		}
+	}
+}
+SahiFrameWork.prototype.evalNoError = function ($steps){
+	try{
+		if ($steps && $steps.length != 0){
+			if (!this.$dummyRun) {
+				//_debug($steps.join(";\n"));
+				eval($steps.join(";\n"));
+			}
+		}
+	}catch(e){
+	}
+}
+SahiFrameWork.prototype.logLineStart = function ($ar){
+	this.$idCounter++;
+	ScriptRunner.log(
+			"<tr style='cursor:pointer;' onclick='ignoregroup_showHide(\"" + this.$idCounter + "\")' id='tr_" + this.$idCounter + "'>" +
+			"<td class='fwDataTD'>" + $ar.join("</td><td class='fwDataTD'>").replace(/null/g, "") + "</td>" +
+			"</tr>" +
+			"<tr><td colspan='10' style='padding:0px;'><div class='details' id='" + this.$idCounter + "'>" , "", "RAW");
+}
+SahiFrameWork.prototype.logLineEnd = function ($result){
+	ScriptRunner.log("</div></td></tr><script>document.getElementById('tr_"+this.$idCounter+"').className='" + "step_"+$result + "';</script>" , "", "RAW");
+}
+SahiFrameWork.prototype.tableStart = function (){
+	ScriptRunner.log("<style>table.fwTable{border:0px;min-width:760px;} " +
+			"table.fwTable td{border:0px; padding:3px; margin:0px;} " +
+			"table.fwTable a.showHideAll{color:blue;} " +
+			"div.details{border:1px solid #ccc;padding:10px;margin:10px;display:none;margin-left:35px;} " +
+			"</style>" +
+			"<table cellspacing=0 class='fwTable'>" , "", "RAW");
+}
+SahiFrameWork.prototype.tableEnd = function (){
+	ScriptRunner.log("</table>" , "", "RAW");
+}
+/* Used in log html start */
+function ignoregroup_showHide(id){
+	var stepsDiv = document.getElementById(id);
+	if (stepsDiv.innerHTML.replace(/\s/g, '') == "") return;
+	var els = document.getElementsByTagName('DIV');
+	for(var i = 0; i < els.length; i++){
+		if (els[i] == stepsDiv){
+			if(stepsDiv.style.display == 'block'){
+				removeFromCookieArray(i);
+				stepsDiv.style.display = 'none';
+				break;
+			}else{
+				stepsDiv.style.display = 'block';
+				addToCookieArray(i);
+				break;
+			}
+		}	
+	} 
+}
+function ignoregroup_showHideAll(show){
+	var els = document.getElementsByTagName("DIV");
+	for (var i=0; i<els.length; i++){
+		var el = els[i];
+		if (el.className == "details" && el.innerHTML.replace(/\s/g, '') != "") {
+			if(show == true){
+				addToCookieArray(i);
+			}
+			else{
+				removeFromCookieArray(i);
+			}
+			el.style.display = show ? 'block' : 'none';
+		}
+	}
+}
+/* Used in log html end */
+SahiFrameWork.prototype.logShowHideFn = function (){
+	ScriptRunner.log("<script>"+ignoregroup_showHide+";"+ignoregroup_showHideAll+";</script>", "", "RAW");
+}
+SahiFrameWork.prototype.performSteps = function (func, $array2D){
+	this.tableStart();
+	this.logShowHideFn();
+	for (var $i=1; $i<$array2D.length; $i++){
+		var $row = $array2D[$i];
+		var $args = this.trimNullArguments($row);
+		if ($args.length == 0) continue;
+		this._fw_status = "INFO";
+		try{
+			this.logLineStart($array2D[$i]);
+			func.apply(_sahi.global, $args);
+		}catch(e){
+			if (!(e instanceof SahiException)) {
+				// happens for reference errors, syntax errors etc.
+				_logExceptionAsFailure(e);
+			}
+	        this.$skipToNext = true;
+	    }
+		finally {
+			this.logLineEnd(this._fw_status);
+		}
+	}	
+	this.tableEnd();
+}
+SahiFrameWork.prototype.trimNullArguments = function($row) {
+	var $args = new Array();
+	var blanks = true;
+	for(var $j=$row.length-1; $j>=0; $j--){
+		var v = $row[$j];
+		if (v == "") v = null;
+		if (blanks) {
+			if (!v) continue;
+			blanks = false;
+		}
+		$args.push(v);
+	}
+	$args.reverse();
+	return $args;
+} 
+SahiFrameWork.prototype.execute = function () {
+	this.$dummyRun = false;
+	
+	this.$rootExcelFile = "" + ScriptRunner.getSession().getScriptInfo().getScriptAbsolutePath(); 
+	this.$rootExcelFileName = "" + (new java.io.File(this.$rootExcelFile)).getName();
+	try{
+		ScriptRunner.getReport().setScriptName(this.$rootExcelFileName);
+	}catch(e){}
+	try {
+		this.loadExcel(this.$rootExcelFile);
+		if (!this.$isDataDriven) {
+			this.evalNoError(this.$tearDownSteps ? this.$tearDownSteps : this.$globalTearDownSteps);
+			if (this.$lastTestCase) this.$lastTestCase.end();
+		}
+	} finally {
+	}
+}
+var _sahiFW = new SahiFrameWork();
+_sahiFW.execute();

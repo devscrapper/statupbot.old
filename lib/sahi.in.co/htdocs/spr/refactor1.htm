@@ -1,0 +1,54 @@
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <link rel="stylesheet" type="text/css" href="ext/extjs/resources/css/ext-all.css" />
+		
+        <script type="text/javascript" src="ext/extjs/adapter/ext/ext-base.js"></script>
+        <script type="text/javascript" src="ext/extjs/ext-all-debug.js"></script>
+        
+		<script type="text/javascript" src="refactor1.js"></script>
+		<script type="text/javascript" src="util.js"></script>
+		<script type="text/javascript" src="suggest.js"></script>
+    </head>
+    <body>
+		<table>
+			<tr>
+              <td><b>Script Directory: </b></td>
+              <td>
+                <select id="pbdir" name="dir" onchange="populateScripts(this.options[this.selectedIndex].value)" style="width:300px">
+                  <option value="../scripts">../scripts</option>
+                </select>
+              </td>
+            </tr>
+			<tr>
+              <td bgcolor=""><b>File:</b></td>
+              <td>
+              	  <input id="filebox" name="filebox" style="width:300px" autocomplete="off">
+            	  <select id="fileboxDD" name="suggestScriptFile" class="suggestDD" style="width:300px;display:none;z-index:100"></select>
+            	  <script>
+					_scriptDirList = refreshScriptListDir();
+					populateOptions($("pbdir"), _scriptDirList, null);
+					populateScripts($("pbdir").options[$("pbdir").selectedIndex].value);
+            	  	var fileboxSuggest = new Suggest($("filebox"), $("fileboxDD"), "filebox", true);
+        			fileboxSuggest.getOptions = getScriptFiles;
+        			fileboxSuggest.onchange = function(){
+        				$("filebox").value = $("fileboxDD").value;
+        				setSelectedScript($("fileboxDD").value);
+        			}	
+        			fileboxSuggest.suggestOnClick();
+					function $(id){
+						return document.getElementById(id);
+					}
+            	  </script>
+              </td>
+				<td>
+					<input type="button" id="loadFile" value="Load" onClick="loadScript()">
+				</td>
+            </tr>
+		</table>
+    	<div id="panel"  style="height: 99%; width: 99.9%; overflow: auto; border: 0px solid #555555;"></div>
+		<div id="refactor-win" class="x-hidden" style="overflow:hidden"> 
+    		<div class="x-window-header">Preview</div> 
+		</div>
+    </body>
+</html>

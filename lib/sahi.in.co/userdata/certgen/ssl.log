@@ -1,0 +1,92 @@
+
+D:\Personnel\sahi_pro_601\bin>cd /D D:\\Personnel\\sahi_pro_601\\userdata\\certgen 
+
+D:\Personnel\sahi_pro_601\userdata\certgen>set DOMAIN_NAME=clients2.googleusercontent.com 
+
+D:\Personnel\sahi_pro_601\userdata\certgen>set FILE_NAME=clients2_googleusercontent_com 
+
+D:\Personnel\sahi_pro_601\userdata\certgen>set DEST_PATH=D:\\Personnel\\sahi_pro_601\\userdata\\certgen\\certs\\clients2_googleusercontent_com 
+
+D:\Personnel\sahi_pro_601\userdata\certgen>set KEYTOOL_PATH="C:\\Program Files\\Java\\jre6\\bin\\keytool" 
+
+D:\Personnel\sahi_pro_601\userdata\certgen>set KEY_PASSWORD=sahipassword 
+
+D:\Personnel\sahi_pro_601\userdata\certgen>set STORE_PASSWORD=sahipassword 
+
+D:\Personnel\sahi_pro_601\userdata\certgen>set PATH_TO_OPENSSL=D:\\Personnel\\sahi_pro_601\\certgen 
+
+D:\Personnel\sahi_pro_601\userdata\certgen>echo clients2.googleusercontent.com 
+clients2.googleusercontent.com
+
+D:\Personnel\sahi_pro_601\userdata\certgen>echo clients2_googleusercontent_com 
+clients2_googleusercontent_com
+
+D:\Personnel\sahi_pro_601\userdata\certgen>echo D:\\Personnel\\sahi_pro_601\\userdata\\certgen\\certs\\clients2_googleusercontent_com 
+D:\\Personnel\\sahi_pro_601\\userdata\\certgen\\certs\\clients2_googleusercontent_com
+
+D:\Personnel\sahi_pro_601\userdata\certgen>"C:\\Program Files\\Java\\jre6\\bin\\keytool" -genkey -alias clients2.googleusercontent.com -keypass sahipassword -storepass sahipassword -keyalg RSA -keystore X509CA/certs/clients2_googleusercontent_com -dname "CN=clients2.googleusercontent.com, OU=Sahi, O=Sahi, L=Bangalore, S=Karnataka, C=IN" -validity 3650 
+
+D:\Personnel\sahi_pro_601\userdata\certgen>"C:\\Program Files\\Java\\jre6\\bin\\keytool" -certreq -alias clients2.googleusercontent.com -file X509CA/certs/clients2_googleusercontent_com.csr -keypass sahipassword -keystore X509CA/certs/clients2_googleusercontent_com -storepass sahipassword 
+
+D:\Personnel\sahi_pro_601\userdata\certgen>D:\\Personnel\\sahi_pro_601\\certgen\openssl ca -config X509CA/openssl.cnf -days 3650 -in X509CA/certs/clients2_googleusercontent_com.csr -out X509CA/certs/clients2_googleusercontent_com.signed -batch -passin pass:sahipassword 
+Using configuration from X509CA/openssl.cnf
+Loading 'screen' into random state - done
+Check that the request matches the signature
+Signature ok
+Certificate Details:
+        Serial Number: 1 (0x1)
+        Validity
+            Not Before: Jun 10 13:15:24 2015 GMT
+            Not After : Jun  7 13:15:24 2025 GMT
+        Subject:
+            countryName               = IN
+            stateOrProvinceName       = Karnataka
+            organizationName          = Sahi
+            organizationalUnitName    = Sahi
+            commonName                = clients2.googleusercontent.com
+        X509v3 extensions:
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            Netscape Comment: 
+                OpenSSL Generated Certificate
+            X509v3 Subject Key Identifier: 
+                D6:57:E2:1E:9B:A5:DA:39:B8:30:F6:5F:C3:C7:62:B5:4E:72:A2:5B
+            X509v3 Authority Key Identifier: 
+                keyid:09:2F:AC:7E:33:BF:4E:00:87:EB:5F:3F:01:A8:AC:81:EE:3E:19:26
+                DirName:/C=IN/ST=Karnataka/O=Sahi
+                serial:D6:8C:78:5C:DF:F5:9E:A3
+
+Certificate is to be certified until Jun  7 13:15:24 2025 GMT (3650 days)
+
+Write out database with 1 new entries
+Data Base Updated
+
+D:\Personnel\sahi_pro_601\userdata\certgen>D:\\Personnel\\sahi_pro_601\\certgen\openssl x509 -in X509CA/certs/clients2_googleusercontent_com.signed -out X509CA/certs/clients2_googleusercontent_com.signed_pem -outform PEM 
+
+D:\Personnel\sahi_pro_601\userdata\certgen>copy X509CA\certs\clients2_googleusercontent_com X509CA\certs\clients2_googleusercontent_com.orig 
+        1 fichier(s) copi‚(s).
+
+D:\Personnel\sahi_pro_601\userdata\certgen>"C:\\Program Files\\Java\\jre6\\bin\\keytool" -list -keystore X509CA\certs\clients2_googleusercontent_com -storepass sahipassword 
+
+Type Keystore : JKS
+Fournisseur Keystore : SUN
+
+Votre Keystore contient 1 entrée(s)
+
+clients2.googleusercontent.com, 10 juin 2015, PrivateKeyEntry, 
+Empreinte du certificat (MD5) : 95:EB:C1:C7:2B:83:E9:B7:A8:B3:34:4C:E8:97:0C:30
+
+D:\Personnel\sahi_pro_601\userdata\certgen>"C:\\Program Files\\Java\\jre6\\bin\\keytool" -noprompt -import -alias sahi_root -keypass sahipassword -file X509CA\ca\new_ca.pem -keystore X509CA\certs\clients2_googleusercontent_com -storepass sahipassword 
+Certificat ajouté au Keystore
+
+D:\Personnel\sahi_pro_601\userdata\certgen>"C:\\Program Files\\Java\\jre6\\bin\\keytool" -noprompt -import -alias clients2.googleusercontent.com -keypass sahipassword -file X509CA\certs\clients2_googleusercontent_com.signed_pem -keystore X509CA\certs\clients2_googleusercontent_com -storepass sahipassword 
+Réponse de certificat installée dans le Keystore
+
+D:\Personnel\sahi_pro_601\userdata\certgen>copy X509CA\certs\clients2_googleusercontent_com D:\\Personnel\\sahi_pro_601\\userdata\\certgen\\certs\\clients2_googleusercontent_com 
+        1 fichier(s) copi‚(s).
+
+D:\Personnel\sahi_pro_601\userdata\certgen>del X509CA\certs\clients2_googleusercontent_com* 
+
+D:\Personnel\sahi_pro_601\userdata\certgen>certutil -addstore ROOT X509CA\ca\new_ca.pem 
+Les droits d’administrateur sont requis pour utiliser les options sélectionnées. Utilisez une invite de commandes administrateur pour effectuer ces tâches.
+CertUtil: L’opération demandée nécessite une élévation.

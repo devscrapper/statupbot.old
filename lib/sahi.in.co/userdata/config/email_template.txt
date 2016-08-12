@@ -1,0 +1,43 @@
+<Html>
+	<Body>
+		<Table>
+		<TBody>
+		<br>
+		<tr>
+		<td style="width:250px">Status:</td><td>$statusHTML</td>
+		</tr>
+		<tr>
+		<td style="width:250px">Browser Type:</td><td>$browserType</td>
+		</tr>
+		<tr>
+		<td style="width:250px">Start Time:</td><td>$startTime</td>
+		</tr>
+		<tr>
+		<td style="width:250px">End Time:</td><td>$endTime</td>
+		</tr>
+		<tr>
+		<td style="width:250px">Time Taken (hr:min:sec ms):</td><td>$timeTaken</td>
+		</tr>
+		<tr>
+		<td style="width:250px">Total Scripts Run:</td><td>$totalScripts</td>
+		</tr>
+		<tr>
+		<td style="width:250px">Number of Scripts Passed:</td><td>$scriptsPassed</td>
+		</tr>
+		<tr>
+		<td style="width:250px">Number of Scripts Failed:</td><td>$scriptsFailed</td>
+		</tr>
+		<tr>
+		<td style="width:250px">Scripts Passed (%):</td><td>$scriptPercentage</td>
+		</tr>
+		<tr>
+		<td style="width:250px">Failed Scripts:</td><td>$failedScript</td>
+		</tr>
+		<br>
+		<tr>
+		<td style="width:250px">Sahi Pro Version:</td><td>$version</td>
+		</tr>
+		</TBody>
+		</Table>
+	</Body>
+</Html>

@@ -1,0 +1,70 @@
+<html>
+<head>
+<title>Collect Accessor Definitions</title>
+</head>
+<body>
+<style>
+</style>
+<textarea id="template" style="display:none">
+<div>
+  <h3>@name@</h3>
+  Tag: @tag@<br/>
+  Attributes: @attributes@<br/>
+  Value Attribute: @value@<br/>
+  Record Event: @action@<br/>
+</div>
+</textarea>
+
+<textarea id="output" style="width:800px;height:600px;">
+</textarea>
+
+
+</body>
+<script type="text/javascript">
+
+//	this.addAD({tag: "IMG", type: null, event:"click", name: "_image", attributes: ["title|alt", "id", 
+//	                  this.getFileFromURL, "index", "className"], action: "_click"});
+
+function csvQuote(s) {
+	return '"' + (""+s).replace(/"/g, '""') + '"';
+}
+
+function getUnQuotedCSV(atts) {
+	var s = "";
+	for (var i=0; i<atts.length; i++) {
+		var att = atts[i];
+		s += (typeof att == "function" ? "FN" : att);
+		if (i!=atts.length-1) s += ","; 
+	}
+	return s;
+}
+
+var definitions = _sahi.ADs;
+var template = document.getElementById("template").value;
+var sb = [];
+sb.push('"name","tag","type","attributes","value","action"\n');
+for (var i=0; i<definitions.length; i++) {
+  var defn = definitions[i];
+  var s = ""; 
+  s += csvQuote(defn.name);
+  s += "," + csvQuote(defn.tag);
+  s += "," + csvQuote(defn.type);
+  s += "," + csvQuote(getUnQuotedCSV(defn.attributes));
+  s += "," + csvQuote(defn.value);
+  s += "," + csvQuote(defn.action);
+  s += "\n";
+  sb.push(s);
+  /*
+  var s = "" + template;
+  s = s.replace("@name@", defn.name);
+  s = s.replace("@tag@", defn.tag);
+  s = s.replace("@attributes@", defn.attributes.join(","));
+  s = s.replace("@value@", ""+defn.value);
+  s = s.replace("@action@", defn.action);
+  sb.push(s);
+  */
+}
+document.getElementById("output").value = sb.join("");
+//document.write(sb.join(""));
+</script>
+</html>

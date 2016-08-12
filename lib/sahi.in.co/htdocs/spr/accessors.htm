@@ -1,0 +1,49 @@
+<html>
+<head>
+<title>Get ADs</title>
+</head>
+<body>
+  <textarea rows="30" cols="120" id="getADs">
+  
+  </textarea>
+  <input type='button' value='Get ADs' onclick="fetchADs(); return false;">
+  <script>
+  	function quoted(s){
+  		if(s === undefined) return "\"null\"";
+  		if(s == null) return "\"null\"";
+  		if ((typeof s) == "function"){
+  			return "\"" + s + "\"";
+  		}
+  		return '"' + s.replace(/"/g, '\\"') + '"';
+  	}
+  	
+  	function getADsAttributes(arr){
+  		var attr = "";
+  		for(var i=0; i<arr.length; i++){
+  			if ((typeof arr[i]) == "function"){
+  				attr = attr + "FN";
+  			} 
+  			else{
+	  			attr = attr + arr[i];
+  			}	
+  			if(i != arr.length - 1){
+  				attr = attr + ",";
+  			}
+  		}
+  		return attr;
+  	}
+  	
+  	function fetchADs(){
+  		var fetch = "\"name\",\"tag\",\"type\",\"attributes\",\"value\",\"action\"\n";
+  		for(var i=0; i<_sahi.ADs.length; i++){
+  			fetch = fetch + 
+  			quoted(_sahi.ADs[i].name) + "," + quoted(_sahi.ADs[i].tag) + "," + quoted(_sahi.ADs[i].type) + 
+  			"," + quoted(getADsAttributes(_sahi.ADs[i].attributes)) + "," + quoted(_sahi.ADs[i].value) + "," + quoted(_sahi.ADs[i].action) + "\n";
+  		}
+  		document.getElementById("getADs").value = fetch;
+  	}
+  </script>
+</body>
+</html>
+                                        
+

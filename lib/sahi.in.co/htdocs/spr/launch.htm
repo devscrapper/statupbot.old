@@ -1,0 +1,133 @@
+<html>
+<head>
+<title>
+    Sahi Launcher
+</title>
+<style>
+body, body *{font-family:verdana;font-size:10pt;}
+.suggestDD{display:none;border:1px solid grey;}
+.urlDD1{display:none;border:1px solid grey;}
+</style>
+</head>
+
+<body onclick="Suggest.hideAll()">
+<script type="text/javascript" src="/_s_/spr/exception.js"></script>
+<script type="text/javascript" src="/_s_/spr/controller7.js"></script>
+<script type="text/javascript" src="/_s_/spr/util.js"></script>
+<script type="text/javascript" src="/_s_/spr/cookie.js"></script>
+<script type="text/javascript" src="/_s_/spr/suggest.js"></script>
+<script>
+function init() {
+	_scriptDirList = refreshScriptListDir();
+    populateOptions($("pbdir"), _scriptDirList);
+    populateScripts($("pbdir").options[$("pbdir").selectedIndex].value);
+    var urlSuggest = new Suggest(document.getElementById("starturl"), document.getElementById("urlDD1"), "starturl", true);
+    urlSuggest.getOptions = getURLs;
+}
+_showSuites = true;
+window.onload = init;
+</script>
+<script type="text/javascript">
+function getBrowserType() {
+	if (_sahi._isIE())
+		return "ie";
+	else if (_sahi._isFF())
+		return "firefox";
+	else if (_sahi._isSafari())
+		return "safari";
+	else if (_sahi._isChrome())
+		return "chrome";
+	else if (_sahi._isOpera())
+		return "opera";
+	else
+		return navigator.appName;
+}
+function $(id){return document.getElementById(id);}
+if (location.href.indexOf("_s_") == -1){
+     location.href = "/_s_/sprm/launch.htm";
+}
+function launch(){
+	var dirPath = $("pbdir").options[$("pbdir").selectedIndex].value;
+	var file = $("filebox").value;
+	var filePath = dirPath + "/" + file;
+	if (file.indexOf(".suite") != -1) {
+		var starturl = $("starturl").value;
+		var browser = "chrome";
+		var url = _sahi.sendToServer("_s_/dyn/Suite_startSingleSessionSameBrowser?dir="+encodeURIComponent(dirPath)+
+				"&test="+encodeURIComponent(file)+
+				"&suitePath="+encodeURIComponent(filePath)+
+				"&baseURL="+encodeURIComponent(starturl)+
+				"&startURL="+encodeURIComponent(starturl)+
+				"&isSingleSessionS=true"+
+				"&launchInCurrentBrowserS=true" + 
+				"&suiteId="+encodeURIComponent(_sahi.sid)+
+				"&manual=0"+ 
+				"&browserType="+browser);
+		//alert(url);
+		top.location.href = url; 
+	} else {
+		var starturl = $("starturl").value;
+		var browser = getBrowserType();
+		_sahi.sendToServer("_s_/dyn/Player_setScriptFile?dir="+encodeURIComponent(dirPath)+
+				"&file="+file+
+				"&starturl="+starturl+
+				"&manual=0"+ 
+				"&browserType="+browser);
+	    
+		_sahi.setServerVar("sahi_paused", "0");
+	    top.location.href = starturl; 
+	}
+}
+</script>
+
+<center>
+<div style="height:100px;padding:20px;">
+<img id="_sahi_ignore_2" selectable="false" src="/_s_/spr/images/sahi_pro_logo1.png" style="border:0px;"/>
+</div>
+<form name="f1">
+<table>
+   <tr>
+     <td>Script Directory: </td>
+     <td>
+       <select id="pbdir" name="dir" onchange="populateScripts(this.options[this.selectedIndex].value)" style="width:300px">
+         <option value="../scripts">../scripts</option>
+       </select>
+     </td>
+   </tr>
+
+   <tr>
+     <td bgcolor="">File:</td>
+     <td>
+     	  <input id="filebox" name="filebox" style="width:300px" autocomplete="off">
+   	  <select id="fileboxDD" name="suggestScriptFile" class="suggestDD" style="width:300px"></select>
+   	  <script>
+   	  	attachSuggestionBox("filebox", "fileboxDD");
+   	  </script>
+     </td>  
+   </tr>
+   <tr>
+     <td>Start URL:</td>
+     <td><input type="text" id="starturl" name="starturl" value="" style="width:300px" onchange="saveURL(this.value)">
+     <select id="urlDD1" class="suggestDD"></select>
+   </tr>
+</table>
+<br/>
+<input type="button" value="Run" onclick="return launch(event)">
+
+</form>
+<br/>
+Install SSL Root Certificate: 
+<a href="/_s_/dyn/ControllerUI_getRootCert?type=crt">crt</a> |
+<a href="/_s_/dyn/ControllerUI_getRootCert?type=der">der</a> |
+<a href="/_s_/dyn/ControllerUI_getRootCert?type=pem">pem</a>
+<br/><br/>
+For accessing https websites through Sahi, you need to first install Sahi's root certificate.<br/>
+Use either <b>crt</b> or <b>der</b> links to install the Sahi root certificate.
+<br/>
+<br/>
+<img id="_sahi_ignore_7" selectable="false" src="/_s_/spr/images/sahi_logo_web.png" style="border:0px;"/>
+<br/>
+</center>
+</body>
+
+</html>

@@ -1,0 +1,154 @@
+<!--
+/**
+ * Copyright Tyto Software Pvt. Ltd.
+ */
+-->
+<html>
+<head><title>Snap Shots View</title>
+<style type="text/css">
+td{
+border:1px solid grey;
+}
+</style>
+<script src="/_s_/spr/util.js"></script>
+<script type="text/javascript">
+THRESHOLD = 11;
+var logFile1 = "$logFile1";
+var logFile2 = "$logFile2";
+var htmlReport = "$htmlReport";
+function isIE() {
+    var browser = navigator.appName;
+    return browser == "Microsoft Internet Explorer";
+}
+function resize(id){
+	ifr = document.getElementById(id);
+	ifr.style.height = window.innerHeight - 20 + 'px';
+	ifr.style.width = window.innerWidth - 20 + 'px';
+}
+function resizeTable(){
+	var t = document.getElementById('table1');
+	var leftPanelHeight = document.getElementById("leftPanelId").contentWindow.document.body.scrollHeight;
+	var rightPanelHeight = document.getElementById("rightPanelId").contentWindow.document.body.scrollHeight;
+	height = leftPanelHeight > rightPanelHeight ? leftPanelHeight + 50 : rightPanelHeight + 50;
+	t.style.height = height + "px";
+}
+function loadPanels(){
+	if(htmlReport == "yes"){
+		window.open("/_s_/dyn/Log_viewLogs/" + logFile1 + ".htm", "leftPanel");
+		window.open("/_s_/dyn/Log_viewLogs/", "rightPanel");
+	}
+	else{
+		window.open("/_s_/dyn/pro/DBReports_scriptReport?id=" + logFile1 , "leftPanel");
+		if (logFile2 != "null") window.open("/_s_/dyn/pro/DBReports_scriptReport?id=" + logFile2 , "rightPanel");
+		else window.open("/_s_/dyn/pro/DBReports", "rightPanel");
+	}
+}
+function genImages(panel){
+	return;
+	var obj = document.getElementById(panel).contentWindow.document.body.getElementsByTagName('div');
+	for(var i=0;i<obj.length;i++){
+		if(obj[i].hasChildNodes()){
+		obj[i].id = "d_"+i;
+		appendChild(obj[i], 'list-add.png', addSpace, i, panel, "Add space");
+		appendChild(obj[i], 'list-remove.png', removeSpace, i, panel, "Remove space");
+		}
+	}
+}
+function appendChild(parent, childSrc, toggleSpace, i, panel, title){
+	var img=document.createElement("img");
+	img.src='/_s_/spr/images/' + childSrc;
+	img.onclick = getFn(i, panel, toggleSpace);
+	img.title = title;
+	img.style.cursor = "pointer";
+	setFloat(img, 'right');
+	parent.insertBefore(img, parent.firstChild.nextSibling);
+	//parent.appendChild(img);
+}
+function setFloat(el, val){
+	el.style[document.all ? "styleFloat" : "cssFloat"] = val;
+	if(isIE()){
+		el.style.position = "relative";
+		el.style.bottom="16px";
+	}
+}
+function getFn(i, panel, fn){
+	return function(){fn(i, panel);}
+}
+function addSpace(i, panel){
+	var e=document.getElementById(panel).contentWindow.document.getElementById('d_' + i);
+	if(e.style.marginBottom=='')
+		e.style.marginBottom=0;
+	var bottom=parseInt(e.style.marginBottom);
+	e.style.marginBottom= bottom+337;
+	resizeTable();
+}
+function removeSpace(i, panel){
+	var e=document.getElementById(panel).contentWindow.document.getElementById('d_' + i);
+	if(e.style.marginBottom!='' && parseInt(e.style.marginBottom)!=0){
+		var bottom=parseInt(e.style.marginBottom);
+		e.style.marginBottom=bottom-337;
+		resizeTable();
+	}
+}
+function hideSimilarImages(){
+	var url1 = document.getElementById("leftPanelId").contentWindow.location.href;
+	var id1 = url1.substring(url1.indexOf("=") + 1);
+	var url2 = document.getElementById("rightPanelId").contentWindow.location.href;
+	var id2 = url2.substring(url2.indexOf("=") + 1);
+	var s = sahiSendToServer("/_s_/dyn/pro/DBReports_getDissimilar?id1="+id1+"&id2="+id2);
+	if (s.indexOf("ERROR:") == 0) {
+		alert(s);
+		return;
+	}
+	var ixes = [];
+	var ar = s.split("~");
+	for (var i=0; i<ar.length; i++) {
+		var item = ar[i];
+		var ix = item.substring(0, item.indexOf(":"));
+		var ar2 = item.split(" ");
+		var score = parseInt(ar2[ar2.length - 1]);
+		if (score > THRESHOLD) ixes.push(ix);
+	} 	
+	hideImages("leftPanelId", ixes);
+	hideImages("rightPanelId", ixes);
+}
+function hideImages(panelId, ixes){
+	var win = document.getElementById(panelId).contentWindow;
+	var images = win.document.images;
+	for (var i=0; i<images.length; i++){
+		var img = images[i];
+		var src = img.src;
+		if (src.indexOf(".png") != -1 && src.lastIndexOf("_") != -1) {
+			var ix = src.substring(src.lastIndexOf("_") + 1);
+			//alert(ix);
+			ix = parseInt(ix);
+			//alert(ix);
+			img.style.display = sahiFindInArray(ixes, ix) != -1 ? "block" : "none";
+		}
+	}
+}
+function showAllImages(){
+	showImages("leftPanelId");
+	showImages("rightPanelId");
+}
+function showImages(panelId){
+	var win = document.getElementById(panelId).contentWindow;
+	var images = win.document.images;
+	for (var i=0; i<images.length; i++){
+		images[i].style.display = "block";
+	}
+}
+</script>
+</head>
+<body onload="loadPanels();">
+&nbsp;<a href='/_s_/dyn/pro/DBReports'>Root</a> | <a href="" onclick="hideSimilarImages();return false;">Show dissimilar images only</a> | <a href="" onclick="showAllImages();return false;">Show all images</a> 
+<table id="table1" width="100%" height="">
+<tr><td>
+<iframe src="" name="leftPanel" id="leftPanelId" width="100%" height="100%" FRAMEBORDER="0" onload="resizeTable();genImages('leftPanelId');"></iframe>
+</td><td>
+<iframe src="" name='rightPanel' id="rightPanelId" width="100%" height="100%" FRAMEBORDER="0" onload="resizeTable();genImages('rightPanelId');"></iframe>
+</td></tr>
+</table>
+</body>
+</html>
+

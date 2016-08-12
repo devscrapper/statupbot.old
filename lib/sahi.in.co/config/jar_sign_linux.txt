@@ -1,0 +1,1 @@
+"$certgen/jar_sign.sh" "$orig_jar" "$signed_jar" "$keystore" "$domain" "$password" "$jarsigner_path" >> "$userdatacertgen/jar_sign.log" 2>&1 

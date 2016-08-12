@@ -1,0 +1,89 @@
+<html>
+<head>
+<title>Test Sahi JS</title>
+</head>
+<body>
+<style>
+body * {
+  font-family: verdana;
+  font-size: 10pt;
+}
+div {
+  padding: 3px;
+}
+.success {
+  background-color: green;
+  color: white;
+}
+.failure {
+  background-color: red;
+  color: white;
+}
+</style>
+<script>
+function testPlainString() {
+  var s = "the quick brown fox jumped over the lazy dog";
+  var ixes = _sahi.getStartEndIndexes("quick", s);
+  _sahi._assertEqual([4,9], ixes);
+}
+function testPlainStringWithIndex() {
+  var s = "the quick brown fox jumped over the lazy dog";
+  var ixes = _sahi.getStartEndIndexes("the[1]", s);
+  _sahi._assertEqual([32,35], ixes);
+}
+function testPlainStringNotFound() {
+  var s = "the quick brown fox jumped over the lazy dog";
+  var ixes = _sahi.getStartEndIndexes("abcd", s);
+  _sahi._assertEqual([-1,-1], ixes);
+}
+function testPlainStringWithIndexNotFound() {
+	  var s = "the quick brown fox jumped over the lazy dog";
+	  var ixes = _sahi.getStartEndIndexes("abcd[1]", s);
+	  _sahi._assertEqual([-1,-1], ixes);
+	}
+function testPlainStringWithBadIndexNotFound() {
+	  var s = "the quick brown fox jumped over the lazy dog";
+	  var ixes = _sahi.getStartEndIndexes("the[2]", s);
+	  _sahi._assertEqual([-1,-1], ixes);
+	}
+function testRegex() {
+	  var s = "the quick brown fox jumped over the lazy dog";
+	  var ixes = _sahi.getStartEndIndexes("/q.*k/", s);
+	  _sahi._assertEqual([4,9], ixes);
+	}
+function testRegexWithIndex() {
+	  var s = "the quick brown fox jumped over the quick dog";
+	  var ixes = _sahi.getStartEndIndexes("/q.*?k/[1]", s);
+	  _sahi._assertEqual([36,41], ixes);
+	}
+function testRegexWithBadIndex() {
+	  var s = "the quick brown fox jumped over the quick dog";
+	  var ixes = _sahi.getStartEndIndexes("/q.*?k/[2]", s);
+	  _sahi._assertEqual([-1,-1], ixes);
+	}
+function testBadRegex() {
+	  var s = "the quick brown fox jumped over the quick dog";
+	  var ixes = _sahi.getStartEndIndexes("/g.*d/", s);
+	  _sahi._assertEqual([-1,-1], ixes);
+	}
+function testBadRegexWithIndex() {
+	  var s = "the quick brown fox jumped over the quick dog";
+	  var ixes = _sahi.getStartEndIndexes("/g.*d/[1]", s);
+	  _sahi._assertEqual([-1,-1], ixes);
+	}
+
+for (var i in window) {
+	var name = (""+i);
+	if (name.indexOf("test") == 0) {
+		try {
+			eval(name + "()");
+			document.write("<div class='success'>" + name + "()</div>");
+		} catch (e) {
+			document.write("<div class='failure'>" + name + "()<br/>" + e.toString() + "</div>");
+			throw e;
+		}
+	}
+}
+</script>
+</body>
+</html>

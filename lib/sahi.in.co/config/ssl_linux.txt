@@ -1,0 +1,1 @@
+"$certgen/create_certificate.sh" $domain "$filename" "$filepath" "$keytool" "$userdatacertgen" >> "$userdatacertgen/ssl.log" 2>&1 

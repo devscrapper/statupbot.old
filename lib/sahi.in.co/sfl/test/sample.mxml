@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" 
+	initialize="initApp()"
+	creationComplete="onCreationComplete()"
+	preinitialize="loadStyle()"
+	>
+    <mx:Panel title="My Flex Application" paddingTop="10" paddingBottom="10"
+        paddingLeft="10" paddingRight="10">
+		
+		<mx:TextInput id="username" width="165"/>
+		<mx:TextInput id="username2" width="165"/>
+		<mx:TextInput id="m1" name="multiple" width="165"/>
+		<mx:TextInput id="m2" name="multiple" width="165"/>
+		<mx:TextInput displayAsPassword="true" id="pwd"  width="165"/>
+		<mx:Button id="clickMe" label="Submit" click="sayClicked();"/>
+		<mx:TextArea id="added" width="165"/>
+		<mx:CheckBox width="100" label="Remember?"/> 
+		<mx:ComboBox id="color"> 
+	      <mx:ArrayCollection>
+	         <mx:String>Red</mx:String>
+	         <mx:String>Blue</mx:String>
+	         <mx:String>Green</mx:String>
+	      </mx:ArrayCollection>
+	   </mx:ComboBox>
+		
+    </mx:Panel>
+    <mx:Script>
+    <![CDATA[
+     
+    import mx.controls.Alert;
+    
+    private function initApp():void{
+    	//testMe();
+    	//Alert.show("initApp");
+    }
+    private function onCreationComplete():void{
+    	//Alert.show("onCreationComplete");
+    }
+    private function sayClicked():void{
+    	added.text = username.text + " " + pwd.text;
+    }
+    private function loadStyle():void
+    {
+    	//Alert.show("in preinitialize");
+    	/*
+    	try{
+    	var eventDispatcher:IEventDispatcher =
+        StyleManager.loadStyleDeclarations("beige.swf");
+        }catch(e:Error){
+        Alert.show(e.toString());
+        }
+        */
+        //eventDispatcher.addEventListener(StyleEvent.COMPLETE, completeHandler);
+	}
+	
+	private function testMe():void {
+        var o:Object = getArrayNameAndIndex("/abcd/");
+        Alert.show("" + o.index + " " + getQualifiedClassName(o.name));
+	}
+	
+	    private function getArrayNameAndIndex (id:*): Object {
+        var o:Object = new Object();
+        if (!(id is RegExp)) {
+        	var m: Array = id.match(/(.*)\[([0-9]*)\]$/);
+        	if (m){
+    	        o.name = checkRegex(m[1]);
+    	        o.index = m[2];
+    	        return o;
+        	}
+        }
+    	o.name = checkRegex(id);
+    	o.index = -1;
+        return o;
+    }
+    
+    private function checkRegex (s:*): Object {
+    	var CHECK_REGEXP:RegExp = /^\/.*\/$/;
+    	Alert.show("" + (s.match(CHECK_REGEXP)));
+    	return ((typeof s) == "string" && s.match(CHECK_REGEXP)) ?  new RegExp(s.substring(1, s.length-1)) : s;
+    }
+    
+	]]>
+    </mx:Script>
+</mx:Application>

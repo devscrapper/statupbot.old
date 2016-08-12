@@ -1,0 +1,64 @@
+<html>
+<head>
+<title>CSV Viewer</title>
+<style>
+body *{font-family:verdana;font-size:10pt;}
+body {margin:10px; background-color:lightyellow;}
+table {border-top:1px solid gray;border-right:1px solid gray;border-spacing:0px;border-collapse:collapse;}
+table td{border-bottom:1px solid gray;border-left:1px solid gray;padding:5px;text-align:right;}
+tr.SUCCESS{background-color:lightgreen;color:black;}
+tr.FAILURE{background-color:red;color:white;}
+#results {background-color:white;}
+#navbar a{text-decoration:none;color:black;}
+div#navbar {border:1px solid white;border-bottom:1px solid gray;padding:1px}
+</style>
+</head>
+<body>
+<div id='navbar'> 
+	<a href='/_s_/dyn/pro/DBReports' style="color:black">Root</a> |
+	<a href='/_s_/dyn/pro/DBReports_suiteReport?id=$suiteReportId' style="color:black">Script Report</a> |
+	<a href='/_s_/dyn/pro/DBReports_testCaseReport?id=$suiteReportId' style="color:black">Test Cases Report</a> |
+	<a href='/_s_/dyn/pro/DBReports_csvTestCasesReport?id=$suiteReportId' style="color:black"><b>Test Cases Report Summary</b></a> | 
+	<a href='/_s_/dyn/pro/DBReports_csvTestCasesReportAsCSV?id=$suiteReportId' style="color:black">Download CSV</a>
+</div>
+<br/>
+					
+<div id="results">
+</div>
+<script>
+function $(id){
+	return document.getElementById(id);
+}
+function createTable(array2D){
+	var s = "<table>";
+	for (var i=0; i<array2D.length; i++) {
+		var row = array2D[i];
+		if (row == null) { 
+			//alert(i);
+			continue;
+		}
+		var srStart = "<tr>"; 
+		var sr = "";
+		for (var j=0; j<row.length; j++) {
+			var w = row[j];
+			if (w.indexOf("http://") == 0){
+				var text = (w.indexOf("id=") != -1) ? w.split('id=')[1] : w;
+				w = "<a href='" + w + "'>" + text + "</a>";
+			}
+			if (w == "SUCCESS" || w == "FAILURE") {
+				sr += "<td class='" + w + "'>" + w + "</td>";
+				srStart = "<tr class='" + w + "'>";
+			}
+			else sr += "<td>" + w + "</td>";
+		}
+		sr += "</tr>";
+		s += srStart + sr;
+	}
+	s += "</table>";
+	return s;
+}
+var csvData = $csvAsJSON;
+$("results").innerHTML = createTable(csvData);
+</script>
+</body>
+</html>

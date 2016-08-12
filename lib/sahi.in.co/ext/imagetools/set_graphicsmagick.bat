@@ -1,0 +1,1 @@
+set GM=C:\GraphicsMagick\gm

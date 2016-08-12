@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<substutionRules>
+	<rule>
+		<name>remove_document_domain</name>
+		<urlPattern>.*servenv.js.*</urlPattern>
+		<isRegExp>false</isRegExp>
+		<find><![CDATA[window.document.domain = ENVDOMAIN;]]></find>
+		<replace><![CDATA[//window.document.domain = ENVDOMAIN; // commented by Sahi]]></replace>
+	</rule>
+	
+	<rule>
+		<name>change_oracle_jars</name>
+		<urlPattern>xxxremovedxxx</urlPattern>
+		<isRegExp>false</isRegExp>
+		<find><![CDATA[fndforms.jar]]></find>
+		<replace><![CDATA[fndforms.jar,sahiapplet.jar]]></replace>
+	</rule>
+	<rule>
+		<name>change_sample_jar</name>
+		<urlPattern>xxxremovedxxx</urlPattern>
+		<isRegExp>false</isRegExp>
+		<find><![CDATA[SampleApplet.jar]]></find>
+		<replace><![CDATA[sahiapplet.jar,SampleApplet.jar]]></replace>
+	</rule>
+</substutionRules>

@@ -1,0 +1,336 @@
+<!--
+/**
+ * Copyright Tyto Software Pvt. Ltd.
+ */
+-->
+<html>
+<head><title>Configure Sahi</title></head>
+<script type="text/javascript" src="/_s_/spr/util.js"></script>
+<style>
+body, body * {
+	font-family: verdana;
+	font-size: 9pt;
+}
+body {	
+	margin: 10px;
+}
+.hitab {color:brown;text-decoration:none;font-weight:bold;font-size:14px;}
+.dimtab {color:3333FF;text-decoration:underline;}
+li {margin:10px}
+</style>
+<script>
+function init(){
+    var href = window.location.href;
+    var u = new URLParser(href);
+    var defaultId = "tbrowser_types";
+    if(u.parameters){
+     var id = u.getParameter("id");
+     if(id){
+      defaultId = id;
+     }
+    }
+    var tabGroup = new TabGroup("tabGroup", ["tbrowser_types", "tuserdata", "texclude_inject", "tdownload_urls", "tdonot_download_urls", "tdownload_contenttypes", "tblock_ssl_domains", "tcontent_detection", "temail_template", "tresponse_headers_remove", "turlhistory", "tuser_extensions", "tsubstitutions", "tstreaming_urls", "tstreaming_contenttypes", "tdomainfix", "texclude_inject_applet", "toracle_applets", "tfunction_names", "temail_properties"], defaultId);
+}
+function URLParser(url){
+  this.unparsed = url;
+  this.parse();
+}
+URLParser.prototype.getParameter = function(k){
+  return this.parameters[k];
+}
+URLParser.prototype.parse = function(){
+  var qIx = this.unparsed.indexOf("?");
+  if (qIx == -1) {
+    this.url = this.unparsed;
+    return;
+  }
+  this.url = this.unparsed.substring(0, qIx);
+  this.qs = this.unparsed.substring(qIx+1);
+  this.parameters = new Object();
+  var tokens = this.qs.split("&");
+  for (var i=0; i<tokens.length; i++){
+    var kv = tokens[i].split("=");
+    this.parameters[kv[0]] = unescape(kv[1]);
+  }
+}
+//TabGroup Start
+function $(id){
+	return document.getElementById(id);
+}
+var getTarget = function (e) {
+    var targ;
+    if (!e) e = window.event;
+    if (e.target) targ = e.target;
+    else if (e.srcElement) targ = e.srcElement;
+    if (targ.nodeType == 3) // defeat Safari bug
+        targ = targ.parentNode;
+    return targ;
+};
+
+TabGroup = function(name, ids, defaultId){
+	this.name = name;
+	this.ids = [];
+	this.defaultId = defaultId;
+	this.addAll(ids);
+	this.show(this.defaultId);	
+	TabGroup.instances[TabGroup.instances.length] = this;
+};
+TabGroup.instances = [];
+TabGroup.prototype.addAll = function(ids){
+	for ( var i = 0; i < ids.length; i++) {
+		this.add(ids[i]);
+	}
+};
+TabGroup.prototype.add = function(id){
+	this.ids[this.ids.length] = id;
+	$(id).onclick_ = $(id).onclick;
+	$(id).onclick = null;
+	this.addEvent($(id), "click", this.wrap(this.onclick, this));
+};
+TabGroup.prototype.addEvent = function (el, ev, fn) {
+    if (!el) return;
+    if (el.attachEvent) {
+        el.attachEvent("on" + ev, fn);
+    } else if (el.addEventListener) {
+        el.addEventListener(ev, fn, false);
+    }
+};
+TabGroup.prototype.wrap = function (fn, el) {
+	if (!el) el = this;
+	return function(){fn.apply(el, arguments);};
+};
+TabGroup.prototype.onclick = function(e){
+	var el = getTarget(e);
+	var thisId = el.id;
+	this.show(thisId, true);
+};
+TabGroup.prototype.show = function(thisId, isEvent){
+	if (!thisId || !$(thisId)) thisId = this.defaultId;
+	if (!thisId) return;
+	
+	for ( var i = 0; i < this.ids.length; i++) {
+		var id = this.ids[i];
+		if (!$(id)) continue;	
+		$(id+"box").style.display = (id == thisId) ? "block" : "none";
+		$(id).className = "dimTab";
+	}
+	var el = $(thisId);
+	el.className = "hiTab";
+//	if (el.onclick && !isEvent) el.onclick();
+	if (el.onclick_) el.onclick_();
+	this.selectedTab = thisId;
+	currentActiveTab = this.selectedTab;
+};
+TabGroup.prototype.getSelectedTab = function (e) {
+	return this.selectedTab;
+};
+TabGroup.prototype.showDefault = function (force) {
+	if (force || this.selectedTab == null) this.show();
+};
+TabGroup.getState = function(){
+	var s = [];
+	for (var i=0; i<TabGroup.instances.length; i++){
+		var tg = TabGroup.instances[i];
+		s[s.length] = {id:tg.name, value:tg.getSelectedTab(), type:"tab"};
+	}
+	return s;
+};
+TabGroup.showDefaults = function(){
+	for (var i=0; i<TabGroup.instances.length; i++){
+		TabGroup.instances[i].showDefault();
+	}
+};
+// TabGroup End
+
+var g_file;
+var g_restartMessage = "Your configuration has been saved. Please restart Sahi.";
+var g_savedMessage = "Your settings have been saved. Refresh your application window to reflect changes."; 
+var g_savedSettingMessage = "Your settings have been saved."; 
+function loadFile(fileName, message){
+	var file = "config/" + fileName;
+//	alert(file);
+	g_file = file;
+	g_message = message;
+	var textFile = sahiSendToServer("/_s_/dyn/ConfigureUI_readFile?fileName="+file);
+	$("editor").value = textFile;
+}
+function save(){
+	try{
+		var saveInfo = $('saveInfo');
+		saveInfo.style.display = 'inline';
+		saveInfo.innerHTML = g_message;
+		setTimeout("saveInfo.style.display='none'", 3000);
+		sahiSendToServer("/_s_/dyn/ConfigureUI_saveFile?fileName="+encodeURIComponent(g_file)+
+			"&contents="+encodeURIComponent($("editor").value));
+	}catch(e){alert(e)}
+}
+function resizeTA(el, minusRight, minusTop, percent) {
+	var winH, winW;
+	if (window.innerWidth){
+        winW = window.innerWidth;
+        winH = window.innerHeight;		
+	}else if (document.body.offsetWidth) {
+        winW = document.body.offsetWidth;
+        winH = document.body.offsetHeight;
+ 	}
+    if (minusRight != null) el.style.width = winW - minusRight + 'px';
+    el.style.height = (winH - minusTop)*(percent/100) + 'px';
+}
+onkeydown = function(e){
+	  e = !e ? window.event : e;
+	     var ctrlS = e.ctrlKey && e.keyCode == 'S'.charCodeAt(0);
+	     if(ctrlS){
+	      if (e.preventDefault) e.preventDefault();
+	   if (e.stopPropogation) e.stopPropogation();
+	      window.setTimeout("save();", 1);
+	  
+}	
+}
+
+</script>
+<body onload="init()">
+<h1>Configure Sahi</h1>
+<br/><br/>
+<table><tr><td style="vertical-align:top;">
+<div style="float:left;width:250px;height:500px;line-height:22px;">
+<img src="/_s_/spr/images/sahi_pro_logo2.png"/><br/><br/>
+<a href="#" id="tbrowser_types" onclick="loadFile('browser_types.xml', g_restartMessage);">browser_types.xml</a><br/>
+<a href="#" id="tuserdata" onclick="loadFile('userdata.properties', g_restartMessage);">userdata.properties</a><br/>
+<a href="#" id="texclude_inject" onclick="loadFile('exclude_inject.txt', g_savedMessage);">exclude_inject.txt</a><br/>
+--<br/>
+<a href="#" id="tblock_ssl_domains" onclick="loadFile('block_ssl_domains.txt', g_savedMessage);">block_ssl_domains.txt</a><br/>
+<a href="#" id="tcontent_detection" onclick="loadFile('content_detection.txt', g_savedMessage);">content_detection.txt</a><br/>
+<a href="#" id="tdomainfix" onclick="loadFile('domainfix.txt', g_savedMessage);">domainfix.txt</a><br/>
+<a href="#" id="tdownload_contenttypes" onclick="loadFile('download_contenttypes.txt', g_savedMessage);">download_contenttypes.txt</a><br/>
+<a href="#" id="tdownload_urls" onclick="loadFile('download_urls.txt', g_savedMessage);">download_urls.txt</a><br/>
+<a href="#" id="tdonot_download_urls" onclick="loadFile('donot_download_urls.txt', g_savedMessage);">donot_download_urls.txt</a><br/>
+<a href="#" id="temail_template" onclick="loadFile('email_template.txt', g_savedMessage);">email_template.txt</a><br/>
+<a href="#" id="tresponse_headers_remove" onclick="loadFile('response_headers_remove.txt', g_savedMessage);">response_headers_remove.txt</a><br/>
+<a href="#" id="tstreaming_contenttypes" onclick="loadFile('streaming_contenttypes.txt', g_savedMessage);">streaming_contenttypes.txt</a><br/>
+<a href="#" id="tstreaming_urls" onclick="loadFile('streaming_urls.txt', g_savedMessage);">streaming_urls.txt</a><br/>
+<a href="#" id="tsubstitutions" onclick="loadFile('substitutions.xml', g_savedMessage);">substitutions.xml</a><br/>
+<a href="#" id="turlhistory" onclick="loadFile('urlhistory.txt', g_savedMessage);">urlhistory.txt</a><br/>
+<a href="#" id="tuser_extensions" onclick="loadFile('user_extensions.js', g_savedMessage);">user_extensions.js</a><br/>
+<a href="#" id="texclude_inject_applet" onclick="loadFile('exclude_inject_applet.txt', g_savedMessage);">exclude_inject_applet.txt</a><br/>
+<a href="#" id="toracle_applets" onclick="loadFile('oracle_applets.txt', g_savedMessage);">oracle_applets.txt</a><br/>
+<a href="#" id="tfunction_names" onclick="loadFile('function_names.txt', g_savedMessage);">function_names.txt</a><br/>
+<a href="#" id="temail_properties" onclick="loadFile('email.properties', g_savedSettingMessage);">email.properties</a><br/>
+<div style="background-color:lightblue;margin:50px 20px 10px 0px;padding:10px">
+<div id="tbrowser_typesbox" class="content" style="display:none">
+<h2>browser_types.xml</h2>
+browser_types.xml configures the various browsers that Sahi can use. 
+Note that browser options for various browsers are different and it 
+is advisable to use the defaults provided and only change the paths where needed.
+</div>
+<div id="tblock_ssl_domainsbox" class="content" style="display:none">
+<h2>block_ssl_domains.txt</h2>
+If a domain is added here, any HTTPS calls to this domain will return a 404 error.
+Browsers like firefox make HTTPS requests to addons.mozilla.org and sb-ssl.google.com which can hang playback. 
+Adding these domains to block_ssl_domains.txt will prevent hangs.
+</div>
+<div id="tcontent_detectionbox" class="content" style="display:none">
+<h2>content_detection.txt</h2>
+This file allows detection of content type based on content in file. 
+It is used mainly to help Sahi detect js content when the content-type response header is incorrectly sent by server.<br/> 
+Format:<br/>
+<pre></pre><code>&lt;type&gt;:&lt;regular expression of content&gt;</code></pre>
+</div>
+<div id="tdownload_contenttypesbox" class="content" style="display:none">
+<h2>download_contenttypes.txt</h2>
+Sahi automatically downloads and saves files into sahi/usedata/temp/downloads directory. 
+If Sahi is unable to detect a request as a download, you can force it to download the file by adding relevant content-types to this file. 
+</div>
+<div class="content" id="tdownload_urlsbox" style="display:none">
+<h2>download_urls.txt</h2>
+Sahi automatically downloads and saves files into sahi/usedata/temp/downloads directory. 
+If Sahi is unable to detect a request as a download, you can force it to download the file by adding URL patterns to this file. 
+</div>
+<div class="content" id="tdonot_download_urlsbox" style="display:none">
+<h2>donot_download_urls.txt</h2>
+Sahi automatically downloads and saves files into sahi/usedata/temp/downloads directory.
+If Sahi is able to detect a request as a download, you can force it not to download the file by adding its URL pattern here. 
+</div>
+
+<div id="temail_templatebox" class="content" style="display:none">
+<h2>email_template.txt</h2>
+Email template used when sending out emails at end of suite. The layout, format and content can be adjusted here.
+</div>
+<div class="content" id="texclude_injectbox" style="display:none">
+<h2>exclude_inject.txt</h2>
+Sahi controls the browser by injecting javascript into web pages. 
+However there are various requests like XMLHttpRequests, javascript, css, etc. where Sahi should not inject its code.
+While this is correctly detected and handled in most cases, there are instances where one may need to explicitly ask Sahi not to inject code.
+In such instances, patterns can be added to exclude_inject.txt. When a URL matches this pattern, Sahi will NOT inject its code.
+</div>
+<div id="tresponse_headers_removebox" class="content" style="display:none">
+<h2>response_headers_remove.txt</h2>
+Removes response headers before being sent to browser. 
+</div>
+<div id="tsubstitutionsbox" class="content" style="display:none">
+<h2>substitutions.xml</h2>
+Allows modifying parts of the http response.
+</div>
+<div id="turlhistorybox" class="content" style="display:none">
+<h2>urlhistory.txt</h2>
+This file contains the list of URLs displayed in the Sahi Start page URL dropdown.
+</div>
+
+<div id="tuser_extensionsbox" class="content" style="display:none">
+<h2>user_extensions.js</h2>
+Allows user specific javascript code to be injected along with Sahi's injected content.
+Used mosty for patching Sahi functions with bugfixes before a new build is available.
+</div>
+<div id="texclude_inject_appletbox" class="content" style="display:none">
+<h2>exclude_inject_applet.txt</h2>
+Allows user to put specific urls of jar files matching the patterns in this text file should not be injected with Sahi content.
+</div>
+<div id="toracle_appletsbox" class="content" style="display:none">
+<h2>oracle_applets.txt</h2>
+Allows user to put specific urls of jar files, Applet urls matching the URL patterns in this file will be treated as oracle applets.
+</div>
+<div id="temail_propertiesbox" class="content" style="display:none">
+<h2>email.properties</h2>
+Allows user to put configuration for javax.mail.
+</div>
+<div id="tfunction_namesbox" class="content" style="display:none">
+<h2>function_names.txt</h2>
+Functions Names for creating functions on web editor
+</div>
+<div id="tdomainfixbox" class="content" style="display:none">
+<h2>domainfix.txt</h2>
+Tells Sahi to set document.domain property to a higher domain.
+</div>
+<div id="tstreaming_contenttypesbox" class="content" style="display:none">
+<h2>streaming_contenttypes.txt</h2>
+Tells Sahi to stream these content types instead of caching and then injecting content.
+Used on video/audio types
+</div>
+<div id="tstreaming_urlsbox" class="content" style="display:none">
+<h2>streaming_urls.txt</h2>
+Tells Sahi to stream these urls instead of caching and then injecting content.
+Used on video/audio urls
+</div>
+<div id="tuserdatabox" class="content" style="display:none">
+<h2>userdata.properties</h2>
+Sahi can be configured using two files:
+<ol>
+<li>sahi/userdata/config/ userdata.properties</li>
+<li>sahi/config/sahi.properties (<a href="/_s_/dyn/ConfigureUI_view?fileName=config/sahi.properties&useBase=true&title=Sahi%20Properties" target="_blank">View</a>)</li>
+</ol>
+Sahi first looks for a property in userdata.properties, and if not found, looks for it in sahi.properties.<br/>
+It is recommended to modify/add properties to userdata.properties. <br/>
+Every property in sahi.properties can be overridden in userdata.properties
+<br/><br/>
+</div>
+</div>
+</div>
+</td><td>
+<div style="float:left;width:770px;height:600px;">
+<textarea style="width:750px;height:85%;margin-bottom:10px;" id="editor" wrap="off" spellcheck="false"></textarea><br/>
+<input type="button" value="Save" onclick="save()"/>
+<span style="display:none;background:#F8FFA1;border:solid 1px brown;padding:5px" id="saveInfo"></span>
+</div>
+<script>function resizeWin(){resizeTA($('editor'), 300, 30, 80);}resizeWin();window.onresize=resizeWin;</script>
+</td></tr></table>
+</body>
+</html>

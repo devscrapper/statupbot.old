@@ -1,0 +1,2 @@
+.*sahi[.]co[.]in/static/builds/pro/install_sahi_pro_v.*[.]jar
+.*sahipro[.]com/static/builds/pro/install_sahi_pro_v.*[.]jar

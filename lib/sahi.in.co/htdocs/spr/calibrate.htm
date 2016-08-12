@@ -1,0 +1,24 @@
+<html>
+<head>
+<title>Calibrate</title>
+<script>
+function showOffsets(e){
+	if (!e) e = window.event;
+	var px = e.pageX || e.clientX;
+	var py = e.pageY || e.clientY;
+	if (px != 0 && py != 0) {
+		var offsetX = e.screenX - px;
+		var offsetY = e.screenY - py;
+    	var div = document.getElementById("offsetDiv");
+    	div.innerHTML = offsetX +"," + offsetY;
+    	document.body.onmousemove = null;
+	}
+}
+</script>
+</head>
+<body onmousemove="showOffsets(event)">
+<div style="width:2000px;height:1000px">
+<div id="offsetDiv"></div>
+</div>
+</body>
+</html>

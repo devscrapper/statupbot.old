@@ -1,0 +1,7 @@
+set ORIG_JAR=%1
+set SIGNED_JAR=%2
+set KEYSTORE=%3
+set DOMAIN=%4
+set PASSWORD=%5
+set JARSIGNER_PATH=%6
+%JARSIGNER_PATH% -keystore %KEYSTORE% -storepass %PASSWORD% -signedjar %SIGNED_JAR% %ORIG_JAR% %DOMAIN%

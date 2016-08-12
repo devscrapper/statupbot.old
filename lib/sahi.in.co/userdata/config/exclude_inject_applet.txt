@@ -1,0 +1,5 @@
+.*fndaol[.]jar
+.*fndaolj[.]jar
+.*fndewt[.]jar
+.*fndforms[.]jar
+.*frmall[.]jar

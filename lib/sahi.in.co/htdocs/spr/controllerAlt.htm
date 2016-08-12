@@ -1,0 +1,139 @@
+<!--
+/**
+ * Copyright Tyto Software Pvt. Ltd.
+ */
+-->
+<html>
+<head><title>Sahi Controller - Alternate</title>
+<link rel="stylesheet" type="text/css" href="controllerAlt.css">
+</head>
+<body onresize="resizeTAs()">
+<script type="text/javascript" src="/_s_/spr/util.js"></script>
+<script type="text/javascript" src="/_s_/spr/controllerAlt.js"></script>
+<script type="text/javascript" src="/_s_/spr/controllerCommon.js"></script>
+
+<script src="ext/codemirror/lib/codemirror.js"></script>
+<link rel="stylesheet" href="ext/codemirror/lib/codemirror.css">
+<script src="ext/codemirror/mode/javascript/javascript.js"></script>
+<script src="ext/codemirror/lib/util/simple-hint.js"></script>
+<link rel="stylesheet" href="ext/codemirror/lib/util/simple-hint.css">
+<script src="ext/codemirror/lib/util/javascript-hint.js"></script>
+<script src="ext/codemirror/lib/util/foldcode.js"></script>
+<link rel="stylesheet" href="ext/codemirror/theme/eclipse.css">
+<link rel="stylesheet" href="ext/codemirror/theme/neat.css">
+<script type="text/javascript" src="/_s_/spr/codemirror_wrapper.js"></script>
+
+<script>
+_c.sahisid = "$sahisid";
+</script>
+<div style="width:405px;position:relative;">
+<div style="float:right;margin-right:7px;">
+<input type="button" class="button" id="rec_on" style="display:block;width:60px;" value="Record" onclick="_c.startRecording()">
+<input type="button" class="button" id="rec_off" style="display:none;width:60px;" value="Stop" onclick="_c.stopRecording()">
+</div>
+<input type="button" class="button" id="rec_clear" style="display:block;width:60px;float:right;margin-right:8px;" value="Clear" onclick="_c.clearRecording()">
+</div>
+<!-- Spy start -->
+<div style="margin:10px 0px 10px 0px;"><ul class="tabs">
+<li id="tspy">Accessor Spy</li>
+<li id="tsteps" onclick="_c.showAllRecordedSteps()">Recorded Steps</li>
+</ul></div>
+<div  style="">
+<div id="tspybox" style="display:none">
+<table width="400px"><tr><td>
+<table>
+	<tr>
+		<td width="80px">Accessor <table style="display:inline;" cellpadding=0 cellspacing=0>
+            <tr>
+            <td><img class="updownimg" src="/_s_/spr/images/upArrow.png" onclick="callUp()" title="Identify parent"></td>
+            <td><img class="updownimg" src="/_s_/spr/images/downArrow.png" onclick="callDown()" title="Identify previous child"></td> 
+            </tr>
+            </table></td>
+		<td><input onkeypress="_c.reIdentifyQ(event)" style="width:225px" class="field" id="accessor" type="text" name="accessor">
+		<img src="/_s_/spr/images/anchor.png" onclick="setAnchor()" id="anchor" class="anchorOff"></td>
+	</tr>
+	<tr>
+		<td>Alternatives</td>
+		<td><select onchange="$('accessor').value=this.value" class="field" id="alternative" name="alternative"></select></td>
+	</tr>
+	<tr>
+		<!--<td>Value:</td><td><input id="elValue" name="elValue" value="" class="inputBox"></td>-->
+		 <td>Value/Text</td><td><input class="field" id="elValue" type="text" name="elValue"></td> 
+	</tr>
+	<tr>
+	
+		<td>Prefix</td><td><input class="field" id="prefix" name="winName" value="" class="inputBox"></td>
+	</tr>
+	<tr>
+		<td>Assert</td>
+		<td><select onchange="_c.recordStep(_c.getSelectedAssertion());this.selectedIndex=0;" class="field" id="assertions" name="assertions"></select></td>
+	</tr>
+</table>
+</td><td valign="top" style="padding-top:4px;width:50px;">
+<input class="button" type="button" value="Hilight" onclick="_c.highlight()"><br/>
+<!--<input class="b" type="button" value="Props" onclick="_c.showProps()"><br/>-->
+<div class="hr"></div>
+<input class="button" type="button" value="Hover" onclick="_c.hover()">
+<input class="button" type="button" value="Click" onclick="_c.click()">
+<input class="button" type="button" value="Set" onclick="_c.setValue()">
+</td></tr>
+<tr><td colspan="2">
+<div class="hr"></div>
+Evaluate Expression:
+<textarea id="lastSteps" style="width:395px;height:55px;margin-top:5px;"></textarea><br/>
+<div style="margin:5px 0px;">
+<input type="button" class="button2" onclick="_c.evaluateExpr()" value="Test &rarr;">
+<input type="button" class="button2" onclick="_c.appendToScript()" value="Append to Script">
+<input type="button" class="button2" onmousedown="_c.demoHighlight()" value="Highlight">
+<input type="button" class="button2" onmousedown="_c.demoClick()" value="Click">
+</div>
+<textarea id="result" style="width:395px;height:55px;"></textarea>
+</td></tr>
+</table>
+</div>
+
+<div id="tstepsbox" style="display:none">
+<div id="allsteps" style="overflow:auto; padding:4px; margin:15px 0px 5px;height:300px;width:390px;border:1px solid #ccc"></div>
+</div>
+</div>
+<!-- Spy end -->
+
+<!--About tab start-->
+<div class="content" id="taboutbox" style="display:none">
+Sahi Software
+</div>
+<!--About tab end-->
+
+<!-- Common start -->
+<input type="hidden" id="currentLogFileName"/>
+<!-- Common end -->
+
+<script>
+//var tabGroup1 = new TabGroup("tabGroup1", ["tscripts", "tlogs", "tabout"], "tscripts");
+//var tabGroup2 = new TabGroup("tabGroup2", ["tplay", "trecorder"], "trecorder");
+var spyTabs = new TabGroup("spyTabs", ["tspy", "tsteps"], "tspy");
+//var openTabs = new TabGroup("openTabs", ["tfile", "turl"], "tfile");
+_c.makeImgButtons();
+poll();
+</script>
+<div id="modes" style="margin-left:5px">
+<label><input type="radio" name="mode" id="sahiradio" onclick="changeControllerMode()">Sahi</label>
+<label><input type="radio" name="mode" id="javaradio" onclick="changeControllerMode()">Java</label>
+<label><input type="radio" name="mode" id="rubyradio" onclick="changeControllerMode()">Ruby</label>
+</div>
+<script>
+var cMode = getControllerMode();
+if(cMode == "java"){
+  document.getElementById("javaradio").checked = true;
+  document.title = "Sahi Java Controller";
+}
+else if(cMode == "sahi"){
+  document.getElementById("sahiradio").checked = true;
+}
+else if(cMode == "ruby"){
+  document.getElementById("rubyradio").checked = true;
+  document.title = "Sahi Ruby Controller";
+}
+</script>
+</body>
+</html>

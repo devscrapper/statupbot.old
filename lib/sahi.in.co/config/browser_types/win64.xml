@@ -1,0 +1,77 @@
+<browserTypes>
+  <browserType>
+      <name>Chrome_39.0.2139.3</name>
+      <displayName>Chrome 39.0.2139.3</displayName>
+      <icon>chrome.png</icon>
+      <path>C:\Program Files (x86)\Google\Chrome\Application\chrome.exe</path>
+      <options>--user-data-dir=$userDir\browser\chrome\profiles\sahi$threadNo
+                --proxy-server=localhost:listening_port_proxy --disable-popup-blocking --always-authorize-plugins --allow-outdated-plugins --incognito --window-size=width_browser,height_browser
+                --window-position=0,0</options>
+      <processName>chrome.exe</processName>
+      <useSystemProxy>false</useSystemProxy>
+      <capacity>1</capacity>
+  </browserType>
+  <browserType>
+      <name>Chrome_23.0.1271.97</name>
+      <displayName>Chrome 23.0.1271.97</displayName>
+      <icon>chrome.png</icon>
+      <path>C:\Program Files (x86)\Google\Chrome\Application\chrome.exe</path>
+      <options>--user-data-dir=$userDir\browser\chrome\profiles\sahi$threadNo
+                --proxy-server=localhost:listening_port_proxy --disable-popup-blocking --always-authorize-plugins --allow-outdated-plugins --incognito --window-size=width_browser,height_browser
+                --window-position=0,0</options>
+      <processName>chrome.exe</processName>
+      <useSystemProxy>false</useSystemProxy>
+      <capacity>1</capacity>
+  </browserType>
+  <browserType>
+      <name>Firefox_24.0</name>
+      <displayName>Firefox 24.0</displayName>
+      <icon>firefox.png</icon>
+      <path>C:\Program Files (x86)\Mozilla Firefox\firefox.exe</path>
+      <options>-profile "$userDir/browser/ff/profiles/sahi$threadNo" -no-remote -height height_browser -width width_browser</options>
+      <processName>firefox.exe</processName>
+      <useSystemProxy>false</useSystemProxy>
+      <capacity>1</capacity>
+  </browserType>
+  <browserType>
+      <name>Firefox_19.0</name>
+      <displayName>Firefox 19.0</displayName>
+      <icon>firefox.png</icon>
+      <path>C:\Program Files (x86)\Mozilla Firefox\firefox.exe</path>
+      <options>-profile "$userDir/browser/ff/profiles/sahi$threadNo" -no-remote -height height_browser -width width_browser</options>
+      <processName>firefox.exe</processName>
+      <useSystemProxy>false</useSystemProxy>
+      <capacity>1</capacity>
+  </browserType>
+  <browserType>
+      <name>Internet_Explorer_11.0</name>
+      <displayName>IE 11.0</displayName>
+      <icon>ie.png</icon>
+      <path>C:\Program Files\Internet Explorer\iexplore.exe</path>
+      <options>-noframemerging</options>
+      <processName>iexplore.exe</processName>
+      <useSystemProxy>true</useSystemProxy>
+      <capacity>1</capacity>
+  </browserType>
+  <browserType>
+      <name>Internet_Explorer_9.0</name>
+      <displayName>IE 9.0</displayName>
+      <icon>ie.png</icon>
+      <path>C:\Program Files\Internet Explorer\iexplore.exe</path>
+      <options>-noframemerging</options>
+      <processName>iexplore.exe</processName>
+      <useSystemProxy>true</useSystemProxy>
+      <capacity>1</capacity>
+  </browserType>
+  <browserType>
+      <name>Opera_9.0</name>
+      <displayName>Opera 9.0</displayName>
+      <icon>opera.png</icon>
+      <path>D:\Personnel\OperaPortable\App\Opera\36.0.2130.65\opera.exe</path>
+      <options></options>
+      <processName>opera.exe</processName>
+      <useSystemProxy>true</useSystemProxy>
+      <capacity>1</capacity>
+  </browserType>
+
+</browserTypes>

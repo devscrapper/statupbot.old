@@ -15,12 +15,12 @@
 # la connection au répertoire :deploy_to/current
 # le runtime ruby être deployé
 # les gem doivent être déployé et maintenu   (bundle install)
-# TODO le reboot quotidien de la machine (shutdown /r /f /t 0,
+# le reboot quotidien de la machine (shutdown /r /f /t 0,
 # http://www.isunshare.com/windows-10/4-ways-to-set-auto-shutdown-in-windows-10.html
 # http://www.tenforums.com/tutorials/7370-restart-computer-windows-10-a.html)
 # suppression de la mire log pour ouvrir une session (http://www.windows8facile.fr/w10-supprimer-mot-de-passe-demarrage/)
-# TODO le lancement des serveurs  lors de louverture de la session : dans le répertoire de demarrage, creer un raccourci
-# TODO la purge hebdomadaire des répertoires de travail ('log', 'tmp', 'output', 'archive') (del /F /S /Q d:\statupbot)
+# le lancement des serveurs  lors de louverture de la session : dans le répertoire de demarrage, creer un raccourci
+# à controler => la purge hebdomadaire des répertoires de travail ('log', 'tmp', 'output', 'archive') (del /F /S /Q d:\statupbot)
 # ---------------------------------------------------------------------------------------------------------------------
 #
 # avant tout deploy, il faut publier sur https://devscrapper/statupbot.git avec la commande

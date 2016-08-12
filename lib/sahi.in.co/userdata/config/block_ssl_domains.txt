@@ -1,0 +1,16 @@
+addons.mozilla.org
+.*.addons.mozilla.org
+sb-ssl.google.com
+clients4.google.com
+mm.eulerian.net
+halc.iadvize.com
+fstatic.iadvize.com
+static-bp.kameleoon.com
+s7.addthis.com
+logs.xiti.com
+mmtro.com
+www.googletagmanager.com
+w.estat.com
+ad.atdmt.com
+j.adlooxtracking.com
+cstatic.weborama.fr

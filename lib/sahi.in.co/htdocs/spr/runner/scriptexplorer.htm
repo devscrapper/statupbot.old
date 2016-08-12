@@ -1,0 +1,299 @@
+<!doctype html>
+<html>
+<head>
+<title>Script Explorer</title>
+<style>
+	 img {
+		CURSOR: hand;
+		border: 0;
+	 }
+	 .dark{
+	 	xfont-weight: bold;
+	 }
+	 body {
+	 	margin:0px; 
+	 	padding: 0px;
+	 }
+	 body * {
+	 	font-family: verdana;
+	 	font-size: 13px;
+	 }
+	 .tree-expanded{
+		display:inline-block;
+		width:16px;
+		height:18px;
+		vertical-align:middle;
+		background:url('../images/tree_arrows.gif') no-repeat -18px 0px;
+	}
+	.tree-collapsed{
+		display:inline-block;
+		width:16px;
+		height:18px;
+		vertical-align:middle;
+		background:url('../images/tree_arrows.gif') no-repeat 0px 0px;
+	}
+	.tree-file{
+		display:inline-block;
+		background:url('../images/tree_file.gif') no-repeat;
+		width:16px;
+		height:18px;
+		vertical-align:middle;
+	}
+	.tree-folder{
+		display:inline-block;
+		background:url('../images/tree_folder.gif') no-repeat;
+		width:16px;
+		height:18px;
+		vertical-align:middle;
+	}
+	.edit-link{
+		margin-right:10px;
+	}
+	.suggestDD {display: none;border: 1px solid grey;width: 300px;}
+	.header {
+		position: fixed;
+		top:0px;
+		width:100%;
+		padding: 0px 0px 0px 20px;
+		height:90px;
+		background: #eee;
+	}
+</style>
+<script type="text/javascript" src="/_s_/spr/util.js"></script>
+<script type="text/javascript" src="/_s_/spr/suggest.js"></script>
+<script type="text/javascript" src="scriptexplorer.js"></script>
+</head>
+
+<body onclick="Suggest.hideAll()">
+<div class="header"><br>
+	<img src="/_s_/spr/images/sahi_pro_logo2.png" style="float:right;margin-right:50px">
+	<div style="display:inline">
+	Browser: <input id="browserTxt" type="text" size="10" autoComplete="off"/>
+	<select id="browserDD" class="suggestDD"></select>
+	</div>
+	<div style="display:inline">
+	Start URL: <input id="startURLTxt" type="text" size="45" autoComplete="off"/>
+	<select id="urlDD" class="suggestDD"></select>
+	</div>
+	<div style="display:inline">
+	Threads: <input id="threads" type="text" value="5" size="3" autoComplete="off"/>
+	</div>
+	
+	<br/><br/>
+
+	<div style="display:inline">
+	Show: 
+	<a href="scriptexplorer.htm?search=.suite" class="dark">Suites</a>&nbsp;
+	<a href="scriptexplorer.htm?search=.sah" class="dark">Scripts</a>&nbsp;
+	<a href="scriptexplorer.htm?search=all" class="dark">All</a>&nbsp;&nbsp;&nbsp;
+	Filter: <input type="text" id="searchText" onkeyup="showSearch(this.value)" name="searchText" value="">
+	Extra Parameters: <input type="text" id="extraParams" name="extraParams" title="Format should be: &key1=value1&key2=value2&key3=value3">
+	
+	<script type="text/javascript" src="jquery-1.7.1.js"></script>
+	<script type="text/javascript">//<![CDATA[ 
+		jQuery(function(){
+		jQuery("#extraParamseditor").click(function() {
+			var pos = jQuery(this).position();
+			var width = jQuery(this).outerWidth();
+			jQuery("#paramedit").css({
+				position: "absolute",
+				top: pos.top + 20+ "px",
+				left: (pos.left + width + 2) + "px"
+			}).show();
+		});
+		});//]]>  
+
+	
+	</script>
+		
+	<input type="button" id="extraParamseditor" name="extraParamseditor" value="?" onclick="editExtraParam(); return false"/>&nbsp;
+	<input type="button" id="getCheckbox" name="getCheckbox" value="Run Selected Scripts" onclick="runSelectedFilesSuite(); return true"/>&nbsp;
+	<a href="_s_/dyn/pro/DBReports" target="_blank">View Logs</a>
+	<script>
+		function editExtraParam() {
+			var extraParamRow = [];
+			if(document.getElementById("extraParams").value!=""){
+				var value = document.getElementById("extraParams").value;
+				if (value.charAt(0) != '&') value = '&' + value;
+				var extraParamRow = value.split("&");
+				extraParamRow.splice(0,1);
+				for (var i=0; i<extraParamRow.length; i++){
+					extraParamRow[i] =  extraParamRow[i].split("=");
+					extraParamRow[i][0] = decodeURIComponent(extraParamRow[i][0]);
+					extraParamRow[i][1] = decodeURIComponent(extraParamRow[i][1]);
+				}
+			}
+			var paramEditor = document.getElementById("paramedittbody");
+			var oldExtParamRow = paramEditor.getElementsByTagName("tr");
+			var allOldExtParamRow = [];
+			for (var c=0;c<oldExtParamRow.length;c++){
+				if(oldExtParamRow[c].id!="header"){
+					allOldExtParamRow.push(oldExtParamRow[c]);
+				}
+			}
+			var totalOldExtParamRow = [];
+			for (var b=0; b<allOldExtParamRow.length;b++){
+				totalOldExtParamRow.push(allOldExtParamRow[b]);
+			}
+			for (var a=0;a<totalOldExtParamRow.length;a++){
+				paramEditor.removeChild(totalOldExtParamRow[a]);
+			}
+			var paramEditorDiv = document.getElementById("paramedit");
+			if(document.getElementById("plus")){
+				paramEditorDiv.removeChild(document.getElementById("plus"));			
+			}
+			if(document.getElementById("update")){
+				paramEditorDiv.removeChild(document.getElementById("update"));			
+			}
+			if(document.getElementById("cancel")){
+				paramEditorDiv.removeChild(document.getElementById("cancel"));			
+			}
+			for (var i=0; i<extraParamRow.length; i++){
+				addRowWithElements(i);
+				var extParamRow = paramEditor.getElementsByTagName("tr");
+				var editorParamRow = [];
+				for (var j=0;j<extParamRow.length;j++){
+					if(extParamRow[j].id!="header"){
+						editorParamRow.push(extParamRow[j]);
+					}
+				}
+				var allRowInput = editorParamRow[i].getElementsByTagName("input");
+				for (var k=0;k<allRowInput.length;k++){
+					if(allRowInput[k].className=="n_field"){
+						var nameField = allRowInput[k];
+					}
+					if(allRowInput[k].className=="v_field"){
+						var valueField = allRowInput[k];
+					}
+					if(allRowInput[k].className=="mask_field"){
+						var maskField = allRowInput[k];
+					}
+				}
+				if(extraParamRow[i][0].indexOf("mask_")!=0){
+					nameField.value = extraParamRow[i][0];
+					maskField.checked=false;
+				}
+				else{
+					nameField.value = extraParamRow[i][0].substring(extraParamRow[i][0].indexOf("mask_")+5);
+					maskField.checked=true;
+				}
+				if(extraParamRow[i][1]){
+					valueField.value = extraParamRow[i][1];
+				}
+			}
+			if(extraParamRow.length<5){
+				for(var i=extraParamRow.length;i<5;i++){
+					addRowWithElements(i);
+				}
+			}
+			var totalextParamRow = paramEditor.getElementsByTagName("tr").length-1;
+			var plus = document.createElement("input");
+			plus.type = "button";
+			plus.value = "+";
+			plus.id = "plus";
+			paramEditorDiv.appendChild(plus);
+			plus.onclick = returnRowWithElements(totalextParamRow);
+			var update = document.createElement("input");
+			update.type = "button";
+			update.value = "Update";
+			update.id = "update";
+			paramEditorDiv.appendChild(update);
+			update.onclick = returnExtParamUpdate();
+			var cancel = document.createElement("input");
+			cancel.type = "button";
+			cancel.value = "Close";
+			cancel.id = "cancel";
+			paramEditorDiv.appendChild(cancel);
+			cancel.onclick = returndisplayDivNone();
+		}
+		function addRowWithElements(rowNum) {
+			var paramEditor = document.getElementById("paramedittbody");
+			var row = document.createElement("tr");
+			row.id = "extparam"+rowNum;
+			paramEditor.appendChild(row);
+			var column1 = document.createElement("td");
+			var column2 = document.createElement("td");
+			var column3 = document.createElement("td");
+			row.appendChild(column1);
+			row.appendChild(column2);
+			row.appendChild(column3);
+			var nameField = document.createElement("input");
+			nameField.type = "text";
+			nameField.className = "n_field";
+			var valueField = document.createElement("input");
+			valueField.type = "text";
+			valueField.className = "v_field";
+			var maskField = document.createElement("input");
+			maskField.type = "checkbox";
+			maskField.className = "mask_field";
+			column1.appendChild(nameField);
+			column2.appendChild(valueField);
+			column3.appendChild(maskField);
+		}
+		function returnRowWithElements(rowNum) {
+			return function(){
+				addRowWithElements(rowNum);
+			}
+		}
+		function returndisplayDivNone() {
+			return function(){
+				document.getElementById("paramedit").style.display="none";
+			}
+		}
+		function returnExtParamUpdate() {
+			return function(){
+				var extraParamValue = document.getElementById("extraParams");
+				extraParamValue.value = null;
+				var paramEditor = document.getElementById("paramedittbody");
+				var extParamRow = paramEditor.getElementsByTagName("tr");
+				var editorParamRow = [];
+				for (var i=0;i<extParamRow.length;i++){
+					if(extParamRow[i].id!="header"){
+						editorParamRow.push(extParamRow[i]);
+					}
+				}
+				for(var j=0; j<editorParamRow.length;j++){
+					var editorParamRowElement = editorParamRow[j].getElementsByTagName("input");
+					if((editorParamRowElement[0].value=="" && editorParamRowElement[1].value=="" && editorParamRowElement[2].checked==false)){
+						//do nothing
+					}
+					else{
+						var key = editorParamRowElement[0].value;
+						var value = editorParamRowElement[1].value;
+						var addMask = editorParamRowElement[2].checked;
+						extraParamValue.value += "&" + encodeURIComponent((addMask?"mask_":"") + key) + "=" + encodeURIComponent(value);
+					}	
+				}
+			}
+		}
+	</script>
+	<style>
+	#paramedit th{padding:3px;text-align:left}
+	</style>
+	<div style="position: absolute; display: none; background-color:#eee;padding:20px;border:1px solid #bbb" id="paramedit">
+		<b>Extra Param Editor</b>
+		<table id="paramedittable" style="border-collapse:collapse;margin:10px 0px;">
+			<tbody id="paramedittbody">
+			<tr id="header">
+				<th>Name</th>
+				<th>Value</th>
+				<th>Mask</th>
+			</tr>
+			</tbody>
+		</table>
+	</div>
+	</div>
+
+</div>
+<div style='width:600px;padding: 100px 0px 0px 20px;'>
+	<div id="scriptsList"></div>
+</div>
+<script>
+	showAll();
+	var urlSuggest = new Suggest(s$("startURLTxt"), s$("urlDD"), "url", true);
+	urlSuggest.getOptions = getURLs;
+	var browserSuggest = new Suggest(s$("browserTxt"), s$("browserDD"), "browser", true);
+	browserSuggest.getOptions = getBrowsers;
+</script>
+</body>
+</html>

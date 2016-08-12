@@ -1,0 +1,50 @@
+<!--
+/**
+ * Copyright Tyto Software Pvt. Ltd.
+ */
+-->
+
+<html>
+
+<head>
+<title>
+Sahi History
+</title>
+</head>
+<script>
+function getWinDim() {
+	var winH, winW;
+	if (window.innerWidth){
+        winW = window.innerWidth;
+        winH = window.innerHeight;		
+	} else if (document.documentElement && document.documentElement.clientWidth) {
+		winW = document.documentElement.clientWidth;
+		winH = document.documentElement.clientHeight;
+	} else if (document.body.offsetWidth) {
+        winW = document.body.offsetWidth;
+        winH = document.body.offsetHeight;
+ 	}
+	return [winW, winH];
+}
+function loadHistory(){
+	document.h.history.style.width = (getWinDim()[0] - 20) + 'px';
+	document.h.history.style.height = (getWinDim()[1] - 80) + 'px';
+	document.h.history.value = opener.$("history").value;
+}
+function clearHistory(){
+	if (confirm("Clear history?")){
+		document.h.history.value = "";
+		opener.document.currentForm.history.value = "";
+	}
+}
+</script>
+<body onload="loadHistory()" onresize="loadHistory()">
+<form name="h">
+<textarea name="history" rows="27" cols="50" spellcheck="false"></textarea><br/>
+<input type="button" value="Refresh" onclick="loadHistory()">
+<input type="button" value="Clear" onclick="clearHistory()">
+<input type="button" value="Close" onclick="self.close()">
+</form>
+</body>
+
+</html>

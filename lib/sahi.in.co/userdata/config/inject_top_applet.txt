@@ -1,0 +1,2 @@
+<applet CODEBASE="/_s_/spr/applet" ARCHIVE="sahiapplet.jar" CODE="SahiApplet.class" WIDTH=0 HEIGHT=0 id="_sahi_applet" MAYSCRIPT>
+</applet>

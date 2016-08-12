@@ -1,0 +1,527 @@
+<!DOCTYPE>
+<!--
+/**
+ * Copyright  2006  Tyto Software
+ */
+-->
+<html>
+<head><title>Sahi Controller</title>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<script>__sahiDebugStr__="";__sahiDebug__=function(s){__sahiDebugStr__+=(s+"\n");};</script>
+<script type="text/javascript" src="/_s_/dyn/SessionState_domainfix/domainfix.js"></script>
+<script>
+function setVersion(){
+	var ver = document.getElementById("sahiProVersion").innerHTML;
+	document.getElementById("sahiVersion").innerHTML = ver.split(" ")[2];
+}
+
+//informOpen();
+</script>
+<script type="text/javascript" src="/_s_/spr/exception.js"></script>
+<script type="text/javascript" src="/_s_/spr/controller8.js"></script>
+<script type="text/javascript" src="/_s_/spr/util.js"></script>
+<script type="text/javascript" src="/_s_/spr/cookie.js"></script>
+<script type="text/javascript" src="/_s_/spr/suggest.js"></script>
+<style>
+body *{font-size: 12px;font-family: verdana;}
+body {margin: 8px;background-color: #ddd;margin-top:12px}
+div.content{background-color: white;border: 1px solid gray;margin: 2px;}
+.hiTab {
+	border: 1px solid gray;
+	border-bottom: 1px solid white;
+	cursor: pointer;
+	font-size: 10pt;
+	padding: 5px 5px;
+	padding-bottom: 2px;
+	background-color:white;
+	margin: 0px -1px;
+}
+
+.dimTab {
+	border: 1px solid gray;
+	border-bottom: 0px solid gray;
+	border-left: 0px solid gray;
+	cursor: pointer;
+	font-size: 9pt;
+	padding: 3px 5px;
+}
+.centpc{width:100%;}
+.comment {color: darkred;xfont-weight: bolder;font-size: 10px;}
+.comment0 {color: darkred;xfont-weight: bolder;font-size: 12px;}
+.comment1 {color: darkred;xfont-weight: bolder;font-size: 14px;}
+select{height:20px;border:1px solid #ccc;font-size:11px;}
+option{font-size:11px;}
+.fixedWidthButton {width: 50px;padding:2px 0px 3px 0px !important;}
+.button {text-align:center;padding:2px 10px 3px 10px;margin:0px;
+height:20px;background-color:#efefef;border:1px solid #ccc !important; line-height:0px;}
+.button:hover {background-color:#a6f4ff;}
+.button:active {background-color:#34b4e3;border:1px solid #0090b4 !important;}
+.button:disabled {color:#ccc;!important;}
+a{color: blue;}
+form{margin:0px;padding:0px;}
+hr{line-height:2px;margin:5px;padding:0px;line-height:2px;}
+
+.suggestDD{display:none;border:1px solid grey;height:auto;}
+.urlDD1{display:none;border:1px solid grey;}
+.anchorOn{cursor:pointer; border:1px solid #ddd;border-top:1px solid black;border-left:1px solid black;padding:2px 1px;xposition:relative;xtop:3px;}
+.anchorOff{cursor:pointer;border:1px solid #ddd;border-bottom:1px solid black;border-right:1px solid black;padding:2px 1px;xposition:relative;xtop:3px;}
+.readonlyTA{background:#fcfcfc;height:52px;width:99%;border:1px solid #ccc;overflow:auto;font-size:11px;}
+.editableTA{height:52px;width:99%;border:1px solid #ddd;}
+.inputBox{width:275px}
+.layoutTable{width:430px;margin:0px;padding:0px}
+.rightAligned{text-align:right;}
+.layoutTable *{vertical-align:middle;}
+.layoutTable .checkbox1{margin:0px;height:14px;padding:0px;border:0px;}
+input{height:20px;border:1px solid #ccc;font-size:11px;line-height:20px;}
+.hr{border:0px;margin:10px 5px;line-height:0px;height:0px;border:0px;border-top:1px solid #ccc;}
+.infoTable *{font-size:11px;vertical-align:top;}
+.modeTable *{font-size:11px;vertical-align:middle;}
+.modeTable input{margin-bottom:5px;border:0px;}
+.updownimg:hover{background-color:#a6f4ff;}
+.updownimg:active{background-color:#34b4e3;}
+</style>
+
+<script src="ext/codemirror/lib/codemirror.js"></script>
+<link rel="stylesheet" href="ext/codemirror/lib/codemirror.css">
+<script src="ext/codemirror/mode/javascript/javascript.js"></script>
+<script src="ext/codemirror/lib/util/simple-hint.js"></script>
+<link rel="stylesheet" href="ext/codemirror/lib/util/simple-hint.css">
+<script src="ext/codemirror/lib/util/javascript-hint.js"></script>
+<script src="ext/codemirror/lib/util/foldcode.js"></script>
+<script src="ext/codemirror/lib/util/matchbrackets.js"></script>
+<link rel="stylesheet" href="ext/codemirror/theme/eclipse.css">
+<link rel="stylesheet" href="ext/codemirror/theme/neat.css">
+<script type="text/javascript" src="/_s_/spr/codemirror_wrapper.js"></script>
+
+
+<style type="text/css">.CodeMirror{border:1px solid #ddd;} .CodeMirror *{font-size:11px;} #wrap_taDebug .CodeMirror-scroll{height:52px;width:99%;} #wrap_taSteps .CodeMirror-scroll{height:139px;width:99%;} </style>
+
+</head>
+<body onload="pageOnLoad(); setVersion();" onresize="resizeTAs()" onclick="Suggest.hideAll()" onbeforeunload="pageUnLoad()">
+<div style="float:right;padding-right:10px;text-shadow: 0 1px 0 #eee;">
+Sahi Pro v6.0.1
+</div>
+<div style="margin:5px 0px 0px 2px;padding-left:1px;">
+<span title='Recorder tab' style="border-left:1px solid gray" id="trecorder" class="hiTab" onclick="resizeTAs();recOnClick();">&nbsp;Record&nbsp;</span><span  id="tplay" title='Playback tab' class="dimTab" onclick="resizeTAs();playbackOnClick();">&nbsp;Playback&nbsp;</span><span  id="tclip" title='Clipboard tab' class="dimTab" onclick="resizeTAs();clipOnClick();">&nbsp;Clipboard&nbsp;</span><!-- changed name,and clipOnClick() --><span  id="tinfo" title='Info tab' class="dimTab" onclick="resizeTAs();infoOnClick();">&nbsp;Info&nbsp;</span><span  id="tdocs" style="display:none;" class="dimTab" onclick="resizeTAs();docsOnClick();">&nbsp;Docs&nbsp;</span>
+</div>
+<div id="trecorderbox" style="display:none;padding:0px;">
+<div class="content" style="padding:10px;">
+<div class="comment0 centpc" style="margin-bottom: 5px;">
+Enter a script name and click "Record" to start recording.<br>
+</div>
+<form name="recordstartform" style="margin:0px;">  
+    <table class="layoutTable" border=0>
+        <tr>
+            <td>Script Directory:</td>
+            <td class="rightAligned" style="width:315px;">
+                <select id="recdir" name="dir" style="width:315px;margin:0px;" onchange="setSelectedScriptDir(this.options[this.selectedIndex].value)">
+                    <option value="../scripts">../scripts</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding-top:4px;">Script Name:</td>
+            <td style="padding-top:4px;" class="rightAligned">
+                <input type="text" id="recfile" title='Enter the name of the script to record
+                (eg. new_script.sah)' name="file" value="" style="width:162px;float:left">
+                <input type="button" class="button" style="width:60px" id="record" title='Click to start recording' name="record" value="Record" onclick="onRecordStartFormSubmit(this)">
+                <input type="button" class="button" style="width:50px" value="Stop" title='Click to stop recording' onclick="stopRec()">
+                <input type="checkbox" class="checkbox1" id="screenshot" title="Enable Screenshot. Used for documentation" style="vertical-align:top;margin-top:5px;">
+                <input type="checkbox" id="isOREnabled" class="checkbox1" title="Enable Accessor Repository" onclick="toggleOR(this)" style="vertical-align:top;margin-top:5px;">
+            </td>
+        </tr>
+    </table>
+    <table class="layoutTable" id="ORTable">
+        <tr title='Filepath of Accessor Repository file (eg. repo/test_AR.sah)' >
+        	<td id="ORMessage">Accessor Repository File: </td>
+        	<td class="rightAligned">
+        	<input id="fileOR" onchange="setORFilePath(this.value)" style="width:245px">
+        	<select id="fileORDD" name="suggestORFile" class="suggestDD" style="width:245px"></select>
+        	<script>attachORSuggestionBox("fileOR", "fileORDD");</script>
+        	</td>
+        </tr>
+    </table>
+</form>
+
+<div class="hr"></div>
+
+<div class="comment0 centpc">
+Press CTRL key and hover mouse over any HTML element. 
+</div>
+<form name="currentForm">
+<table class="layoutTable" style="margin-top:10px;">
+    <tr id="OR">
+        <td title="Accessor Repository Key">AR Key:</td>
+        <td><input id="orKey" title='Accessor Repository Key' name="orKey" value="" class="inputBox" onclick="focusedElement()" onchange="isSaveORDisabled()"></td>
+        <td>
+        	<input id="SaveOR" type="button" class="button fixedWidthButton" value="SaveAR" onclick="saveORValue()" title="Save in Accessor Repository">
+        	<script>
+        	if($("orKey").value == "") $("SaveOR").disabled=true;
+        	else $("SaveOR").disabled=false;
+        	</script>
+        </td>
+    </tr>
+    <tr>
+        <td>Accessor: <table style="display:inline;" cellpadding=0 cellspacing=0>
+            <tr>
+            <td><img class="updownimg" src="/_s_/spr/images/upArrow.png" onclick="callUp()" title="Identify parent"></td>
+            <td><img class="updownimg" src="/_s_/spr/images/downArrow.png" onclick="callDown()" title="Identify previous child"></td>	
+            </tr>
+            </table></td>
+        <td>
+            <input id="accessor" title='Accessor of HTML element being pointed' name="accessor" value="" style="width:253px"  onclick="focusedElement()" autocomplete="off">
+            
+            <img src="/_s_/spr/images/anchor.png" onclick="setAnchor()" id="anchor" title='Identifies one element relative to another' class="anchorOff">
+            <select id="accessorDD" class="suggestDD"></select>
+        </td>
+        <td><input type="button" class="button fixedWidthButton" title="Simulates a click on the HTML element pointed by 'Accessor'" class="button fixedWidthButton" value=" Click " onclick=
+                "demoClick()"></td>
+    </tr>
+
+    <script>
+        var accessorSuggest = new Suggest($("accessor"), $("accessorDD"), "accessor");
+        accessorSuggest.type = "api";
+        accessorSuggest.twoPhase = true;
+        accessorSuggest.getOptions = getAccessorProps;
+        accessorSuggest.onchange = resetValue;
+    </script>
+
+    <tr>
+        <td>Alternatives:</td>
+        <td><select name="alternative" title='Alternative ways of accessing Accessor' onchange="setAccessor(this.value)" class="inputBox"></select></td>
+        <td><input type="button" title="Brings element in 'Accessor' field into focus and highlights" class="button fixedWidthButton" value="Hilight" onclick=
+                "demoHighlight()"></td>
+    </tr>
+    <tr>
+        <td>Value:</td>
+        <td><input id="elValue" title='Value of HTML from element being pointed' name="elValue" value="" class="inputBox"></td>
+        <td><input title="Sets the value of element pointed in 'Accessor' field" type="button" class="button fixedWidthButton" value="Set" onclick="demoSetValue()"></td>
+    </tr>
+    <tr>
+        <td>Prefix:</td>
+        <td><input title="Creates prefix statements for popups and pages from different domains" id="prefix" name="winName" value="" class="inputBox"></td>
+		<td><input type="button" class="button fixedWidthButton" title="Performs a mouseover action on the element in 'Accessor' field" value="Hover" onclick=
+		                "demoHover()"></td>        
+    </tr>
+</table>
+</form>  
+<div style="padding-right:10px;width:425px;margin-top:5px;">
+<div style="float:left">
+<input type="button" title="Creates assertion statements using values in 'Accessors' and 'Values' fields. Need to use 'Append to Script' to add to script" class="button fixedWidthButton" value="Assert" onclick="doAssert()"/> 
+<input class="button fixedWidthButton" type="button" style="width:100px;" value="List Properties " title="Click to get the properties of an element "onclick="showProperties()">
+<img title="Copies the accessor from accessor text field to Evaluate expression box" onclick="copyPaste()" style="vertical-align:top" src="/_s_/spr/images/copy-paste.png"></img>
+</div>
+<div style="float:right">
+Other Actions:        
+<select style="margin-right:0px;" title='Click for other browser actions' onchange="demoAction(this)">
+	<option>-- Choose --</option>
+	<option value="_doubleClick">Double Click</option>
+	<option value="_rightClick">Right Click</option>
+	<option value="_getValue">Get Value</option>
+	<option value="_getText">Get Text</option>
+	<option value="_exists">Exists</option>
+	<option value="_isVisible">Is Visible</option>
+	<option value="_position">Position</option>
+	<option value="_wait">Wait</option>
+	<option value="comment1">Comment (//)</option>
+	<option value="comment2">Comment (/**/)</option>
+	<option value="svon">Strict Visibility On</option>
+	<option value="svoff">Strict Visibility Off</option>
+</select>
+</div>
+<div style="clear:both"></div>
+</div>
+<!-- 
+<input type="button" class="button fixedWidthButton" value="Wait" onclick="addWait()"/> 
+<input type="text" id="waitTime" name="waitTime" value="3000" size="6"> ms 
+<input type="button" value="Comment" onclick="mark()"/> 
+<input type="text" id="comment" name="comment" value="" style="width:150px;"/>
+-->
+<script>
+var commands = [];
+commands[commands.length] = "_mouseOver(<accessor>)";
+commands[commands.length] = "_doubleClick(<accessor>)";
+commands[commands.length] = "_rightClick(<accessor>)";
+
+</script>
+<div class="hr"></div>
+<div style="float:left;padding-top:3px">APIs List:</div>
+<div style="float:right;padding-right:2px;"> 
+<input type="text" id="apiTextbox" onkeydown="sendToEvaluateExpression()" title='List all Sahi apis available on browser. Press Enter to append the selected API to Evaluate Expression.' autocomplete="off" style="width:350px;">
+<select id="apiSelect" class="suggestDD" style="width:350px;z-index:1000;"></select>
+<script>
+  function sendToEvaluateExpression (e){
+  	if (!e) e = window.event;
+      if (e.keyCode && e.keyCode == Suggest.KEY_ENTER){
+      	if ($("apiSelect").length > 0) {
+      		var editorContent = getEditorValue("taDebug");
+      		editorContent = editorContent ? editorContent  + "\n" + $("apiSelect").value : $("apiSelect").value;
+      		setDebugValue(editorContent);
+      	}
+      }
+  }
+
+    var apiSuggest = new Suggest($("apiTextbox"), $("apiSelect"), "api", true);
+    apiSuggest.getOptions = getAPIs;
+    apiSuggest.onchange = setAPI;
+    apiSuggest.suggestOnClick();
+    //apiSuggest.sendToEvaluateExpression();
+</script>
+</div>
+<div style="clear:both"></div>
+</div>
+<!-- Recorded Steps and Eval Expression -->
+<div style="background-color:#ddd;">
+	<div style="margin:10px 0px 0px 3px;">
+	<span style="float:right;margin-right:10px;"><span id="coords"></span> <a title='Click to view diagnose result' href="" onclick="diagnoseTest();return false;">Diagnose</a> &nbsp; <a title='Edit Sahi Script' href="" onclick="loadEditor();return false;" target="refactorWin">Script Editor</a> <a id='blankSpace'>&nbsp;</a> <a id='orEditor' title='Edit Accessor Repository' href="" onclick="loadOREditor();return false;" target="refactorWin">AR</a></span>
+	<span style="border-left:1px solid gray" title='Enter any valid Sahi script here for evalution. Script executes in the context of the main window with the Prefix value' id="teval" class="hiTab" onclick="resizeTAs();">&nbsp;Evaluate expression&nbsp;</span><span  id="tsteps" title='Click to view recorded steps' class="dimTab" onclick="resizeTAs();">&nbsp;Recorded steps&nbsp;</span>
+	</div>
+	<div id="tevalbox"  class="content" style="padding:3px;"><!--
+	Evaluate expression: <a href="javascript:showHistory()">History</a>
+	-->
+	<input type="hidden" id="history" name="history">
+	<span id="wrap_taDebug">
+		<textarea name="debug" id="taDebug" class="editableTA" style="" spellcheck="false"> </textarea>
+	</span>
+	<div style="padding:3px 0px;">
+	<a title='Click to view history of recording actions' href="javascript:showHistory()" style="float:right;margin:3px 5px;">History</a>
+	<input title="When checked, displays the clientX and clientY of the point on screen where CTRL-mouseover event takes place." type="checkbox" style="vertical-align:top;margin-top:0px;margin-bottom:0px;float:right;" id="checkbox_position">
+	<input type="button" class="button" title="Click to evalute what is in the above 'Evalute expression' text box" onclick="evaluateExpr(true)" value="Test &rarr;">
+	<input type="button" class="button" title="Appends the contents of 'Evalute expression' textbox to the script being recorded" onclick="append()" value="Append to Script">
+	<input type="button" class="button" title="Higlights any element in a page" onmousedown="demoHighlight2()" value="Highlight">
+<!-- <input type="button" class="button" title="Simulates a click on the HTML element specified in 'Evaluate expression'"  onmousedown="demoClick2()" value="Click"> -->
+	<select onchange="performAction(this)">
+		<option> -- Choose --</option>
+	    <option title="Simulates a click on the HTML element specified in 'Evaluate expression'" value="click">Click</option>
+	    <option title="Execute _getValue() on the HTML element specified in 'Evaluate expression'" value="getValue">Get Value</option>
+	    <option id="getORValue" title="Displays the HTML element of ARKey specified in 'Evaluate expression'" value="getORValue">Get ARValue</option>
+	    <option title="Execute _getText() on the HTML element specified in 'Evaluate expression'" value="getText">Get Text</option>
+	    <option title="Execute _toJSON() on the HTML element specified in 'Evaluate expression'" value="toJSON">Get toJSON</option>
+		<option title="Execute _exists() on the HTML element specified in 'Evaluate expression'" value="exists">Exists</option>
+		<option title="Execute _isVisible on the HTML element specified in 'Evaluate expression'" value="isVisible">Is Visible</option>
+		<option title="Displays the client position of the HTML element specified in 'Evaluate expression'" value="position">Position</option>
+	</select>
+	</div>
+	<textarea name="result" id="taResult" class="readonlyTA" style="" spellcheck="false"></textarea>
+	</div>
+	<div id="tstepsbox" class="content" style="display:none;padding:3px;">
+	<span id="wrap_taSteps">
+		<textarea name="result" id="taSteps"  class="readonlyTA" spellcheck="false"></textarea>
+	</span>
+	</div>
+</div>
+<!-- End Recorded Steps and Eval Expression -->
+
+</div>
+
+<!-- END Record Tab -->
+
+<div class="content" id="tplaybox" style="display:none;">
+<div style="margin:6px;">
+<table class="layoutTable">
+  <tr>
+    <td>
+      <div id="setfile">
+       <form name="scriptfileform" style="margin:0px;">
+          <table class="layoutTable">
+            <tr>
+              <td colspan="2" style="padding:1px 0px 10px;"><span class="comment0">Set script from file</span>: [<a href="javascript:byFile(false)" style="vertical-align:top">from url</a>]</td>
+            </tr>
+            <tr>
+              <td>Script Directory: </td>
+              <td width="310px">
+                <select id="pbdir" name="dir" onchange="populateScripts(this.options[this.selectedIndex].value)" style="width:310px">
+                  <option value="../scripts">../scripts</option>
+                </select>
+              </td>
+            </tr>
+
+            <tr>
+              <td bgcolor="">File:</td>
+              <td><!--<select name="file" style="width:300px" 
+              	  onchange="setSelectedScript(this.options[this.selectedIndex].value)"></select>-->
+              	  <input title='Enter the script name' id="filebox" name="filebox" style="width:310px" autocomplete="off">
+            	  <select id="fileboxDD" name="suggestScriptFile" class="suggestDD" style="width:310px"></select>
+            	  <script>
+            	  	attachSuggestionBox("filebox", "fileboxDD");
+            	  </script>
+              </td>  
+            </tr>
+            <tr>
+              <td><input checked="checked" type="checkbox" class="checkbox1" id="script_usestarturl" name="usestarturl" title="Use Start URL"> Start URL:</td>
+              <td><input type="text" title='Enter the start URL of the script' id="script_starturl" name="starturl" value="" style="width:310px"  onkeydown="enterEvent(event)" onchange="saveURL(this.value)">
+              <select id="urlDD1" class="suggestDD"></select>
+              <!-- 
+              <img src="/_s_/spr/images/delete2.png" style="margin:0px 0px 1px -25px;border:0px solid red;cursor:pointer;vertical-align:bottom;" alt="Clear" title="Clear" onclick="resetUrl()"/></td>
+               -->
+            </tr>
+          </table>
+          <input type="hidden" name="manual" value="1">
+        </form>
+      </div>
+    </td>
+    <td>
+      <div id="seturl" style="display:none">
+        <form name="scripturlform"> 
+          <table class="layoutTable">
+            <tr>
+              <td colspan="2"><span class="comment0">Set script from url or full file path</span>: [<a href="javascript:byFile(true)" style="vertical-align:top">from file</a>]</td>
+            </tr>
+			<tr><td></td></tr>
+            <tr>
+              <td bgcolor="">Script URL:</td>
+              <td><input type="text" title="Enter the script URL (eg: http://localhost/demo/sahi_demo.sah)" id="url" name="url" style="width:310px"></td>
+            </tr>
+			<tr><td></td></tr>
+            <tr>
+              <td><input checked="checked" type="checkbox" class="checkbox1" id="script_usestarturl_forscripturl" name="usestarturl_forscripturl" title="Use Start URL"> Start URL:</td>
+              <td><input type="text" title='Enter the start URL of the script' id="url_starturl" name="starturl" value="" style="width:310px" onchange="saveURL(this.value)">
+              <select id="urlDD2" class="suggestDD"></select></td>
+            </tr>
+			<tr><td></td></tr>
+          </table>
+          <input type="hidden" name="manual" value="1">
+        </form>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<table style="margin-left:3px;">
+  <tr>
+    <td bgcolor="">
+      <form name="playform" action="/_s_/dyn/Player_start" onsubmit="play()" target="channel">
+      <!-- 
+		Current Step:<span id="currentStep">0</span>&nbsp;&nbsp;&nbsp;&nbsp;
+        Next Step: <input type="text" size="3" id="nextStep" name="nextStep" value="1">
+         -->
+        <div style="padding-top:10px;">
+        <input title='Play the script' class="button fixedWidthButton" type="button" value="Play" onclick="play()">
+        <input title='Pause the script' class="button fixedWidthButton" type="button" value="Pause" onclick="pause()">
+        <input title='Step through the script one step at a time' class="button fixedWidthButton" type="button" value="Step" onclick="stepWisePlay()">
+        <input title='Stop the script' class="button fixedWidthButton" type="button" value="Stop" onclick="stopPlay()">
+        <!-- 
+        <input class="button fixedWidthButton" type="button" value="Reset" onclick="replay()">
+         -->
+        </div>
+      </form>
+    </td>
+  </tr>
+</table>
+
+<div class="hr"></div>
+<table>
+  <tr>
+    <td bgcolor="">
+      <form name="logForm">Statements:<br>
+        <textarea title='View executed steps and status' id="talogs" class="readonlyTA" name="logs" style="width:99%;height:230px;" spellcheck="false"></textarea></form>
+  		<div style="margin:5px 0px 0px 0px">
+  		&nbsp;
+		View:&nbsp;&nbsp; <a title='A copy of the test script currently loaded for play back is displayed in the web browser' href="" onclick="loadPlaybackScriptEditor();return false;" target="_blank">Script</a>&nbsp;|&nbsp;
+		<a title='Displays the actual code that will be executed by Sahi' href="/_s_/dyn/Player_currentParsedScript" target="_blank">Parsed Script</a>&nbsp;|&nbsp;
+		<a title='The browser script included in the Sahi script' href="/_s_/dyn/Player_currentBrowserScript" target="_blank">Browser Script</a>&nbsp;|&nbsp;
+		<a title='HTML based results of tests, stored in database' href="" onclick="loadLogs();return false;" target="_blank">Logs</a>
+		</div>
+  	</td>
+  </tr>
+</table>
+</div>
+</div>
+
+<!-- Clipboard starts -->
+<div class="content" id="tclipbox" style="display:none;padding:10px;">
+<textarea id="clipTextArea" style="overflow:auto;"></textarea>
+</div> 
+<!--Clipboard ends -->
+
+<div class="content" id="tinfobox" style="display:none;"> 
+<div id="infoDiv" style="height:480px;padding:10px;overflow-y:auto;">
+<a href="http://sahipro.com/" target="_blank"><img src="/_s_/spr/images/sahi_pro_logo2.png" style="border:0px;float:right;margin:5px 10px;"/></a>
+<table class="infoTable">
+	<tr><td class="comment1" colspan="3"><u style="font-weight:bold" id="sahiProVersion">Sahi Pro 6.0.1</u><br/><br/></td></tr>
+	<tr><td><b>Version</b></td><td>:&nbsp;</td><td><div id="sahiVersion"></div></td></tr>
+	<tr><td><b>Build</b></td><td>:&nbsp;</td><td><div id="sahiBuild"><script>document.write(getVersion());</script></div></td></tr>
+	<!--
+	<tr><td class="comment" colspan="3">
+	<a href="#" id="updatesahi" target="_blank" onclick="updateVersion();return false;">Check for updates</a>
+	</td></tr>
+	-->
+</table>
+<div class="hr"></div>
+<table class="modeTable">
+  <tr><td class="comment1" colspan="3"><u>Controller mode</u><br></td></tr>
+  <tr>
+<td>
+<label><input type="radio" name="mode" class="modes" id="sahiradio" onclick="changeControllerMode()"> Sahi</label>
+</td><td>
+<label><input type="radio" name="mode" class="modes" id="javaradio" onclick="changeControllerMode()"> Java</label>
+</td><td>
+<label><input type="radio" name="mode" class="modes" id="rubyradio" onclick="changeControllerMode()"> Ruby</label>
+</td>
+</tr>
+</table>
+<div class="hr"></div>
+<table class="infoTable">
+	<tr><td class="comment1" colspan="3"><u>Browser</u><br></td></tr>
+	<tr><td><b>UserAgent</b></td><td>:&nbsp;</td><td><div id="userAgent"></div></td></tr>
+	<tr><td><b>Name</b></td><td>:&nbsp;</td><td><div id="browserName"></div></td></tr>
+	<tr><td><b>Version</b></td><td>:&nbsp;</td><td><div id="browserVersion"></div></td></tr>
+	<tr><td><b>Native XmlHTTPRequest</b></td><td>:&nbsp;</td><td><div id="xmlHttpRequest"></div></td></tr>
+	<tr><td><b>Is Java enabled</b></td><td>:&nbsp;</td><td><div id="javaEnabled"></div></td></tr>
+	<tr><td><b>Is cookie enabled</b></td><td>:&nbsp;</td><td><div id="cookieEnabled"></div>
+	</td></tr>
+</table>
+<br><div class="hr"></div>
+<table class="infoTable">
+	<tr><td class="comment1" colspan="3"><u>Operating System</u><br></td></tr>
+	<tr><td><b>Name</b></td><td>:&nbsp;</td><td><div id="osName"></div></td></tr>
+	<tr><td><b>Version</b></td><td>:&nbsp;</td><td><div id="osVersion"></div></td></tr>
+	<tr><td><b>Architecture</b></td><td>:&nbsp;</td><td><div id="osArchitecture"></div></td></tr>
+	<tr><td><b>Is process list available</b></td><td>:&nbsp;</td><td><div id="isTasklistAvailable"></div></td></tr>
+	<tr><td><b>Is CertUtil available</b></td><td>:&nbsp;</td><td><div id="isCertUtilAvailable"></div>
+	</td></tr>
+</table>
+<br><div class="hr"></div> 
+<table class="infoTable">
+	<tr><td class="comment1" colspan="3"><u>Java</u><br></td></tr>
+	<tr><td><b>Java Installed Directory</b></td><td>:&nbsp;</td><td><div id="javaDirectory"></div></td></tr>
+	<tr><td><b>JRE Version</b></td><td>:&nbsp;</td><td><div id="javaVersion"></div></td></tr>
+	<tr><td><b>Is keytool available</b></td><td>:&nbsp;</td><td><div id="isKeytoolAvailable"></div></td></tr>
+	<tr><td><b>Is jarsigner available</b></td><td>:&nbsp;</td><td><div id="isJarsignerAvailable"></div></td></tr>
+</table>
+<br><div class="hr"></div>
+</div>
+</div>
+<!-- Docs start -->
+<div class="content" id="tdocsbox" style="display:none;padding:10px;">
+<iframe src="jsdocs/index.html" style="width:100%; height:86%"></iframe>
+</div> 
+<!-- Docs end -->
+<script type="text/javascript">
+createCMEditor("taDebug", false);
+//createCMEditor("taSteps", true);
+</script>
+<script>
+var tabGroup = new TabGroup("tabGroup", ["tplay", "trecorder", "tinfo", "tclip","tdocs"], "trecorder");
+var tabGroup2 = new TabGroup("tabGroup2", ["teval", "tsteps"], "teval");
+
+var urlSuggest = new Suggest(document.getElementById("script_starturl"), document.getElementById("urlDD1"), "script_starturl", true);
+var urlSuggest2 = new Suggest(document.getElementById("url_starturl"), document.getElementById("urlDD2"), "url_starturl", true);
+urlSuggest.getOptions = getURLs;
+urlSuggest2.getOptions = getURLs;
+poll();
+//alert("poll called");
+var cMode = sahiSendToServer("/_s_/dyn/Configuration_getControllerMode");
+if(cMode == "java"){
+	document.getElementById("javaradio").checked = true;
+}
+else if(cMode == "sahi"){
+	document.getElementById("sahiradio").checked = true;
+}
+else if(cMode == "ruby"){
+	document.getElementById("rubyradio").checked = true;
+}
+</script>
+<input type="hidden" id="apis"/>
+</body>
+</html>

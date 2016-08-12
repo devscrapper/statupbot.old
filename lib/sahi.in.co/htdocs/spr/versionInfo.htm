@@ -1,0 +1,82 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<style>
+body {
+	text-align:center;
+}
+body, body * {font-family:verdana; font-size:10pt; line-height:25px;}
+a.upgrade {color:green;}
+a.downgrade {color:red;}
+span.expired {color:grey;}
+</style>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Sahi Pro Version Info</title>
+</head>
+<body>
+<h3>Sahi Pro Update Utility</h3>
+<div style="font-weight:bold;">
+Your current version is: $version<br/>
+License expires on: $expiresOn<br/><br/>
+</div>
+
+<div>NOTE: We encourage you to take a back up of your Sahi Pro folder before you perform a upgrade or downgrade</div>
+<br/>
+
+
+<div id="tagLinks">
+</div>
+
+<script type="text/javascript">
+var version = "$version";
+version = version.replace(/:/g, '-').replace(' ', '_');
+var expiresOn = "$expiresOn";
+//var expiresOn = "2011-06-02_00-00-00";
+//var version = "2011-01-02_00-00-00";
+if (version.length == 10) version += "_00-00-00";
+function $(id){return document.getElementById(id);}
+function check(tag, comment){
+	var r = confirm("Are you sure you want to " + (version > tag ? "downgrade" : "upgrade") + " to version: " + comment);
+	if (!r) return false;
+	$("tagLinks").style.display = "none";
+	$("move").innerHTML = version > tag ? "Downgrading" : "Upgrading";
+	$("tagNo").innerHTML = tag;
+	$("message").style.display = "block";
+	var newWin = window.open("/_s_/dyn/pro/Versions_upgrade?to=" + tag);
+	newWin.close();
+	return r;
+}
+function addTagLinks() {
+	var tagsS = "$tags";
+	var tags = tagsS.split(",");
+	var s = "";
+	tags = tags.sort();
+	tags = tags.reverse();
+	for (var i=0; i<tags.length; i++) {
+		var tagWithComment = tags[i];
+		var tag = tagWithComment;
+		var comment = "";
+		var ix = tagWithComment.indexOf(" ");
+		if (ix != -1) {
+			tag = tagWithComment.substring(0, ix);
+			comment = tagWithComment.substring(ix + 1);
+		}
+		if(tag < expiresOn){
+			s += "<a class=" + (tag > version ? "upgrade" : "downgrade") + " href='#' " +
+			"onclick='return check(\"" + tag + "\", \"" + comment + "\")'>" + (tag > version ? "Upgrade" : "Downgrade") + " to " + comment + "</a><br/>";
+	//		s += "<a class=" + (tag > version ? "upgrade" : "downgrade") + " href='/_s_/dyn/pro/Versions_upgrade?to=" + tag + "' target='_blank' " +
+	//		"onclick='return check(\"" + tag+ "\")'>" + (tag > version ? "Upgrade" : "Downgrade") + " to " + tag + "</a><br/>";
+		} else {
+			s+= "<span class='expired'>" + tag + " (License expired)<br/></span>";
+		}
+	}
+	$("tagLinks").innerHTML = s;
+}
+addTagLinks();
+</script>
+<div id="message" style="display:none">
+<center><h3><span id="move"></span> to <span id='tagNo'></span>...</h3>
+The Sahi server will now shut down. It will be restarted once the upgrade is finished.
+</center></div>
+</body>
+</html>

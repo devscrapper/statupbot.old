@@ -1,0 +1,22 @@
+<!--
+/**
+ * Copyright Tyto Software Pvt. Ltd.
+ */
+-->
+<html>
+<head><title></title>
+<script language="javascript">
+function isIE() {
+    var browser = navigator.appName;
+    return browser == "Microsoft Internet Explorer";
+}
+function reloadDomainList(){
+	if(isIE())
+		top.opener.loadDomains();
+}
+</script>
+</head>
+<body onload='reloadDomainList();'>
+<img src="/_s_/spr/manage/ssl/green.png" title="Ready" /> <span style="font-size:12pt;">Successfully connected to <b>$domain</b>.</font>
+</body>
+</html>

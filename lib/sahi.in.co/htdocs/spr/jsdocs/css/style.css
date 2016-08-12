@@ -1,0 +1,18 @@
+section{
+	padding: 0px 10px;
+}
+
+.name{
+	color: #0088cc;
+	font-weight: normal;
+}
+.com{
+	color: green;
+	font-style: italic; 
+}
+.pln{
+	color:#0088cc;
+}
+h5{
+	color: green;
+}

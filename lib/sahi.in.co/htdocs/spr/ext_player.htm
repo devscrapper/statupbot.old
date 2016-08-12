@@ -1,0 +1,58 @@
+<!--
+/**
+ * Copyright Tyto Software Pvt. Ltd.
+ */
+-->
+<html>
+<head><title>External player</title></head>
+<body>
+<script src="ext_player.js" type="text/javascript"></script>
+<script type="text/javascript">
+var player = new Player("C:/Program Files/Mozilla Firefox/firefox.exe", "firefox.exe", " -profile $userDir/browser/ff/profiles/sahi0 -no-remote");
+function launchPlayback(){
+	player.launchPlayback();
+}
+function launchRecorder(){
+	player.launchRecorder();
+}
+function killBrowser(){
+	player.kill();
+}
+function executeStep(){
+	player.setStep($("step").value);
+}
+function $(id){
+	return document.getElementById(id);
+}
+function getAllRecordedSteps(){
+	$("recordedSteps").value = player.getRecordedSteps().replace(/__xxSAHIDIVIDERxx__/g, '\n');
+}
+</script>
+<div style="padding:10px;">
+_sahi._navigateTo("http://sahi.co.in/demo/");<br/>
+_sahi._click(_sahi._link(0));
+</div>
+<div style="border:1px solid orange; padding:10px; margin:10px; width:600px;">
+<form action="" style="margin:0px;">
+<fieldset>
+<legend>Record</legend>
+	<input type="button" value="Launch and Record" onclick="launchRecorder()"><br/><br/>
+	<textarea id="recordedSteps" style="width:500px; height:300px;"></textarea><br/>
+	<input type="button" value="Get recorded steps" onclick="getRecordedSteps()"><br/><br/>
+	<br/>
+	<input type="button" value="Kill browser" onclick="killBrowser()">
+</fieldset>
+</form>
+<br/>
+<form action="" style="margin:0px;">
+<fieldset>
+<legend>Playback</legend>
+	<input type="button" value="Launch browser" onclick="launchPlayback()"><br/><br/>
+	<input type="text" id="step" value="_click(_link(0))" style="width:500px;"><br/>
+	<input type="button" value="Execute step" onclick="executeStep()"><br/><br/>
+	<input type="button" value="Kill browser" onclick="killBrowser()">
+</fieldset>
+</form>
+</div>
+</body>
+</html>

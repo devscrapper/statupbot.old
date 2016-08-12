@@ -1,0 +1,65 @@
+<html>
+<head>
+
+<title>HAR Viewer</title>
+
+<style>
+
+td.METHOD{font-weight: bold;}
+td.URL{font-weight: bold;}
+td.STATUS{color: #82807b}
+table {border-top:1px solid #ccc;border-right:0px;border-bottom:0px;border-left:0px;border-spacing:0px;table-layout: fixed;}
+table td{font-family:verdana;font-size:8pt;border-top:0px;border-right:0px;border-bottom:1px solid #ccc;border-left:0px;padding:2px;text-align:left;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+tr.SUCCESS{background-color:lightgreen;color:black;}
+tr.FAILURE{background-color:red;color:white;}
+tr.HIGHLIGHT{background-color:lightgreen;}
+</style>
+
+<body style="background-color:#eee;">
+	<div id="harTable">
+	</div>
+	</br>
+</body>
+
+<script>
+	function setData(){
+		//document.getElementById("url").innerHTML = data.log.pages[0].title;
+		document.getElementById("harTable").innerHTML = createTable();
+	}
+	
+	/*function showHideEntries(){ 
+		if(document.getElementById("urlExpandColaps").innerHTML == "+"){
+			document.getElementById("urlExpandColaps").innerHTML = "-";
+			document.getElementById("harTable").style.display = 'block';
+		}else {
+			document.getElementById("urlExpandColaps").innerHTML = "+";
+			document.getElementById("harTable").style.display = 'none';
+		}
+	}*/
+	function encodeURL(str) {
+		return encodeURIComponent(str.replace('%20',' ') );
+	}
+	function createTable(){
+		var tablecontents = "";
+		var entries = data.log.entries;
+		tablecontents = "<table style='width:100%'>";
+		for (var i = 0; i < entries.length; i++){
+			tablecontents += "<tr id='"+ encodeURL("netAct_"+entries[i].request.url) + "'>";
+			tablecontents += "<td class='METHOD' style='width:5%'>" + entries[i].request.method + "</td>";
+			tablecontents += "<td class='URL' style='width:50%'>" + entries[i].request.url + "</td>";
+			tablecontents += "<td class='STATUS' style='width:10%'>" + entries[i].response.status + "</td>";
+			tablecontents += "<td class='STATUS' style='width:15%'>" + entries[i].response.statusText + "</td>";
+			tablecontents += "<td style='width:15%;text-align:right;' >" + entries[i].response.bodySize + " bytes</td>";
+			tablecontents += "<td style='width:10%;text-align:right;'>" + entries[i].time + "ms</td>";
+			tablecontents += "</tr>";
+		}
+		tablecontents += "</table>";
+		return tablecontents;
+	}
+	
+	var json = "$json";
+	var data = eval("(" + json + ")");
+	setData();
+</script>
+
+</html>
