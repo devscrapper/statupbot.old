@@ -8,16 +8,13 @@ development;windows;seven;Firefox;19.0;C:\Program Files (x86)\Mozilla Firefox\fi
 development;windows;seven;Internet Explorer;11.0;C:\Program Files\Internet Explorer\iexplore.exe;true;9982;1
 development;windows;seven;Internet Explorer;9.0;C:\Program Files\Internet Explorer\iexplore.exe;true;9981;1
 development;windows;seven;Opera;9.0;D:\Personnel\OperaPortable\App\Opera\36.0.2130.65\opera.exe;true;9980;1
-test;windows;seven;Internet Explorer;11.0;C:\Program Files\Internet Explorer\iexplore.exe;true;9989;1
-test;windows;seven;Internet Explorer;9.0;C:\Program Files\Internet Explorer\iexplore.exe;true;9988;1
-test;windows;seven;Chrome;39.0.2139.3;C:\Program Files (x86)\Google\Chrome\Application\chrome.exe;false;9987;1
-test;windows;seven;Chrome;38.0.2125.44;D:\GoogleChromePortableBeta\38.0.2125.44\GoogleChromePortable.exe;false;9986;1
-test;windows;seven;Chrome;36.0.1985.143;D:\GoogleChromePortable\36.0.1985.143\GoogleChromePortable.exe;false;9985;1
-test;windows;seven;Chrome;37.0.2062.103;D:\GoogleChromePortable\37.0.2062.103\GoogleChromePortable.exe;false;9984;1
-test;windows;seven;Chrome;37.0.2062.120;D:\GoogleChromePortable\37.0.2062.120\GoogleChromePortable.exe;false;9983;1
-test;windows;seven;Chrome;23.0.1271.97;D:\GoogleChromePortable\37.0.2062.124\GoogleChromePortable.exe;false;9982;1
-test;windows;seven;Firefox;24.0;C:\Program Files\Mozilla Firefox\31\firefox.exe;false;9981;1
-test;windows;seven;Firefox;24.0;C:\Program Files\Mozilla Firefox\31\firefox.exe;false;9980;1
-test;windows;seven;Firefox;19.0;C:\Program Files\Mozilla Firefox\32\firefox.exe;false;9979;1
-test;windows;seven;Firefox;19.0;C:\Program Files\Mozilla Firefox\32\firefox.exe;false;9978;1
-test;windows;seven;Opera;9.0;D:\Personnel\OperaPortable\App\Opera\36.0.2130.65\opera.exe;true;9977;1
+test;windows;seven;Internet Explorer;11.0;C:\Program Files\Internet Explorer\iexplore.exe;true;9980;1
+test;windows;seven;Internet Explorer;9.0;C:\Program Files\Internet Explorer\iexplore.exe;true;9980;1
+test;windows;seven;Chrome;39.0.2139.3;D:\GoogleChromePortableBeta\38.0.2125.44\GoogleChromePortable.exe;false;9978;1
+test;windows;seven;Chrome;36.0.1985.143;D:\GoogleChromePortable\36.0.1985.143\GoogleChromePortable.exe;false;9977;1
+test;windows;seven;Chrome;37.0.2062.103;D:\GoogleChromePortable\37.0.2062.103\GoogleChromePortable.exe;false;9976;1
+test;windows;seven;Chrome;37.0.2062.120;D:\GoogleChromePortable\37.0.2062.120\GoogleChromePortable.exe;false;9975;1
+test;windows;seven;Chrome;23.0.1271.97;D:\GoogleChromePortable\37.0.2062.124\GoogleChromePortable.exe;false;9971;1
+test;windows;seven;Firefox;24.0;C:\Program Files\Mozilla Firefox\31\firefox.exe;false;9969;1
+test;windows;seven;Firefox;19.0;C:\Program Files\Mozilla Firefox\31\firefox.exe;false;9968;1
+test;windows;seven;Opera;9.0;D:\Opera\37.0.2178.32\opera.exe;true;9967;1
