@@ -54,12 +54,11 @@ module Browsers
     #----------------------------------------------------------------------------------------------------------------
     # constant
     #----------------------------------------------------------------------------------------------------------------
-    TMP_DIR = Pathname.new(File.join($dir_tmp || [File.dirname(__FILE__), '..', '..', 'tmp'])).realpath
-    SCREENSHOT = Pathname.new(File.join(File.dirname(__FILE__), '..', '..', 'screenshot')).realpath
     NO_REFERER = "noreferrer"
     DATA_URI = "datauri"
     WITHOUT_LINKS = false #utiliser pour préciser que on ne recupere pas les links avec la fonction de l'extension javascript : get_details_cuurent_page
     WITH_LINKS = true
+    DIR_TMP = [File.dirname(__FILE__), "..", "..", "tmp"]
     #----------------------------------------------------------------------------------------------------------------
     # variable de class
     #----------------------------------------------------------------------------------------------------------------
@@ -857,7 +856,7 @@ module Browsers
 
           title = @driver.title
           @@logger.an_event.debug title
-          output_file = Flow.new(SCREENSHOT,
+          output_file = Flow.new(DIR_TMP,
                                  @driver.name.gsub(" ", "-"),
                                  title[0..32],
                                  Date.today,

@@ -37,6 +37,7 @@ gem 'win32-window', '~> 0.2.0.pre'
 group :development do
   gem 'capistrano-rvm'
   gem 'capistrano', '~> 3.1'
+  gem 'capistrano-file-permissions'
   gem 'sshkit-sudo'
 end
 

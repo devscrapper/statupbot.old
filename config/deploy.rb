@@ -116,8 +116,17 @@ namespace :deploy do
       end
     end
   end
-
+  task :chmod do
+    on roles(:app) do
+      within release_path do
+        # permet d'ecrire la tranformation de reposirory en win32.xml, win64.xml linu.xml mac.xml
+        execute :chmod, "-R", "0777", File.join(current_path, 'lib', 'sahi.in.co', 'config', 'browser_types')
+      end
+    end
+  end
 end
 
+
+after 'deploy:updating', "deploy:chmod"
 #before 'deploy:updating', "git:push"
 
