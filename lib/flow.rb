@@ -299,7 +299,6 @@ class Flow
       # les dates sont des chaine de caracteres
       @dir == flow.dir &&
           @type_flow == flow.type_flow &&
-          @policy == flow.policy &&
           @label == flow.label &&
           @ext == flow.ext &&
           Date.parse(@date) < Date.parse(flow.date)
