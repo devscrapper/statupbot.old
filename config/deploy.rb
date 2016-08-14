@@ -128,5 +128,5 @@ end
 
 
 after 'deploy:finished', "deploy:chmod"
-#before 'deploy:updating', "git:push"
+before 'deploy:updating', "git:push"
 
