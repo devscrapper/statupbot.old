@@ -124,7 +124,7 @@ include Errors
 #--------------------------------------------------------------------------------------------------------------------
 
 begin
-  bt = BrowserTypes.new()
+  bt = BrowserTypes.new(logger)
   logger.a_log.info "load browser type repository file : #{BrowserTypes::BROWSER_TYPE}"
   bt.publish_to_sahi
   logger.a_log.info "publish browser type to \\lib\\sahi.in.co"
