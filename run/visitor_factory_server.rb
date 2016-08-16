@@ -111,9 +111,9 @@ logger.a_log.info "max time to live visit: #{max_time_to_live_visit}"
 logger.a_log.info "debugging : #{$debugging}"
 logger.a_log.info "staging : #{$staging}"
 logger.a_log.info "specify dir archive : #{$dir_archive}"
-logger.a_log.info "specify dir log : #{$dir_log}"
-logger.a_log.info "specify dir tmp : #{$dir_tmp}"
-logger.a_log.info "specify dir visitors : #{$dir_visitors}"
+logger.a_log.info "specific dir log : #{$dir_log}"
+logger.a_log.info "specific dir tmp : #{$dir_tmp}"
+logger.a_log.info "specific dir visitors : #{$dir_visitors}"
 #--------------------------------------------------------------------------------------------------------------------
 # INCLUDE
 #--------------------------------------------------------------------------------------------------------------------

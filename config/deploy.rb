@@ -124,9 +124,19 @@ namespace :deploy do
       end
     end
   end
+  task :environment do
+      on roles(:app) do
+        within release_path do
+          # permet d'ecrire la tranformation de reposirory en win32.xml, win64.xml linu.xml mac.xml
+          execute("echo 'staging: test' >  #{File.join(current_path, 'parameter', 'environment.yml')}")
+          execute("echo 'os: :windows' >>  #{File.join(current_path, 'parameter', 'environment.yml')}")
+          execute("echo 'os_version: :seven' >>  #{File.join(current_path, 'parameter', 'environment.yml')}")
+        end
+      end
+    end
 end
 
 
-after 'deploy:finished', "deploy:chmod"
+after 'deploy:finished', "deploy:chmod", "deploy:environment"
 before 'deploy:updating', "git:push"
 

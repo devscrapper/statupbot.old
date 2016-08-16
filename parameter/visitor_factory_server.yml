@@ -8,10 +8,7 @@ development:
   :max_count_current_visit: 3
   :max_time_to_live_visit: 15 #en minute
   :debugging:  true
-  :archive: ["d:", "temp", "statupbot", "archive"]
-  :log: ["d:", "temp",  "statupbot", "log"]
-  :tmp: ["d:","temp",  "statupbot", "tmp"]
-  :visitors: ["d:","temp",  "statupbot", "visitors"]
+
 
 test:
   :runtime_ruby: ["d:", "ruby223", "bin", "ruby.exe"]
@@ -23,10 +20,7 @@ test:
   :max_count_current_visit: 4
   :max_time_to_live_visit: 45 #en minute
   :debugging:  true
-  :archive: ["d:", "statupbot", "archive"]
-  :log: ["d:", "statupbot", "log"]
-  :tmp: ["d:", "statupbot", "tmp"]
-  :visitors: ["d:", "statupbot", "visitors"]
+
 production:
   :runtime_ruby: ["d:", "ruby223", "bin", "ruby.exe"]
   :delay_periodic_scan: 60

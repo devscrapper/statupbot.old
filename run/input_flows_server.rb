@@ -41,9 +41,9 @@ logger.a_log.info "listening port : #{listening_port}"
 logger.a_log.info "periodicity supervision : #{periodicity_supervision}"
 logger.a_log.info "debugging : #{$debugging}"
 logger.a_log.info "staging : #{$staging}"
-logger.a_log.info "specify dir archive : #{$dir_archive}"
-logger.a_log.info "specify dir log : #{$dir_log}"
-logger.a_log.info "specify dir tmp : #{$dir_tmp}"
+logger.a_log.info "specific dir archive : #{$dir_archive}"
+logger.a_log.info "specific dir log : #{$dir_log}"
+logger.a_log.info "specific dir tmp : #{$dir_tmp}"
 
 include Input_flows
 
