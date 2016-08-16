@@ -71,6 +71,7 @@ module Pages
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.id_captcha"}) if browser.engine_search.id_captcha.nil? or browser.engine_search.id_captcha.empty?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.type_captcha"}) if browser.engine_search.type_captcha.nil? or  browser.engine_search.type_captcha.empty?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.label_button_captcha"}) if browser.engine_search.label_button_captcha.nil? or  browser.engine_search.label_button_captcha.empty?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.coord_captcha"}) if browser.engine_search.coord_captcha.empty?
 
         @input = browser.engine_search.id_captcha
         @type = browser.engine_search.type_captcha
@@ -93,7 +94,7 @@ module Pages
         end
         @@logger.an_event.debug "captcha file #{captcha_file}"
 
-        browser.take_captcha(captcha_file)
+        browser.take_captcha(captcha_file, browser.engine_search.coord_captcha)
 
         @text = Captchas::convert_to_text(:screenshot => screenshot_file.absolute_path,
                                          :captcha => captcha_file.absolute_path,

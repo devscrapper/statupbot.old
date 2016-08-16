@@ -83,6 +83,7 @@ module EngineSearches
     end
 
     def to_s
+      "\n" +
       "fqdn_search : #{@fqdn_search}\n" +
           "fqdn_search : #{@fqdn_search}\n" +
           "path_search : #{@path_search}\n" +
@@ -92,7 +93,8 @@ module EngineSearches
           "id_captcha : #{@id_captcha}\n" +
           "type_captcha : #{@type_captcha}\n" +
           "label_button_captcha : #{@label_button_captcha}\n" +
-          "id_image_captcha : #{@id_image_captcha}\n"
+          "id_image_captcha : #{@id_image_captcha}\n"  +
+          "coord_captcha : #{@coord_captcha}\n"
     end
 
     private
