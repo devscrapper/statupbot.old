@@ -21,7 +21,7 @@ module EngineSearches
       @type_captcha = "textbox" # le type de l'objet jaavscript qui contient le captcha à saisir
       @label_button_captcha = "Envoyer"  # label button captcha
       @id_image_captcha  ="Activez l'affichage des images"    # id_image_captacha
-      @coord_captcha = [320,150,0,180]
+      @coord_captcha = [0,180,300,330]
     end
 
     def adverts(body)
