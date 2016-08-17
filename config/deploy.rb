@@ -137,6 +137,7 @@ namespace :deploy do
 end
 
 
-after 'deploy:finished', "deploy:chmod", "deploy:environment"
+after 'deploy:finished', "deploy:chmod"
+after 'deploy:finished' "deploy:environment"
 before 'deploy:updating', "git:push"
 
