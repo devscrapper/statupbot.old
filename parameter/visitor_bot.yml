@@ -15,6 +15,10 @@ test:
   :start_page_server_ip: "192.168.1.88"
   :start_page_server_port: 8080
   :debugging:  true
+  :archive: ["d:", "statupbot", "archive"]
+  :log: ["d:", "statupbot", "log"]
+  :tmp: ["d:", "statupbot", "tmp"]
+  :visitors: ["d:", "statupbot", "visitors"]
 
 production:
   :java_runtime_path: ["\"c:", "Program Files (x86)", "Java", "jre6", "bin", "java.exe\""]
