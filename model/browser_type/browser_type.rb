@@ -42,7 +42,7 @@ class BrowserTypes
   #----------------------------------------------------------------------------------------------------------------
   # attributs
   #----------------------------------------------------------------------------------------------------------------
-#TODO reviser les parametre de lancement des navigateur  :size window, ....
+  #TODO reviser les parametre de lancement des navigateur  :size window, ....
   attr :browsers,
        :current_os,
        :current_os_version,
@@ -83,6 +83,15 @@ class BrowserTypes
 
 
   def initialize(logger)
+    #--------------------------------------------------------------------------------------------------------------
+    #--------------------------------------------------------------------------------------------------------------
+    # ATTENTION
+    #----------
+    # la variable Listening port proxy sahi du repository browser_type.csv n'est pas utilisé pour paraméter le
+    # browser. Le browser est paramétrer lors du patch du custom_properties du navigateur
+    # TODO revision du model browser_type
+    #--------------------------------------------------------------------------------------------------------------
+    #--------------------------------------------------------------------------------------------------------------
     begin
       raise Error.new(BROWSER_TYPE_NOT_DEFINE, values => {:path => BROWSER_TYPE}) unless File.exist?(BROWSER_TYPE)
       @current_os = OS.name

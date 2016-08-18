@@ -751,10 +751,13 @@ module Browsers
         @@logger.an_event.debug "input : #{input}"
         @@logger.an_event.debug "keywords : #{keywords}"
 
-        r = "#{type}(\"#{input}\", \"#{keywords}\")"
-        @@logger.an_event.debug "eval(r) : #{r}"
-        eval(r)
-
+        kw = ""
+        keywords.split(//).each { |c|
+          kw += c
+          r = "#{type}(\"#{input}\", \"#{kw}\")"
+          @@logger.an_event.debug "eval(r) : #{r}"
+          eval(r)
+        }
       rescue Exception => e
         @@logger.an_event.fatal "set input search #{type} #{input} with #{keywords} : #{e.message}"
         raise Error.new(BROWSER_NOT_SET_INPUT_SEARCH, :values => {:browser => name, :type => type, :input => input, :keywords => keywords}, :error => e)
@@ -910,6 +913,7 @@ module Browsers
       end
 
     end
+
     #----------------------------------------------------------------------------------------------------------------
     # textbox
     #----------------------------------------------------------------------------------------------------------------
