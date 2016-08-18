@@ -1041,6 +1041,9 @@ module Visitors
       else
 
         @@logger.an_event.info "visitor #{@id} went back to previous page <#{@current_page.url}>"
+
+        sleep 5
+
         if @browser.engine_search.is_captcha_page?(@browser.url)
           #--------------------------------------------------------------------------------------------------------
           # captcha page replace search page
@@ -1259,7 +1262,7 @@ module Visitors
         raise Error.new(VISITOR_NOT_SUBMIT_CAPTCHA, :error => e)
 
       else
-        sleep 2
+        sleep 5
 
         if @browser.engine_search.is_captcha_page?(@browser.url)
           #--------------------------------------------------------------------------------------------------------
@@ -1416,6 +1419,8 @@ module Visitors
         @browser.submit(@current_page.submit_button)
 
       rescue Error, Exception => e
+
+        sleep 5
 
         if @browser.engine_search.is_captcha_page?(@browser.url)
           #--------------------------------------------------------------------------------------------------------
