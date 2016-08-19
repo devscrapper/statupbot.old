@@ -4,10 +4,7 @@ development:
   :start_page_server_ip: "127.0.0.1"
   :start_page_server_port: 8080
   :debugging:  true
-  :archive: ["d:", "temp", "statupbot", "archive"]
-  :log: ["d:", "temp",  "statupbot", "log"]
-  :tmp: ["d:","temp",  "statupbot", "tmp"]
-  :visitors: ["d:","temp",  "statupbot", "visitors"]
+
 
 test:
   :java_runtime_path: ["\"c:", "Program Files", "Java", "jre1.8.0_77", "bin", "java.exe\""]
