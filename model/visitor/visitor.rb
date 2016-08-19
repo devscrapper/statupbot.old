@@ -1011,6 +1011,7 @@ module Visitors
         @current_page = @history[@history.size - 2][1].dup
         @@logger.an_event.debug "current page = #{@current_page}"
         @@logger.an_event.debug "@browser.url = #{@browser.url}"
+
         if @browser.driver == @history[@history.size - 2][0]
           # on est dans la même fenetre que la fenetre où on veut aller
           while @current_page.url != @browser.url
@@ -1021,8 +1022,31 @@ module Visitors
             # comportement différent pour Chrome/FF qui ne réexécute pas la redirection.
             @browser.go_to(@current_page.url) if @browser.url == url
 
+            sleep 5
+
+            if @browser.engine_search.is_captcha_page?(@browser.url)
+              #--------------------------------------------------------------------------------------------------------
+              # captcha page replace previous page
+              #--------------------------------------------------------------------------------------------------------
+
+              begin
+
+                @current_page = Pages::Captcha.new(@browser, @id, @home)
+
+              rescue Exception => e
+                @@logger.an_event.error e.message
+                raise Error.new(VISITOR_NOT_GO_BACK, :error => e)
+
+              else
+                @@logger.an_event.info "visitor #{@id} see captcha page"
+                raise Error.new(VISITOR_SEE_CAPTCHA, :values => {:type => @current_page.type})
+
+              end
+
+            end
 
           end
+
         else
           #on en dans 2 fenetre differente : la principale et celle ouverte par le click sur la advert
           # on repositionne le focus sur la fenetre précédent
@@ -1032,7 +1056,9 @@ module Visitors
           @browser.driver = @history[@history.size - 2][0]
 
         end
-        @@logger.an_event.debug "visitor #{@id} went back to #{@browser.url}"
+
+      rescue Error => e
+        raise e
 
       rescue Exception => e
         @@logger.an_event.error e.message
@@ -1042,33 +1068,9 @@ module Visitors
 
         @@logger.an_event.info "visitor #{@id} went back to previous page <#{@current_page.url}>"
 
-        sleep 5
-
-        if @browser.engine_search.is_captcha_page?(@browser.url)
-          #--------------------------------------------------------------------------------------------------------
-          # captcha page replace search page
-          #--------------------------------------------------------------------------------------------------------
-
-          begin
-
-            @current_page = Pages::Captcha.new(@browser, @id, @home)
-
-          rescue Exception => e
-            @@logger.an_event.error e.message
-            raise Error.new(VISITOR_NOT_GO_BACK, :error => e)
-
-          else
-            @@logger.an_event.info "visitor #{@id} see captcha page"
-            raise Error.new(VISITOR_SEE_CAPTCHA, :values => {:type => @current_page.type})
-
-          end
-
-        else
-          read(@current_page)
-          @history << [@browser.driver, @current_page]
-          @@logger.an_event.info "visitor #{@id} read previous page <#{@current_page.url}>"
-
-        end
+        read(@current_page)
+        @history << [@browser.driver, @current_page]
+        @@logger.an_event.info "visitor #{@id} read previous page <#{@current_page.url}>"
 
       ensure
 
