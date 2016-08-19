@@ -22,9 +22,21 @@ body{overflow-x:hidden;overflow-y:auto;}
 </style>
 </head>
 <body onload="addSahiUpdateCheckIFrame()" style="font-family:verdana;font-size:10pt;">
-<script type="text/javascript" src="/_s_/spr/controller7.js"></script>
 <div style="margin-top:30px;" onclick="Suggest.hideAll()">
 <script>
+function $(id){
+	return document.getElementById(id);
+}
+function sahiTrim(s){
+    if (s==null) return s;
+    if ((typeof s) != "string") return s;
+    s = s.replace(/&nbsp;/g, ' ');
+    s = s.replace(/\xA0/g, ' ');
+    s = s.replace(/^[ \t\n\r]*/g, '');
+    s = s.replace(/[ \t\n\r]*$/g, '');
+    s = s.replace(/[\t\n\r]{1,}/g, ' ');
+    return s;
+}
 function attachResolutionSuggestionBox(textboxId, ddId){
   	var fileboxSuggest = new Suggest($(textboxId), $(ddId), textboxId, true);
 	fileboxSuggest.getOptions = getResolutions;
@@ -50,7 +62,7 @@ _sahi._isRecording = false;
 function recordNavigateTo(){
 	var withResolution = document.getElementById("_sahi_ignore_resolution");
 	var size = document.getElementById("_sahi_ignore_size").value;
-	var url = document.getElementById("_sahi_ignore_url").value;
+	var url = sahiTrim(document.getElementById("_sahi_ignore_url").value);
 	var withUserAgent = document.getElementById("_sahi_ignore_useragent");
 	var userAgentValue = document.getElementById("_sahi_ignore_agentValue").value;
 	if(withUserAgent.checked == true && userAgentValue!=""){
@@ -143,6 +155,7 @@ Sahi Scripts can be recorded and played back from the Controller.
 Enter start URL: <input type="text" style="width:300px;height: 16px;" id="_sahi_ignore_url" autocomplete="off"/>
 <select id="_sahi_ignore_urlDD" class="suggestDD"></select>
 <script>
+	var isSahiPlaybackOnlyModeEnabled = undefined;
 	var _historyURLs = null;
 	function getURLOptions(s) {
 		var urls = getURLs(); // ["aa", "bb"]; 
@@ -177,6 +190,7 @@ Enter start URL: <input type="text" style="width:300px;height: 16px;" id="_sahi_
 			getURLs().push(url);			
 			_sahi.sendToServer("/_s_/dyn/ControllerUI_addURLHistory?url="+ encodeURIComponent(url));
 		}
+		_sahi.sendToServer("/_s_/dyn/ControllerUI_addURLHistoryForSslHostPortUrlsIfNotExists?url="+ encodeURIComponent(url));
 	}
 	var urlSuggest = new Suggest(document.getElementById("_sahi_ignore_url"),
 			document.getElementById("_sahi_ignore_urlDD"), "url", true);
@@ -215,10 +229,10 @@ Enter start URL: <input type="text" style="width:300px;height: 16px;" id="_sahi_
 </div>
 </form>
 <br/><br/>
-<a href="http://localhost:9999/_s_/dyn/pro/DBReports">Logs</a> | 
+<a href="http://localhost:$port/_s_/dyn/pro/DBReports">Logs</a> | 
 <a href="http://sahipro.com/docs/">Online Documentation</a> <br/>
-<a href="http://sahipro.com/demo/" onclick="recordNavigateTo2('http://sahipro.com/demo/');return false;" id="_sahi_ignore_u1">Test Pages</a> |
-<a href="http://sahipro.com/demo/training/" onclick="recordNavigateTo2('http://sahipro.com/demo/training/');return false;" id="_sahi_ignore_u2">Sample Application</a>
+<a href="http://sahitest.com/demo/" onclick="recordNavigateTo2('http://sahitest.com/demo/');return false;" id="_sahi_ignore_u1">Test Pages</a> |
+<a href="http://sahitest.com/demo/training/" onclick="recordNavigateTo2('http://sahitest.com/demo/training/');return false;" id="_sahi_ignore_u2">Sample Application</a>
 <div id="modes" style="padding-top:10px;">
 Controller mode: 
 <label><input type="radio" name="mode" id="sahiradio" onclick="changeMode()">Sahi</label>
@@ -263,9 +277,6 @@ else if(cMode == "ruby"){
 <a id="_sahi_ignore_6" href="http://sahipro.com/" selectable="false" target="_blank"><img id="_sahi_ignore_7" selectable="false" src="/_s_/spr/images/sahi_logo_web.png" style="border:0px;"/></a>
 <br/><br/>
 <div id="_latest_sahi_iframe" target="_blank"></div>
-<!-- 
-<a href="/_s_/dyn/ControllerUI_versionInfo" id="_sahi_ignore_u3">Check for Updates</a><br/>
--->
 </center>
 </div>
 </div>

@@ -1,0 +1,12 @@
+*** Settings ***
+Library           SahiRobotBridge	localhost	9999
+Resource          resource.txt
+Test Setup		Open Application
+Test Teardown		Close Application 
+*** Test Cases ***
+Basic test
+	load script		F:/dev/sahi_pro_g/userdata/scripts/demo/robot_sample.sah
+	execute function 	login	"test","secret"
+	execute function 	addBooks	"3", "2", "1"
+	execute function 	verifyTotal		"1400"
+	execute sahi step	_navigateTo("http://sahitest.com/demo/training/");

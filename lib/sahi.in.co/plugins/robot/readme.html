@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Sahi Robot Bridge Readme</title>
+</head>
+
+<body>
+<h3>[ Sahi Robot Bridge ] [ version 1.0]</h3>
+<p>Thank you for using Sahi Robot Bridge, version 1.0. The readme contains the following main sections:</p>
+<ol>
+<li><a href="#install">Installation</a></li>
+<li><a href="#keywords">Keywords</a></li>
+<li><a href="#support">Support</a></li>
+</ol>
+<div id="install">
+<h2>Installation</h2>
+<p>Robot bridge comes bundled with Sahi. Following must be completed before you can invoke test cases using the bridge:</p>
+<ul>
+<li>Python must be installed on the machine (This version was tested with v2.7 of Python). If you don't have Python already installed, grab a copy from <a href="http://www.python.org/getit/">Python Website</a></li>
+<li>Robot framework must be installed and available in systems PATH variable. Generally you need to add the scripts folder of Python to your PATH variable. This will insure that we have pybot available for script execution.</li>
+<li>Add your_sahi_home/plugins/robot to your PYTHONPATH</li>
+<p>A batch file called runRobotTest.bat is present within the plugins/robot folder which can be used to test the correct working of the bridge using a ready made script in Sahi.</p>
+<p><strong>NOTE:</strong> You need to change the path of scripts folder in your resource.txt file to match your scripts folder path.</p>
+</ul>
+</div>
+
+<div id="keywords">
+<h2>Keywords</h2>
+<ul>
+<li>Sahi Open Browser<p>Opens a browser with given browser name and start URL. The browser names are defined in browser_types.xml of Sahi installation.</p></li>
+<li>Sahi Close Browser<p>This will close the open browser.</p></li>
+<li>Sahi Load Script<p>Loads a script and executes the steps in it. The functions of the script are then available for individual execution. It takes the full script path as the parameter.</p></li>
+<li>Sahi Execute Function<p>Executes a function from loaded script. Takes two parameters[second parameter is optional]: <ol><li>Function name</li><li>All the parameters separated by comma as the second parameter. If the function doesn't takes any arguments, leave blank </li></ol></p></li>
+<li>Sahi Execute Step<p>Executes a valid Sahi statement. Takes only one parameter as the complete Sahi statement. e.g <br/><pre><code>execute sahi step	_navigateTo("http://sahipro.com/");</code></pre></p></li>
+</ul>
+</div>
+
+
+<div id="support">
+<h2>Support</h2>
+<p>In case you face any problems with SahiRobotBridge, please send an email to support@sahipro.com with complete reproduction steps and any relevant error messages availbale with you.</p>
+</div>
+</body>
+</html>

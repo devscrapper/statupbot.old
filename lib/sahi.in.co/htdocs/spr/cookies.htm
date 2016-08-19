@@ -64,7 +64,7 @@ function deleteCookies(){
 	location.reload();
 }
 function deleteCookie(name){
-	_sahi.sendToServer("/_s_/dyn/Cookies_delete?name=" + name);
+	_sahi.sendToServer("Cookies_delete?name=" + name + "&href=" + encodeURIComponent(window.location.pathname));
 }
 </script>
 <br/>

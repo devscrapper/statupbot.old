@@ -1,6 +1,3 @@
-<!--SAHI_INJECT_START-->
-
-<!-- uncomment for selenium support start -->
 <script src='/_s_/extrajs/selenium/prototype.js'></script>
 <script src='/_s_/extrajs/selenium/locatorBuilders.js'></script>
 <script src='/_s_/extrajs/selenium/sizzle.js'></script>
@@ -26,6 +23,3 @@
 <script>
 var selenium = new Selenium(new BrowserBot(_sahi.top()));
 </script>
-<!-- uncomment for selenium support start -->
-
-<!--SAHI_INJECT_END-->

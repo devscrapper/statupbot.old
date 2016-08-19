@@ -139,8 +139,8 @@ module Browsers
         # statupbot\lib\sahi.in.co\htdocs to #id_visitor\proxy\htdocs
         # statupbot\lib\sahi.in.co\tools to #id_visitor\proxy\tools
         FileUtils.mkdir_p(File.join(@user_home, 'config'))
+        FileUtils.cp_r(File.join(DIR_SAHI, 'userdata', 'bin'), @user_home)
         FileUtils.cp_r(File.join(DIR_SAHI, 'userdata', 'config'), @user_home)
-        FileUtils.cp_r(File.join(DIR_SAHI, 'userdata', 'certgen'), @user_home)
         FileUtils.cp_r(File.join(DIR_SAHI, 'userdata', 'logs'), @user_home)  #TODO pour la V4 ne pas faire copie mais creer le repertoire
         FileUtils.cp_r(File.join(DIR_SAHI, 'certgen'), @home)
         FileUtils.cp_r(File.join(DIR_SAHI, 'config'), @home)

@@ -12,15 +12,18 @@ body, body *{font-family:verdana;font-size:10pt;}
 
 <body onclick="Suggest.hideAll()">
 <script type="text/javascript" src="/_s_/spr/exception.js"></script>
-<script type="text/javascript" src="/_s_/spr/controller7.js"></script>
+<script type="text/javascript" src="/_s_/spr/scriptOpener.js"></script>
+<script type="text/javascript" src="/_s_/spr/urlHistory.js"></script>
 <script type="text/javascript" src="/_s_/spr/util.js"></script>
 <script type="text/javascript" src="/_s_/spr/cookie.js"></script>
 <script type="text/javascript" src="/_s_/spr/suggest.js"></script>
 <script>
+var so = null;
+so = new ScriptOpener();
 function init() {
-	_scriptDirList = refreshScriptListDir();
-    populateOptions($("pbdir"), _scriptDirList);
-    populateScripts($("pbdir").options[$("pbdir").selectedIndex].value);
+	_scriptDirList = so.refreshScriptListDir();
+    so.populateOptions($("pbdir"), _scriptDirList);
+    so.populateScripts($("pbdir").options[$("pbdir").selectedIndex].value);
     var urlSuggest = new Suggest(document.getElementById("starturl"), document.getElementById("urlDD1"), "starturl", true);
     urlSuggest.getOptions = getURLs;
 }
@@ -49,13 +52,11 @@ if (location.href.indexOf("_s_") == -1){
 function launch(){
 	var dirPath = $("pbdir").options[$("pbdir").selectedIndex].value;
 	var file = $("filebox").value;
-	var filePath = dirPath + "/" + file;
-	if (file.indexOf(".suite") != -1) {
+	if (file.indexOf(".suite") != -1 || file.indexOf(".dd.csv") != -1) {
 		var starturl = $("starturl").value;
 		var browser = "chrome";
-		var url = _sahi.sendToServer("_s_/dyn/Suite_startSingleSessionSameBrowser?dir="+encodeURIComponent(dirPath)+
-				"&test="+encodeURIComponent(file)+
-				"&suitePath="+encodeURIComponent(filePath)+
+		var url = _sahi.sendToServer("_s_/dyn/in.co.sahi.command.Master_startSingleSessionSameBrowser?scriptsPathMaster="+encodeURIComponent(dirPath)+
+				"&suite="+encodeURIComponent(file)+
 				"&baseURL="+encodeURIComponent(starturl)+
 				"&startURL="+encodeURIComponent(starturl)+
 				"&isSingleSessionS=true"+
@@ -83,6 +84,9 @@ function launch(){
 <center>
 <div style="height:100px;padding:20px;">
 <img id="_sahi_ignore_2" selectable="false" src="/_s_/spr/images/sahi_pro_logo1.png" style="border:0px;"/>
+<script>
+	if(isSahiPlaybackOnlyEnabled()) document.getElementById("_sahi_ignore_2").src = "/_s_/spr/images/sahi_pro_runner_logo1.png";
+</script>
 </div>
 <form name="f1">
 <table>
@@ -101,7 +105,7 @@ function launch(){
      	  <input id="filebox" name="filebox" style="width:300px" autocomplete="off">
    	  <select id="fileboxDD" name="suggestScriptFile" class="suggestDD" style="width:300px"></select>
    	  <script>
-   	  	attachSuggestionBox("filebox", "fileboxDD");
+   	  	so.attachSuggestionBox("filebox", "fileboxDD");
    	  </script>
      </td>  
    </tr>
@@ -125,6 +129,8 @@ For accessing https websites through Sahi, you need to first install Sahi's root
 Use either <b>crt</b> or <b>der</b> links to install the Sahi root certificate.
 <br/>
 <br/>
+<a href="/_s_/dyn/pro/DBReports">Logs</a>
+<br/><br/>
 <img id="_sahi_ignore_7" selectable="false" src="/_s_/spr/images/sahi_logo_web.png" style="border:0px;"/>
 <br/>
 </center>

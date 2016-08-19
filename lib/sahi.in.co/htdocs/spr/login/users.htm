@@ -1,0 +1,59 @@
+<html>
+<head>
+<title>Configure users</title>
+<link rel="stylesheet" type="text/css" href="/_s_/spr/ext/easyui/themes/gray/easyui.css" />
+<link rel="stylesheet" type="text/css" href="/_s_/spr/ext/easyui/themes/icon.css" />
+<script type="text/javascript" src="/_s_/spr/ext/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="/_s_/spr/ext/easyui/jquery.easyui.min.js"></script>
+<script type="text/javascript" src="/_s_/spr/util.js"></script>
+<script type="text/javascript" src="/_s_/spr/login/users.js"></script>
+<style>
+body, table{
+	font-family: verdana;
+	font-size: 9pt;
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+.txtBorder {
+	width: 194px;
+	border: solid 1px #D8D8D8;
+	display: inline-block;
+	vertical-align: middle;
+	padding: 2.5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
+}
+.topbar{
+	border-bottom: 1px solid #bdc3c7;
+	padding: 7px;
+	padding-left: 30px;
+}
+#changePassword{
+	padding: 7px;
+	padding-left: 30px;
+	width: 345px;
+	height: 200px;
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+	<input type="checkbox" onchange="setLoginFeatureEnable(this.checked); return false;" name="enableOrDisableLogin" id="enableOrDisableLogin"
+		value="enableOrDisableLogin" style="position: relative; top: 3px;">
+	<label for="enableOrDisableLogin"><b>Enable Login</b></label>
+	<p>Enabling the login feature will add a level of authentication before other people can access your script editor, configurations and reports. This will not affect distributed playbacks.</p>
+	<p>The default password is "password".</p>
+</div>
+<div id="changePassword">
+	<h2>User</h2>
+	<table>
+		<tr style="display:none"><td>User</td><td><input class="txtBorder" style="background-color: #EBEBE4;" readonly type="text" id="uid" value="admin"></td></tr>
+		<tr><td>Password</td><td><input class="txtBorder" type="password" id="pid"></td></tr>
+		<tr><td>Confirm Password</td><td><input type="password" class="txtBorder" id="pid2"></td></tr>
+	</table>
+	<a style="margin-top: 5px" onclick="editUser()" class="easyui-linkbutton">Change password</a> 
+	<div id="errorMessage_modal" style="display: none; margin-top: 10px;"></div>
+</div>
+</body>
+</html>

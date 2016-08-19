@@ -2,10 +2,13 @@ _runUnitTests
 _setFlexReadyCondition
 _writeFile
 _writeToFile
-
+_debug
+_debugToErr
+_debugToFile
 _maskLogs
 _unmaskLogs
 
+_stopTestCase
 _stopOnError
 _continueOnError
 _deleteFile
@@ -46,6 +49,7 @@ _windowExists
 _getRecentWindow
 _pause
 _stop
+_set
 
 _launchNewBrowser
 _selectBrowser
@@ -59,3 +63,6 @@ _fail
 _startDocumentation
 _stopDocumentation
 _compareImages
+
+_resource
+_setPingDelayAfterStep

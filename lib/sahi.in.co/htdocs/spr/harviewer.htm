@@ -7,7 +7,6 @@
 
 td.METHOD{font-weight: bold;}
 td.URL{font-weight: bold;}
-td.STATUS{color: #82807b}
 table {border-top:1px solid #ccc;border-right:0px;border-bottom:0px;border-left:0px;border-spacing:0px;table-layout: fixed;}
 table td{font-family:verdana;font-size:8pt;border-top:0px;border-right:0px;border-bottom:1px solid #ccc;border-left:0px;padding:2px;text-align:left;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
 tr.SUCCESS{background-color:lightgreen;color:black;}
@@ -42,12 +41,17 @@ tr.HIGHLIGHT{background-color:lightgreen;}
 	function createTable(){
 		var tablecontents = "";
 		var entries = data.log.entries;
-		tablecontents = "<table style='width:100%'>";
+		tablecontents = "<table id='netActTable' style='width:100%'>";
 		for (var i = 0; i < entries.length; i++){
-			tablecontents += "<tr id='"+ encodeURL("netAct_"+entries[i].request.url) + "'>";
+			var responseCode = parseInt(entries[i].response.status);
+			if (responseCode >= 400 && responseCode < 600) {
+				tablecontents += "<tr class='FAILURE' id='"+ encodeURL("netAct_"+entries[i].request.url) + "'>";
+			} else {
+				tablecontents += "<tr id='"+ encodeURL("netAct_"+entries[i].request.url) + "'>";
+			}
 			tablecontents += "<td class='METHOD' style='width:5%'>" + entries[i].request.method + "</td>";
 			tablecontents += "<td class='URL' style='width:50%'>" + entries[i].request.url + "</td>";
-			tablecontents += "<td class='STATUS' style='width:10%'>" + entries[i].response.status + "</td>";
+			tablecontents += "<td class='STATUS' style='width:10%'>" + responseCode + "</td>";
 			tablecontents += "<td class='STATUS' style='width:15%'>" + entries[i].response.statusText + "</td>";
 			tablecontents += "<td style='width:15%;text-align:right;' >" + entries[i].response.bodySize + " bytes</td>";
 			tablecontents += "<td style='width:10%;text-align:right;'>" + entries[i].time + "ms</td>";
@@ -55,6 +59,31 @@ tr.HIGHLIGHT{background-color:lightgreen;}
 		}
 		tablecontents += "</table>";
 		return tablecontents;
+	}
+	
+	function showFailed() {
+		var rows = document.getElementById("netActTable").getElementsByTagName("tr");
+		for (var i=0; i<rows.length; i++) {
+			var row = rows[i];
+			if (row.className != "FAILURE") row.style.display = "none";
+		}
+	}
+	
+	function showAll() {
+		var rows = document.getElementById("netActTable").getElementsByTagName("tr");
+		for (var i=0; i<rows.length; i++) {
+			var row = rows[i];
+			if (row.style.display = "none") row.style.display = "table-row";
+		}
+	}
+	
+	function isNetworkActivityFailed() {
+		var rows = document.getElementById("netActTable").getElementsByTagName("tr");
+		for (var i=0; i<rows.length; i++) {
+			var row = rows[i];
+			if (row.className == "FAILURE") return true;
+		}
+		return false;
 	}
 	
 	var json = "$json";

@@ -1,0 +1,14 @@
+*** Settings ***
+Documentation     A resource file with reusable keywords and variables.
+
+Library           SahiRobotBridge	localhost 	9999
+*** Variables ***
+${BROWSER}        firefox
+
+
+*** Keywords ***
+
+Open Application
+	Open Browser	${BROWSER}		http://sahitest.com/demo
+Close Application
+	Close Browser

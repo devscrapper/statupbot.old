@@ -4,6 +4,13 @@ development:
   :start_page_server_ip: "127.0.0.1"
   :start_page_server_port: 8080
   :debugging:  true
+<<<<<<< Updated upstream
+=======
+  :archive: ["d:", "Personnel","referentiel","dev", "statupbot", "archive"]
+  :log: ["d:",  "Personnel","referentiel","dev",  "statupbot", "log"]
+  :tmp: ["d:", "Personnel","referentiel","dev",  "statupbot", "tmp"]
+  :visitors: ["d:", "Personnel","referentiel","dev",  "statupbot", "visitors"]
+>>>>>>> Stashed changes
 
 
 test:

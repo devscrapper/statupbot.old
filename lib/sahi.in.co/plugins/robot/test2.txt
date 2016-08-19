@@ -1,0 +1,17 @@
+*** Settings ***
+Test Setup        Open Application
+Test Teardown     Close Application
+Library           SahiRobotBridge    localhost    9999
+Resource          resource.txt
+
+*** Test Cases ***
+Basic test2
+    load script    F:/dev/sahi_pro_g/userdata/scripts/demo/robot_sample.sah
+    ${INT_ARR} =     execute function    getArray    true
+    ${STR_ARR} =    execute function    getArray    false
+    @{AR_INT} =    json_decode    ${INT_ARR}
+    @{AR_STR} =    json_decode    ${STR_ARR}
+    execute function    verifyArray    ${INT_ARR},true
+    execute function    verifyArray    ${STR_ARR},false
+    Log    @{AR_INT}[0] , @{AR_INT}[1] , @{AR_INT}[2]
+    Log    @{AR_STR}[0] , @{AR_STR}[1] , @{AR_STR}[2]

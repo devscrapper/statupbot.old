@@ -4,8 +4,9 @@
  */
 -->
 <html>
-<head><title>Configure Sahi</title></head>
+<head><link rel="shortcut icon" href="/_s_/spr/favicon.ico" type="image/png"/><title>Configure Sahi Pro</title></head>
 <script type="text/javascript" src="/_s_/spr/util.js"></script>
+  <script type="text/javascript" src="/_s_/spr/login/logout.js"></script>
 <style>
 body, body * {
 	font-family: verdana;
@@ -14,7 +15,7 @@ body, body * {
 body {	
 	margin: 10px;
 }
-.hitab {color:brown;text-decoration:none;font-weight:bold;font-size:14px;}
+.hitab {color:brown;text-decoration:none;font-weight:bold;font-size:12px;}
 .dimtab {color:3333FF;text-decoration:underline;}
 li {margin:10px}
 </style>
@@ -29,7 +30,7 @@ function init(){
       defaultId = id;
      }
     }
-    var tabGroup = new TabGroup("tabGroup", ["tbrowser_types", "tuserdata", "texclude_inject", "tdownload_urls", "tdonot_download_urls", "tdownload_contenttypes", "tblock_ssl_domains", "tcontent_detection", "temail_template", "tresponse_headers_remove", "turlhistory", "tuser_extensions", "tsubstitutions", "tstreaming_urls", "tstreaming_contenttypes", "tdomainfix", "texclude_inject_applet", "toracle_applets", "tfunction_names", "temail_properties"], defaultId);
+    var tabGroup = new TabGroup("tabGroup", ["tbrowser_types", "tuserdata", "texclude_inject", "tdownload_urls", "tdonot_download_urls", "tdownload_contenttypes", "tblock_ssl_domains", "tcontent_detection", "temail_template", "tresponse_headers_remove", "turlhistory", "tuser_extensions", "tsubstitutions", "tstreaming_urls", "tstreaming_contenttypes", "tdomainfix", "texclude_inject_applet", "toracle_applets", "tfunction_names", "temail_properties", "tsync_db_properties", "tsync_email_trigger", "tssl_host_port", "tforce_inject", "tpassthrough_ws_ssh_domains"], defaultId);
 }
 function URLParser(url){
   this.unparsed = url;
@@ -50,7 +51,7 @@ URLParser.prototype.parse = function(){
   var tokens = this.qs.split("&");
   for (var i=0; i<tokens.length; i++){
     var kv = tokens[i].split("=");
-    this.parameters[kv[0]] = unescape(kv[1]);
+    this.parameters[kv[0]] = decodeURIComponent(kv[1]);
   }
 }
 //TabGroup Start
@@ -189,11 +190,12 @@ onkeydown = function(e){
 
 </script>
 <body onload="init()">
-<h1>Configure Sahi</h1>
-<br/><br/>
-<table><tr><td style="vertical-align:top;">
-<div style="float:left;width:250px;height:500px;line-height:22px;">
-<img src="/_s_/spr/images/sahi_pro_logo2.png"/><br/><br/>
+<table border="0" width="100%"><tr><td style="width:250px;vertical-align:top;">
+<h1 id="configure_sahi">Configure Sahi Pro</h1>
+<script>
+	if(isSahiPlaybackOnlyEnabled()) document.getElementById("configure_sahi").innerHTML = "Configure Sahi Pro Runner";
+</script>
+<div style="line-height:22px;">
 <a href="#" id="tbrowser_types" onclick="loadFile('browser_types.xml', g_restartMessage);">browser_types.xml</a><br/>
 <a href="#" id="tuserdata" onclick="loadFile('userdata.properties', g_restartMessage);">userdata.properties</a><br/>
 <a href="#" id="texclude_inject" onclick="loadFile('exclude_inject.txt', g_savedMessage);">exclude_inject.txt</a><br/>
@@ -204,18 +206,33 @@ onkeydown = function(e){
 <a href="#" id="tdownload_contenttypes" onclick="loadFile('download_contenttypes.txt', g_savedMessage);">download_contenttypes.txt</a><br/>
 <a href="#" id="tdownload_urls" onclick="loadFile('download_urls.txt', g_savedMessage);">download_urls.txt</a><br/>
 <a href="#" id="tdonot_download_urls" onclick="loadFile('donot_download_urls.txt', g_savedMessage);">donot_download_urls.txt</a><br/>
+<a href="#" id="temail_properties" onclick="loadFile('email.properties', g_savedSettingMessage);">email.properties</a><br/>
 <a href="#" id="temail_template" onclick="loadFile('email_template.txt', g_savedMessage);">email_template.txt</a><br/>
+<a href="#" id="texclude_inject_applet" onclick="loadFile('exclude_inject_applet.txt', g_savedMessage);">exclude_inject_applet.txt</a><br/>
+<a href="#" id="tforce_inject" onclick="loadFile('force_inject.txt', g_savedMessage);">force_inject.txt</a><br/>
+<a href="#" id="tfunction_names" onclick="loadFile('function_names.txt', g_savedMessage);">function_names.txt</a><br/>
+<a href="#" id="toracle_applets" onclick="loadFile('oracle_applets.txt', g_savedMessage);">oracle_applets.txt</a><br/>
+<a href="#" id="tpassthrough_ws_ssh_domains" onclick="loadFile('passthrough_ws_ssh_domains.txt', g_savedMessage);">passthrough_ws_ssh_domains.txt</a><br/>
 <a href="#" id="tresponse_headers_remove" onclick="loadFile('response_headers_remove.txt', g_savedMessage);">response_headers_remove.txt</a><br/>
+<a href="#" id="tssl_host_port" onclick="loadFile('ssl_host_port.txt', g_restartMessage);">ssl_host_port.txt</a><br/>
 <a href="#" id="tstreaming_contenttypes" onclick="loadFile('streaming_contenttypes.txt', g_savedMessage);">streaming_contenttypes.txt</a><br/>
 <a href="#" id="tstreaming_urls" onclick="loadFile('streaming_urls.txt', g_savedMessage);">streaming_urls.txt</a><br/>
 <a href="#" id="tsubstitutions" onclick="loadFile('substitutions.xml', g_savedMessage);">substitutions.xml</a><br/>
+<a href="#" id="tsync_db_properties" onclick="loadFile('sync_db.properties', g_restartMessage);">sync_db.properties</a><br/>
+<a href="#" id="tsync_email_trigger" onclick="loadFile('sync_email_trigger.txt', g_restartMessage);">sync_email_trigger.txt</a><br/>
 <a href="#" id="turlhistory" onclick="loadFile('urlhistory.txt', g_savedMessage);">urlhistory.txt</a><br/>
 <a href="#" id="tuser_extensions" onclick="loadFile('user_extensions.js', g_savedMessage);">user_extensions.js</a><br/>
-<a href="#" id="texclude_inject_applet" onclick="loadFile('exclude_inject_applet.txt', g_savedMessage);">exclude_inject_applet.txt</a><br/>
-<a href="#" id="toracle_applets" onclick="loadFile('oracle_applets.txt', g_savedMessage);">oracle_applets.txt</a><br/>
-<a href="#" id="tfunction_names" onclick="loadFile('function_names.txt', g_savedMessage);">function_names.txt</a><br/>
-<a href="#" id="temail_properties" onclick="loadFile('email.properties', g_savedSettingMessage);">email.properties</a><br/>
-<div style="background-color:lightblue;margin:50px 20px 10px 0px;padding:10px">
+<a href="/_s_/spr/login/users.htm" target="_blank" title="Configure users">Configure users</a> <br />
+<a href="#" title="Log out" id="logout" style="display:none;" onclick="logout()">Log out</a>
+</div>
+</td><td style="vertical-align:top">
+
+<div style="width:100%">
+<div style="background-color:lightblue;margin-bottom:5px;padding:5px 10px 10px 10px">
+<img id="sahi_logo" src="/_s_/spr/images/sahi_pro_logo2.png" style="float:right"/>
+<script>
+	if(isSahiPlaybackOnlyEnabled()) document.getElementById("sahi_logo").src = "/_s_/spr/images/sahi_pro_runner_logo2.png";
+</script>
 <div id="tbrowser_typesbox" class="content" style="display:none">
 <h2>browser_types.xml</h2>
 browser_types.xml configures the various browsers that Sahi can use. 
@@ -232,23 +249,23 @@ Adding these domains to block_ssl_domains.txt will prevent hangs.
 <h2>content_detection.txt</h2>
 This file allows detection of content type based on content in file. 
 It is used mainly to help Sahi detect js content when the content-type response header is incorrectly sent by server.<br/> 
-Format:<br/>
-<pre></pre><code>&lt;type&gt;:&lt;regular expression of content&gt;</code></pre>
+Format:  &lt;type&gt;:&lt;regular expression of content&gt;
 </div>
 <div id="tdownload_contenttypesbox" class="content" style="display:none">
 <h2>download_contenttypes.txt</h2>
-Sahi automatically downloads and saves files into sahi/usedata/temp/downloads directory. 
+Sahi automatically downloads and saves files into sahi/usedata/temp/downloads directory. <br/>
 If Sahi is unable to detect a request as a download, you can force it to download the file by adding relevant content-types to this file. 
 </div>
 <div class="content" id="tdownload_urlsbox" style="display:none">
 <h2>download_urls.txt</h2>
-Sahi automatically downloads and saves files into sahi/usedata/temp/downloads directory. 
+Sahi automatically downloads and saves files into sahi/usedata/temp/downloads directory.  <br/>
 If Sahi is unable to detect a request as a download, you can force it to download the file by adding URL patterns to this file. 
 </div>
 <div class="content" id="tdonot_download_urlsbox" style="display:none">
 <h2>donot_download_urls.txt</h2>
-Sahi automatically downloads and saves files into sahi/usedata/temp/downloads directory.
-If Sahi is able to detect a request as a download, you can force it not to download the file by adding its URL pattern here. 
+Sahi automatically downloads and saves files into sahi/usedata/temp/downloads directory based on content-type, url pattern etc. <br/>
+Sometimes, due to incorrect content-type, files which should NOT be downloaded may be downloaded by Sahi.<br/>
+You can force Sahi not to download such files by adding their URL pattern here. 
 </div>
 
 <div id="temail_templatebox" class="content" style="display:none">
@@ -261,6 +278,13 @@ Sahi controls the browser by injecting javascript into web pages.
 However there are various requests like XMLHttpRequests, javascript, css, etc. where Sahi should not inject its code.
 While this is correctly detected and handled in most cases, there are instances where one may need to explicitly ask Sahi not to inject code.
 In such instances, patterns can be added to exclude_inject.txt. When a URL matches this pattern, Sahi will NOT inject its code.
+</div>
+<div class="content" id="tforce_injectbox" style="display:none">
+<h2>force_inject.txt</h2>
+Sahi controls the browser by injecting javascript into web pages. 
+However there are various requests like XMLHttpRequests, javascript, css, etc. where Sahi should not inject its code.
+While this is correctly detected and handled in most cases, there are instances where one may need to explicitly ask Sahi to inject code.
+In such instances, patterns can be added to force_inject.txt. When a URL matches this pattern, Sahi WILL inject its code.
 </div>
 <div id="tresponse_headers_removebox" class="content" style="display:none">
 <h2>response_headers_remove.txt</h2>
@@ -282,23 +306,29 @@ Used mosty for patching Sahi functions with bugfixes before a new build is avail
 </div>
 <div id="texclude_inject_appletbox" class="content" style="display:none">
 <h2>exclude_inject_applet.txt</h2>
-Allows user to put specific urls of jar files matching the patterns in this text file should not be injected with Sahi content.
+Sahi instruments applets to enable automation. However some applet jars may not need to be instrumented.<br/>
+Jars matching the url patterns in this file will not be injected by Sahi.
 </div>
 <div id="toracle_appletsbox" class="content" style="display:none">
 <h2>oracle_applets.txt</h2>
-Allows user to put specific urls of jar files, Applet urls matching the URL patterns in this file will be treated as oracle applets.
+Oracle forms applets need to be instrumented differently from normal applets.<br/>
+Applet urls matching the URL patterns in this file will be treated as Oracle applets.
 </div>
 <div id="temail_propertiesbox" class="content" style="display:none">
 <h2>email.properties</h2>
-Allows user to put configuration for javax.mail.
+Sahi can send out mails at the end of script/suite runs.
+Email properties can be configured in this file.
+<a href="http://sahipro.com/docs/using-sahi/playback-desktop.html#Email.properties file explained" target="_blank">Documentation</a>
 </div>
 <div id="tfunction_namesbox" class="content" style="display:none">
 <h2>function_names.txt</h2>
-Functions Names for creating functions on web editor
+The Sahi Editor allows creation of functions. It is possible that function names (or keywords) are pre-decided
+and function body needs to be implemented for them. The function names listed here will be available in
+the function creation dialog.
 </div>
 <div id="tdomainfixbox" class="content" style="display:none">
 <h2>domainfix.txt</h2>
-Tells Sahi to set document.domain property to a higher domain.
+Tells Sahi to set document.domain property to a higher domain. This is not needed from Sahi Pro V6.
 </div>
 <div id="tstreaming_contenttypesbox" class="content" style="display:none">
 <h2>streaming_contenttypes.txt</h2>
@@ -310,27 +340,51 @@ Used on video/audio types
 Tells Sahi to stream these urls instead of caching and then injecting content.
 Used on video/audio urls
 </div>
+<div id="tsync_db_propertiesbox" class="content" style="display:none">
+<h2>sync_db.properties</h2>
+On script/suite execution, reports can be automatically synced to a Central Database. 
+Use the properties below to configure.
+</div>
+<div id="tsync_email_triggerbox" class="content" style="display:none">
+<h2>sync_email_trigger.txt</h2>
+When using a Central DB to sync all reports, emails can be sent to multiple people based on which machine(s) triggered the sync.<br/>
+Eg.<br/>
+<b>machine1,machine2,projectx_.*=manager1@example.com,boss2@example.com</b><br/>
+When reports are synced from machine1, machine2 or any machine starting with projectx_, emails will be sent to manager1 and boss2<br/>
+</div>
+<div id="tssl_host_portbox" class="content" style="display:none">
+<h2>ssl_host_port.txt</h2>
+Https websites which use non standard ports (other than 443) need to be explicitly configured in this file (since Sahi Pro v6.1.0 - websockets support).<br/>
+For example, to access https://example.com:8000, add .*example[.]com:8000.*.<br/>
+Note that Sahi tries to automatically detect and add URLs which are specified as start URLs in Controller or Editor or in other modes of playback.
+</div>
 <div id="tuserdatabox" class="content" style="display:none">
 <h2>userdata.properties</h2>
-Sahi can be configured using two files:
-<ol>
-<li>sahi/userdata/config/ userdata.properties</li>
-<li>sahi/config/sahi.properties (<a href="/_s_/dyn/ConfigureUI_view?fileName=config/sahi.properties&useBase=true&title=Sahi%20Properties" target="_blank">View</a>)</li>
-</ol>
-Sahi first looks for a property in userdata.properties, and if not found, looks for it in sahi.properties.<br/>
+This is Sahi's main configuration file.<br/>
+Sahi first looks for a property in sahi/userdata/config/userdata.properties, 
+and if not found, looks for it in <a href="/_s_/dyn/ConfigureUI_view?fileName=config/sahi.properties&useBase=true&title=Sahi%20Properties" target="_blank">sahi/config/sahi.properties</a>.<br/>
 It is recommended to modify/add properties to userdata.properties. <br/>
 Every property in sahi.properties can be overridden in userdata.properties
-<br/><br/>
+</div>
+<div id="tpassthrough_ws_ssh_domainsbox" class="content" style="display:none">
+<h2>passthrough_ws_ssh_domains.txt</h2>
+Tells Sahi to do a pass through of request and response bytes. Sahi will not modify headers or content.
+Used on video/audio types
 </div>
 </div>
 </div>
-</td><td>
-<div style="float:left;width:770px;height:600px;">
-<textarea style="width:750px;height:85%;margin-bottom:10px;" id="editor" wrap="off" spellcheck="false"></textarea><br/>
+
+
+<div>
+<textarea style="width:750px;height:15%;margin-bottom:10px;" id="editor" wrap="off" spellcheck="false"></textarea><br/>
 <input type="button" value="Save" onclick="save()"/>
 <span style="display:none;background:#F8FFA1;border:solid 1px brown;padding:5px" id="saveInfo"></span>
 </div>
-<script>function resizeWin(){resizeTA($('editor'), 300, 30, 80);}resizeWin();window.onresize=resizeWin;</script>
+
+<script>function resizeWin(){resizeTA($('editor'), 250, 30, 75);}resizeWin();window.onresize=resizeWin;</script>
 </td></tr></table>
+<script type="text/javascript">
+	showLogoutIfUserLoggedIn();
+</script>
 </body>
 </html>

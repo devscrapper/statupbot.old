@@ -1,0 +1,75 @@
+<!doctype html>
+<!--
+/**
+ * Copyright Tyto Software Pvt. Ltd.
+ */
+-->
+<html>
+<head>
+<title>Launch Controller In Session</title>
+<script type="text/javascript" src="/_s_/spr/util.js"></script>
+<script type="text/javascript" src="/_s_/spr/controller8.js"></script>
+<script>
+function getWinParams(e) {
+	var controllerHeight = 550;
+	var controllerWidth = 480;
+	var positionParams = "";
+
+	var x = e ? e.screenX - 40 : window.screen.width - controllerWidth - 50;
+	var y = e ? e.screenY - 60 : 100;
+
+	if (document.all) positionParams = ",left=" + x + ",top=" + y;
+	else positionParams = ",screenX=" + x + ",screenY=" + y;
+
+	return "height="+ controllerHeight +"px,width="+ controllerWidth +"px,resizable=yes,toolbar=no,status=no" + positionParams;
+};
+function openWin(id, e) {
+	if (!e) e = window.event;
+	window.open("http://sahi.example.com/_s_/spr/controller8.htm?sahisid="+id, "sahiControl", getWinParams(e));
+};
+function reload(){
+	var table = document.getElementById("sessions_list");
+	table.innerHTML = "<thead><tr><th style=\"width: 350px;\">Session Id</th><th style=\"width: 150px;\">Window Title</th><th style=\"width: 350px;\">URL</th><th>Controller</th></tr></thead>";
+	var rowCount = 1;
+	var sessionList = sahiSendToServer("/_s_/dyn/ControllerUI_getSessions");
+	var allSessions = eval('(' + sessionList + ')');
+	
+	for (var key in allSessions) {
+		  if (allSessions.hasOwnProperty(key)) {
+		    var val = allSessions[key];
+		    if(val.length > 0){
+		    	var row = table.insertRow(rowCount);
+				var id = row.insertCell(0);
+				var title = row.insertCell(1);
+				var url = row.insertCell(2);
+				var launch = row.insertCell(3);
+				id.innerHTML = key;
+				title.innerHTML = val[0].windowTitle;
+				url.innerHTML = val[0].windowURL;
+				launch.innerHTML = "<a href='javascript:;' onclick=openWin('" + key + "',event)>Launch</a>";
+				rowCount++;
+		    }
+		 }
+	}
+}
+
+</script>
+<style type="text/css">
+body{font-family: sans-serif}
+.container{width: 1024px; margin: 0 auto;}
+#sessions_list  {border-collapse:collapse;border-spacing:0; margin-top: 20px; width: 100%}
+#sessions_list td, th{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;}
+</style>
+
+</head>
+<body onload="reload()">
+<div class="container">
+<h1>Recently Active Sessions</h1>
+<div style="border: 1px solid brown;padding:10px; margin-bottom: 20px">
+Click on Launch link against a session Id in the following table to start a controller in that particular session.
+</div>
+<button type="submit" onclick="reload()">Refresh</button>
+<table id="sessions_list"></table>
+</div>
+</body>
+</html>

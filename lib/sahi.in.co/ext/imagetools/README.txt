@@ -8,7 +8,7 @@ set GM=C:\Programs\GraphicsMagick\gm
 to
 set GM=D:\<Your_Path_To>\GraphicsMagick\gm
 
-Try running snapshot_new.sah on http://sahi.co.in/demo/training/
+Try running snapshot_new.sah on http://sahitest.com/demo/training/
 
 GraphicsMagick is needed for comparing images and trimming images.
 APIs _assertSnapShot, _compareImages, _assertEqualImages need GraphicsMagick

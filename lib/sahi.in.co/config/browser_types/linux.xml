@@ -14,19 +14,21 @@
 		<displayName>Chrome</displayName>
 		<icon>chrome.png</icon>
 		<path>/usr/bin/google-chrome</path>  
-		<options>--user-data-dir=$userDir/browser/chrome/profiles/sahi$threadNo --proxy-server=localhost:9999 --disable-popup-blocking --always-authorize-plugins --allow-outdated-plugins --incognito</options>  
+		<options>--user-data-dir=$userDir/browser/chrome/profiles/sahi$threadNo --proxy-server=127.0.0.1:$port --disable-popup-blocking --always-authorize-plugins --allow-outdated-plugins --enable-npapi --incognito</options>  
 		<processName>chrome</processName> 
 		<capacity>5</capacity>  
 	</browserType>	
 	
+	<!-- 
 	<browserType> 
 		<name>phantomjs</name>  
 		<displayName>PhantomJS</displayName>
 		<icon>phantomjs.png</icon>
 		<path>$sahiDir/ext/phantomjs/sahi_phantomjs.sh</path>  
-		<options>--proxy=localhost:9999 $sahiDir/ext/phantomjs/phantomsahi.js</options>  
+		<options>&#45;&#45;proxy=127.0.0.1:$port $sahiDir/ext/phantomjs/phantomsahi.js</options>  
 		<processName>phantomjs</processName> 
 		<capacity>100</capacity> 
 		<force>false</force> 
 	</browserType>	
+	-->	
 </browserTypes>

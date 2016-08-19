@@ -1,0 +1,4 @@
+# machine1,machine2,projectx_.*=manager1@example.com,boss2@example.com
+# When reports are synced from machine1, machine2 or any machine starting with projectx_, emails will be sent to manager1 and boss2
+
+# machine3=email1@example.com, email2@example.com

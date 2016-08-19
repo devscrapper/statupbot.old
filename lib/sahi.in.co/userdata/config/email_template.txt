@@ -1,43 +1,128 @@
-<Html>
-	<Body>
-		<Table>
-		<TBody>
+<html>
+
+	<head>
+	</head>
+	
+	<br>
+	
+	<body>
 		<br>
-		<tr>
-		<td style="width:250px">Status:</td><td>$statusHTML</td>
-		</tr>
-		<tr>
-		<td style="width:250px">Browser Type:</td><td>$browserType</td>
-		</tr>
-		<tr>
-		<td style="width:250px">Start Time:</td><td>$startTime</td>
-		</tr>
-		<tr>
-		<td style="width:250px">End Time:</td><td>$endTime</td>
-		</tr>
-		<tr>
-		<td style="width:250px">Time Taken (hr:min:sec ms):</td><td>$timeTaken</td>
-		</tr>
-		<tr>
-		<td style="width:250px">Total Scripts Run:</td><td>$totalScripts</td>
-		</tr>
-		<tr>
-		<td style="width:250px">Number of Scripts Passed:</td><td>$scriptsPassed</td>
-		</tr>
-		<tr>
-		<td style="width:250px">Number of Scripts Failed:</td><td>$scriptsFailed</td>
-		</tr>
-		<tr>
-		<td style="width:250px">Scripts Passed (%):</td><td>$scriptPercentage</td>
-		</tr>
-		<tr>
-		<td style="width:250px">Failed Scripts:</td><td>$failedScript</td>
-		</tr>
+		
+		<table style="border-collapse:collapse;border:1px solid black;width:60%">
+		<thead>		
+			<tr bgcolor="#eee">
+				<th colspan="5" style="padding:5px;border-collapse:collapse;border:1px solid black;">Sahi Test Execution Report</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr bgcolor="#fff">
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:100px"><B>Details</B></td>
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:50px"><B>Total Executed</B></td>
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:50px"><B>Pass Count</B></td>
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:50px"><B>Fail Count</B></td>
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:50px"><B>Pass Percentage</B></td>
+			</tr>
+		
+			<tr bgcolor="#fff">
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:100px"><B>Scripts Count</B></td>
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;">$TOTALCOUNT</td>
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;">$PASSEDCOUNT</td>
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;">$FAILEDCOUNT</td>
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;">$SCRIPTPERCENTAGE %</td>
+			</tr>
+			
+			<tr bgcolor="#fff">
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:100px"><B>Test Cases Count</B></td>
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;">$TCCOUNT</td>
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;">$TCPASSED</td>
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;">$TCFAILED</td>
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;">$TESTCASEPERCENTAGE %</td>
+			</tr>
+		
+			<tr bgcolor="#fff">
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:100px"><B>Time Taken (hr:min:sec ms)</B></td>
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;" colspan="5">$TIMETAKEN</td>
+			</tr>
+			
+			<tr bgcolor="#fff">
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:100px"><B>Status</B></td>
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;" colspan="5">$HTMLSTATUS</td>
+			</tr>
+					
+			<tr bgcolor="#fff">
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:100px"></td>
+				<td style="padding:5px;border-collapse:collapse;border:1px solid black;" colspan="5"><a href="http://$HOST:$PORT/_s_/dyn/pro/DBReports_suiteReport?id=$SUITEREPORTID">View Logs</a></td>
+			</tr>
+		
+		</tbody>
+		</table>
+		
 		<br>
-		<tr>
-		<td style="width:250px">Sahi Pro Version:</td><td>$version</td>
+		<br>
+		
+		<table style="border-collapse:collapse;border:1px solid black;width:60%">
+		<thead>
+				<tr bgcolor="#eee">
+					<th style="padding:5px;border-collapse:collapse;border:1px solid black;" colspan="2">Additional information</th>
+				</tr>
+		</thead>
+		<tbody>
+				<tr bgcolor="#fff">
+					<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:250px"><B>Base URL</B></td>
+					<td style="padding:5px;border-collapse:collapse;border:1px solid black;">$SUITEINFO_BASEURL</td>
+				</tr>
+		
+				<tr bgcolor="#fff">
+					<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:250px"><B>Execution Start Time</B></td>
+					<td style="padding:5px;border-collapse:collapse;border:1px solid black;">$STARTTIME</td>
+				</tr>
+		
+				<tr bgcolor="#fff">
+					<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:250px"><B>Execution End Time</B></td>
+					<td style="padding:5px;border-collapse:collapse;border:1px solid black;">$ENDTIME</td>
+				</tr>
+
+				<tr bgcolor="#fff">
+					<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:250px"><B>Failed Scripts</B></td>
+					<td style="padding:5px;border-collapse:collapse;border:1px solid black;">$FAILEDSCRIPT</td>
+				</tr>
+				
+				<tr bgcolor="#fff">
+					<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:250px"><B>Browser Type</B></td>
+					<td style="padding:5px;border-collapse:collapse;border:1px solid black;">$BROWSERTYPE</td>
+				</tr>
+			
+				<tr bgcolor="#fff">
+					<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:250px"><B>Sahi Host</B></td>
+					<td style="padding:5px;border-collapse:collapse;border:1px solid black;">$HOST</td>
+				</tr>
+				
+				<tr bgcolor="#fff">
+					<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:250px"><B>Sahi Pro Version</B></td>
+					<td style="padding:5px;border-collapse:collapse;border:1px solid black;">$VERSION</td>
+				</tr>
+
+			</tbody>
+		</table>
+		
+		<br>
+		<br>
+		
+		<table style="border-collapse:collapse;border:1px solid black;width:60%">
+		<thead>
+		<tr bgcolor="#eee">
+			<th style="padding:5px;border-collapse:collapse;border:1px solid black;" colspan="5">Nodes Information</th>
 		</tr>
-		</TBody>
-		</Table>
-	</Body>
-</Html>
+		</thead>
+		<tbody>
+		<tr>
+			<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:150px"><B>Host</B></td>
+			<td style="padding:5px;border-collapse:collapse;border:1px solid black;width:150px"><B>Port</B></td>
+			<td style="padding:5px;border-collapse:collapse;border:1px solid black;"><B>No. of Scripts</B></td>
+		</tr>
+		$NODEINFO
+		</tbody>
+		</table>
+		
+	</body>
+</html>

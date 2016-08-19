@@ -27,7 +27,7 @@
 		<displayName>Chrome</displayName>
 		<icon>chrome.png</icon>
 		<path>open -n -a "Google Chrome.app"</path>  
-		<options>--args --user-data-dir=$userDir/browser/chrome/profiles/sahi$threadNo --proxy-server=localhost:9999 --disable-popup-blocking --always-authorize-plugins --allow-outdated-plugins --incognito</options>  
+		<options>--args --user-data-dir=$userDir/browser/chrome/profiles/sahi$threadNo --proxy-server=127.0.0.1:$port --disable-popup-blocking --always-authorize-plugins --allow-outdated-plugins --enable-npapi --incognito</options>  
 		<processName>"Google Chrome"</processName> 
 		<capacity>5</capacity>
 		<force>true</force>  

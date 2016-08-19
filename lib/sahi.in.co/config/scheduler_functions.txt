@@ -1,5 +1,4 @@
 _alert
-_areEqual
 _assertEqual
 _assertEqualArrays
 _assertNotEqual
@@ -45,9 +44,6 @@ _expectConfirm
 _setFile
 _setFile2
 _expectPrompt
-_debug
-_debugToErr
-_debugToFile
 _mouseOver
 _keyPress
 _focus
@@ -99,3 +95,16 @@ _mapDomainToIP
 _takePageScreenShot
 _assertEqualImages
 _logImage
+_artifact
+_logOutput
+_addToSuiteInfo
+_byPassWaitMechanism
+
+_assertHorizontallyAligned
+_assertVerticallyAligned
+_assertCentered
+_assertVisiblyInside
+_assertVisiblyOutside
+_assertVisiblyOn
+_assertFitsWidth
+_assertFitsHeight

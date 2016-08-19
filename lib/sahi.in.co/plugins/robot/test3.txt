@@ -1,0 +1,11 @@
+*** Settings ***
+Test Setup        Open Application
+Test Teardown     Close Application
+Library           SahiRobotBridge    localhost    9999
+Resource          resource.txt
+
+*** Test Cases ***
+Basic test2
+    load script    F:/dev/sahi_pro_g/userdata/scripts/demo/robot_sample.sah
+    ${VAL} =    execute sahi step    _getText(_submit("Login"))
+    Log    ${VAL}

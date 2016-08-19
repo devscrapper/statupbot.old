@@ -1,0 +1,1 @@
+ruby.exe -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift) visitor_factory_server.rb  -p factory  > visitor_factory_server.txt

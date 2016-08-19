@@ -1,0 +1,1 @@
+ruby.exe -e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift) visitor_factory_server.rb  -p http -r muz11-wbsswsg.ca-technologies.fr -o 8080 -x ET00752 -y Bremb@15

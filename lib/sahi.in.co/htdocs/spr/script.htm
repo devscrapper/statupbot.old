@@ -12,9 +12,12 @@
     span{background:lightgrey;}
     </style>
     <title>$name</title>
+    <script type="text/javascript" src="/_s_/spr/util.js"></script>
+	<script type="text/javascript" src="/_s_/spr/login/logout.js"></script>
 </head>
 <body>
 <br/>
+<a href="#" title="Sign out" id="logout" style="color:blue;text-decoration:underline;margin:0 20px 0px 0px;float:right;display:none;" class="right-link" onclick="logout()">Sign out</a>
 <span style="font-weight:bold;background:white;margin:10px;">$name</span> <span style='background:white' id='editscript'>(<a href='#' onClick="addRefactorTabOnParent()">Edit Script</a>)</span>
 <br/><br/>
 <pre>
@@ -29,8 +32,13 @@ $js
     if(inIframe()){
       if(parent.openNewTab)
         parent.openNewTab(decodeURIComponent('$dir'), decodeURIComponent('$file'));
-      else
+      else if(parent.parent.openNewTab)
         parent.parent.openNewTab(decodeURIComponent('$dir'), decodeURIComponent('$file'));
+      else{
+          window.open("/_s_/spr/editor/editor.html?dir="
+          + '$dir' + "&file="
+          + '$file');
+        }
     }
    else{
       window.open("/_s_/spr/editor/editor.html?dir="
@@ -47,6 +55,8 @@ $js
           return true;
       }
   }
+  
+  showLogoutIfUserLoggedIn();
 </script>
 </body>
 </html>

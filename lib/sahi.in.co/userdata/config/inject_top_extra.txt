@@ -1,4 +1,0 @@
-<!-- uncomment for xpath support start -->
-
-<!-- uncomment for xpath support end -->
-

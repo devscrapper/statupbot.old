@@ -22,6 +22,20 @@
 	
 	<!-- 
 	<browserType> 
+        <name>edge</name>  
+        <displayName>MS Edge</displayName>
+        <icon>edge.png</icon>
+        <path>$userDir\bin\launch_edge.bat</path>  
+        <options></options> 
+       	<processName>MicrosoftEdge.exe</processName>
+       	<useSystemProxy>true</useSystemProxy> 
+       	<capacity>1</capacity>
+       	<force>true</force>
+    </browserType>
+    -->	
+	
+	<!-- 
+	<browserType> 
 		<name>ie</name>  
 		<displayName>IE 7</displayName>
 		<icon>ie.png</icon>
@@ -51,7 +65,7 @@
 		<displayName>Chrome</displayName>
 		<icon>chrome.png</icon>
 		<path>$LOCALAPPDATA\Google\Chrome\Application\chrome.exe</path>  
-		<options>--user-data-dir=$userDir\browser\chrome\profiles\sahi$threadNo --proxy-server=localhost:9999 --disable-popup-blocking --always-authorize-plugins --allow-outdated-plugins --incognito</options>  
+		<options>--user-data-dir=$userDir\browser\chrome\profiles\sahi$threadNo --proxy-server=127.0.0.1:$port --disable-popup-blocking --always-authorize-plugins --allow-outdated-plugins --enable-npapi --incognito</options>  
 		<processName>chrome.exe</processName> 
 		<capacity>5</capacity>  
 	</browserType>	
@@ -78,14 +92,16 @@
 		<capacity>1</capacity>  
 	</browserType>
 	
+	<!-- 
     <browserType>
         <name>phantomjs</name>
         <displayName>PhantomJS</displayName>
         <icon>phantomjs.png</icon>
         <path>$sahiDir\ext\phantomjs\sahi_phantomjs.bat</path>
-        <options>--proxy=localhost:9999 $sahiDir\ext\phantomjs\phantomsahi.js</options>
+        <options>&#45;&#45;proxy=127.0.0.1:$port $sahiDir\ext\phantomjs\phantomsahi.js</options>
         <processName>phantomjs.exe</processName>
         <capacity>100</capacity>
         <force>false</force>
     </browserType>
+    -->	
 </browserTypes>

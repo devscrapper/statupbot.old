@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Sahi integration with Microsoft Test Manager</title>
+</head>
+
+<body>
+<h3>[ Sahi MTM Bridge ] [ version 1.0]</h3>
+<p>Thank you for using Sahi MTM Bridge, version 1.0. The readme contains following main sections:</p>
+<ol>
+<li><a href="#install">Installation</a></li>
+<li><a href="#userguide">Usage guide</a></li>
+<li><a href="#support">Support</a></li>
+</ol>
+<div id="install">
+<h2>Installation</h2>
+<p>To use Sahi MTM Bridge, copy Sahi.cs and Utils.cs in your test solution. Correct the namespace in both the files to match your own namespace(the present namespace is SahiLibraryMtm). Now you will have access to the Sahi MTM Bridge in your test cases. Refer to <a href="#userguide">Usage guide</a> for using the bridge. </p>
+
+</div>
+
+<div id="userguide">
+<h2>Usage Guide</h2>
+<p>MTM lets you associate a test case with a test scenario. For each test case in MTM, you need to have a Sahi script which will be called in the unit test for the scenario.</p>
+<p>
+For example if we have a test called "test"(not that creative name!) for which we have a Sahi script test_demo.sah(You can fund this script in sahi_home/userdata/scripts/demo/plugins folder). We will be using Nunit to run the unit test for our case. The test case will look like this:
+</p>
+<pre><code>
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using NUnit.Framework; //remove this as you will not be using Nunit
+
+//change namespace to your own solution
+namespace SahiLibraryMtm
+{
+    [TestFixture]
+    public class SahiTest
+    {
+        private static String sahiHost = "localhost";
+        private static String sahiPort = "9999";
+        private static String browserType = "chrome+ie+firefox";
+        private static String userDataScriptsFolder = "D:/sahi/sahi_pro_g/userdata/scripts/demo/plugins/";
+        
+        [Test]
+        public void test()
+        {
+            String scriptPath = userDataScriptsFolder + "test_demo.sah";
+            Sahi sahiHelper = new Sahi(sahiHost, sahiPort);
+            Boolean s = sahiHelper.executeInParallel("http://sahitest.com/demo", browserType, scriptPath);
+            Console.WriteLine(s);
+        }
+        
+      
+    }
+}</code></pre>
+<p>Above code can be found in SahiTest.cs. All we need to do is call executeInParallel method of Sahi.cs as shown above. browserType can take one or multiple browser and will execute them in parallel for multiple browsers. In case of any errors, it will be thrown as exception and will be available to MTM. </p>
+</div>
+
+
+<div id="support">
+<h2>Support</h2>
+<p>In case you face any problems with Sahi MTM Bridge, please send an email to support@sahipro.com with complete reproduction steps and any relevant error messages available with you.</p>
+</div>
+</body>
+</html>

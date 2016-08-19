@@ -1,0 +1,76 @@
+<!--
+/**
+ * Copyright Tyto Software Pvt. Ltd.
+ */
+-->
+<html>
+<head>
+<title>Login</title>
+<link rel="stylesheet" type="text/css"
+	href="/_s_/spr/ext/easyui/themes/gray/easyui.css" />
+<link rel="stylesheet" type="text/css"
+	href="/_s_/spr/ext/easyui/themes/icon.css" />
+<script type="text/javascript" src="/_s_/spr/ext/jquery/jquery.min.js"></script>
+<script type="text/javascript"
+	src="/_s_/spr/ext/easyui/jquery.easyui.min.js"></script>
+<script type="text/javascript" src="/_s_/spr/util.js"></script>
+<script type="text/javascript" src="/_s_/spr/login/login.js"></script>
+<style>
+body * {
+	font-family: verdana;
+	font-size: 9pt;
+}
+
+.register-link {
+	text-decoration: none;
+}
+
+.register-link:hover {
+	text-decoration: underline
+}
+.logo{
+	margin-bottom: 30px;
+	margin-left: 140px;
+}
+</style>
+</head>
+<body>
+<div style="width: 400px; margin: 40px auto;">
+<img id="sahi_logo" src="/_s_/spr/images/sahi_pro_logo1.png" class="logo"/>
+<script>
+	if(isSahiPlaybackOnlyEnabled()) document.getElementById("sahi_logo").src = "/_s_/spr/images/sahi_pro_runner_logo1.png";
+</script>
+		<div class="easyui-panel" title="Sahi Login" style="width: 400px;">
+			<div style="padding: 10px 60px 20px 60px">
+				<form id="loginForm" name="loginForm" class="easyui-form"
+					method="post" onsubmit="login(); return false;"
+					data-options="novalidate:true">
+					<div id="errorMessage"
+						style="display: none; color: red; margin-left: 5px;"></div>
+					<table cellpadding="5">
+						<tr style="display:none">
+							<td>Username:</td>
+							<td><input id="user" class="easyui-textbox" type="text"
+								name="user" value="admin"></input></td>
+						</tr>
+						<tr>
+							<td>Password:</td>
+							<td><input id="password" class="easyui-textbox"
+								type="password" name="password"></input></td>
+						</tr>
+						<tr>
+							<td><input type="submit" value="Login" style="display: none"></input></td>
+						</tr>
+					</table>
+					<div style="margin-left: 5px;">
+						<a href="javascript:void(0)" class="easyui-linkbutton"
+							onclick="login()">Login</a>
+					</div>
+				</form>
+			</div>
+		</div>
+		<p style="text-align: center">The page you are trying to access requires authentication. <br/>
+		Please contact the owner of this system to access this page.</p>
+</div>
+</body>
+</html>

@@ -1,2 +1,3 @@
 cd $(dirname $0)
-phantomjs $@ > phantomjsLog.txt 2>&1
+# phantomjs $@ > phantomjsLog.txt 2>&1
+phantomjs $@
