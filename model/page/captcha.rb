@@ -63,19 +63,30 @@ module Pages
     #----------------------------------------------------------------------------------------------------------------
 
     def initialize(browser, id_visitor, home_visitor)
+      count_try = 3
+
       begin
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser"}) if browser.nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "id_visitor"}) if id_visitor.nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "home_visitor"}) if home_visitor.nil?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search"}) if  browser.engine_search.nil?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search"}) if browser.engine_search.nil?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.id_captcha"}) if browser.engine_search.id_captcha.nil? or browser.engine_search.id_captcha.empty?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.type_captcha"}) if browser.engine_search.type_captcha.nil? or  browser.engine_search.type_captcha.empty?
-        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.label_button_captcha"}) if browser.engine_search.label_button_captcha.nil? or  browser.engine_search.label_button_captcha.empty?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.type_captcha"}) if browser.engine_search.type_captcha.nil? or browser.engine_search.type_captcha.empty?
+        raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.label_button_captcha"}) if browser.engine_search.label_button_captcha.nil? or browser.engine_search.label_button_captcha.empty?
         raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "browser.engine_search.coord_captcha"}) if browser.engine_search.coord_captcha.empty?
 
         @input = browser.engine_search.id_captcha
         @type = browser.engine_search.type_captcha
         @submit_button = browser.engine_search.label_button_captcha
+
+
+        #teste la présence de la zone de saisie
+        #parfois la page n'est pas affichée mais l'url ipv4.google... est bien dans la zone de l'url
+        #dans ce cas on recharge la page
+        raise Error.new(PAGE_NONE_ELEMENT,
+                        :values => {:url => browser.url,
+                                    :type => @type,
+                                    :id => @input}) unless browser.exist_element?(type, input)
 
         super(browser.url,
               browser.title,
@@ -97,10 +108,26 @@ module Pages
         browser.take_captcha(captcha_file, browser.engine_search.coord_captcha)
 
         @text = Captchas::convert_to_text(:screenshot => screenshot_file.absolute_path,
-                                         :captcha => captcha_file.absolute_path,
-                                         :id_visitor => id_visitor)
+                                          :captcha => captcha_file.absolute_path,
+                                          :id_visitor => id_visitor)
 
         @@logger.an_event.debug "captcha converted to string : #{@text}"
+
+      rescue Error => e
+        @@logger.an_event.debug "captcha page empty, try #{count_try}"
+        count_try -= 1
+
+        if e.code == PAGE_NONE_ELEMENT and count_try > 0
+          #recharge la page courante
+          browser.reload
+          @@logger.an_event.debug "reload captcha page"
+          retry
+
+        else
+          raise e
+
+        end
+
 
       rescue Exception => e
         @@logger.an_event.error e.message
@@ -124,10 +151,10 @@ module Pages
     def to_s
       super +
           "input : #{@input}\n" +
-             "type : #{@type}\n" +
-             "submit_button : #{@submit_button}\n" +
-             "image : #{@image}\n" +
-             "str : #{@text}\n"
+          "type : #{@type}\n" +
+          "submit_button : #{@submit_button}\n" +
+          "image : #{@image}\n" +
+          "str : #{@text}\n"
     end
 
   end

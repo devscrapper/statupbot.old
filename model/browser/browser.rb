@@ -51,6 +51,7 @@ module Browsers
     BROWSER_NOT_SET_INPUT_SEARCH = 322
     BROWSER_NOT_SET_INPUT_CAPTCHA = 323
     BROWSER_NOT_TAKE_CAPTCHA = 324
+    BROWSER_NOT_RELOAD = 325
     #----------------------------------------------------------------------------------------------------------------
     # constant
     #----------------------------------------------------------------------------------------------------------------
@@ -457,6 +458,32 @@ module Browsers
       end
     end
 
+     #----------------------------------------------------------------------------------------------------------------
+    # exist_element?
+    #----------------------------------------------------------------------------------------------------------------
+    # test l'existance d'un element sur la page courante
+    #----------------------------------------------------------------------------------------------------------------
+    # input : type de l'objet html(textbox, button, ...), id de lobjet html
+    # output : true si trouvé, sinon false
+    #
+    #----------------------------------------------------------------------------------------------------------------
+    def exist_element?(type, id)
+      raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "type"}) if type.nil? or type.empty?
+      raise Error.new(ARGUMENT_UNDEFINE, :values => {:variable => "id"}) if id.nil? or id.empty?
+
+      @@logger.an_event.debug "type #{type}"
+      @@logger.an_event.debug "id #{id}"
+
+      r = "@driver.#{type}(\"#{id}\")"
+      @@logger.an_event.debug "r : #{r}"
+      @@logger.an_event.debug "eval(r) : #{eval(r)}"
+
+      exist = eval(r).exists?
+      @@logger.an_event.debug "eval(r).exists? : #{exist}"
+
+      exist
+
+    end
     #----------------------------------------------------------------------------------------------------------------
     # exist_link
     #----------------------------------------------------------------------------------------------------------------
@@ -715,6 +742,30 @@ module Browsers
 
     end
 
+        #----------------------------------------------------------------------------------------------------------------
+    # reload
+    #----------------------------------------------------------------------------------------------------------------
+    # recharge la page courant
+    #----------------------------------------------------------------------------------------------------------------
+    # input : RAS
+    # output : RAS
+    #----------------------------------------------------------------------------------------------------------------
+    def reload
+      begin
+        @driver.reload
+
+      rescue Exception => e
+        @@logger.an_event.error e.message
+        raise Error.new(BROWSER_NOT_RELOAD, :values => {:url => url}, :error => e)
+
+      else
+
+        @@logger.an_event.debug "browser #{name} #{@id} reload #{url}"
+
+      ensure
+
+      end
+    end
     #----------------------------------------------------------------------------------------------------------------
     # searchbox
     #----------------------------------------------------------------------------------------------------------------
@@ -751,6 +802,10 @@ module Browsers
         @@logger.an_event.debug "input : #{input}"
         @@logger.an_event.debug "keywords : #{keywords}"
 
+        #teste la présence de la zone de saisie pour eviter d'avoir une erreur technique
+        raise "search textbox not found" unless exist_element?(type, input)
+
+        #remplissage de la zone caractère par caractère pour simuler qqun qui tape au clavier
         kw = ""
         keywords.split(//).each { |c|
           kw += c
@@ -758,6 +813,8 @@ module Browsers
           @@logger.an_event.debug "eval(r) : #{r}"
           eval(r)
         }
+
+
       rescue Exception => e
         @@logger.an_event.fatal "set input search #{type} #{input} with #{keywords} : #{e.message}"
         raise Error.new(BROWSER_NOT_SET_INPUT_SEARCH, :values => {:browser => name, :type => type, :input => input, :keywords => keywords}, :error => e)

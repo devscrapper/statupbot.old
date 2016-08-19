@@ -363,6 +363,10 @@ module Sahi
       exist
     end
 
+    def reload
+      fetch("location.reload(true)")
+    end
+
     def take_screenshot(to_absolute_path)
       #TODO update for linux
       begin
@@ -373,6 +377,7 @@ module Sahi
       else
       end
     end
+
 
     def take_area_screenshot(to_absolute_path, coord)
       #TODO update for linux
